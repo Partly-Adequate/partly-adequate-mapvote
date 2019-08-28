@@ -1,0 +1,1 @@
+# ttt-partly-adequate-mapvote
