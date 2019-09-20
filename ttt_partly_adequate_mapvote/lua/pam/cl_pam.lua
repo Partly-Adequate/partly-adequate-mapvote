@@ -48,7 +48,7 @@ net.Receive("PAM_Start", function()
 	PAM.Playcounts = {}
 
 	local amount = net.ReadUInt(32)
-	
+
 	for i = 1, amount do
 		PAM.Maps[i] = net.ReadString()
 		PAM.Playcounts[PAM.Maps[i]] = net.ReadUInt(32)
@@ -71,10 +71,17 @@ net.Receive("PAM_Vote", function()
 
 	if IsValid(ply) then
 		PAM.Votes[ply:SteamID()] = net.ReadUInt(32) -- map_id
-		
+
 		if IsValid(PAM.Panel) then
 			PAM.Panel:AddVoter(ply)
 		end
+	end
+end)
+
+net.Receive("PAM_UnVote", function()
+	local ply = net.ReadEntity()
+	if IsValid(ply) then
+		PAM.Panel:RemoveVoter(ply)
 	end
 end)
 
@@ -120,7 +127,7 @@ function PANEL:Init()
 
 	self.TXTSearch.OnChange = function()
 		self.SearchTerm = self.TXTSearch:GetValue()
-		
+
 		self:RefreshMapList()
 	end
 
@@ -170,7 +177,7 @@ function PANEL:Init()
 		if not map_button_1 or not map_button_2 then
 			return true
 		end
-		
+
 		return map_button_1.TIMESPLAYED < map_button_2.TIMESPLAYED
 	end)
 
@@ -178,13 +185,13 @@ function PANEL:Init()
 		if not map_button_1 or not map_button_2 then
 			return true
 		end
-		
+
 		return map_button_1.TIMESPLAYED > map_button_2.TIMESPLAYED
 	end)
 
 	self.CBSortBy.OnSelect = function(panel, index, value)
 		local _, comparator = self.CBSortBy:GetSelected()
-		
+
 		self:SortMapList(comparator)
 	end
 
@@ -195,7 +202,7 @@ function PANEL:Init()
 
 	self.BTNToggleFavorites.DoClick = function()
 		self.showFavorites = not self.showFavorites
-		
+
 		self:RefreshMapList()
 	end
 
@@ -255,6 +262,15 @@ function PANEL:AddVoter(voter)
 	end
 
 	table.insert(self.Voters, icon_container)
+end
+
+function PANEL:RemoveVoter(voter)
+	for(_, icon_container) in pairs(self.Voters) do
+		if(icon_container.Player.SteamID() == voter.SteamID()) then
+			table.RemoveByValue(self.Voters, icon_container)
+			return
+		end
+	end
 end
 
 function PANEL:Think()
@@ -401,7 +417,7 @@ function PANEL:InitMapListButtons(maps)
 		end
 
 		lblPlayCount:SetFont("PAM_PlayCountFont")
-		
+
 		local ibtnFavorite = vgui.Create("DImageButton", button)
 		ibtnFavorite:SetImage("vgui/ttt/pam_ic_missing.vmt")
 
@@ -415,7 +431,7 @@ function PANEL:InitMapListButtons(maps)
 
 		ibtnFavorite:SetSize(31, 31)
 		ibtnFavorite:SetPos(size - 31, size - 31)
-		
+
 		ibtnFavorite.DoClick = function()
 			if button.ISFAVORITE then
 				if PAM.Panel:RemoveFromFavorites(button.MAPNAME) then
@@ -435,7 +451,7 @@ function PANEL:InitMapListButtons(maps)
 		end
 
 		button.Paint = function(s, w, h)
-		
+
 		end
 
 		button:SetPaintBackground(false)
@@ -479,7 +495,7 @@ function PANEL:AddToFavorites(mapname)
 
 		return true
 	end
-	
+
 	return false
 end
 
@@ -492,7 +508,7 @@ function PANEL:RemoveFromFavorites(mapname)
 
 		return true
 	end
-	
+
 	return false
 end
 
