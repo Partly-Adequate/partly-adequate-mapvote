@@ -265,9 +265,9 @@ function PANEL:AddVoter(voter)
 end
 
 function PANEL:RemoveVoter(voter)
-	for(_, icon_container) in pairs(self.Voters) do
-		if(icon_container.Player.SteamID() == voter.SteamID()) then
-			table.RemoveByValue(self.Voters, icon_container)
+	for _, v in pairs(self.Voters) do
+		if(v.Player.SteamID() == voter.SteamID()) then
+			table.RemoveByValue(self.Voters, v)
 			return
 		end
 	end

@@ -52,7 +52,7 @@ PAM.State = PAM.STATE_DISABLED
 
 --the current configuration
 PAM.Config = {}
-PAM.RTV_CONFIG = {}
+PAM.RTV_Config = {}
 
 -- set fallback metatable
 setmetatable(PAM.Config, PAM.CONFIG_DEFAULT)
@@ -70,6 +70,8 @@ PAM.RecentMaps = {}
 --the play counts of each map
 PAM.Playcounts = {}
 
+PAM.PlayersWantingRTV = {}
+
 if not file.Exists("pam", "DATA") then
 	file.CreateDir("pam")
 end
@@ -79,7 +81,7 @@ if not file.Exists("pam/config.txt", "DATA") then
 end
 
 if not file.Exists("pam/rtv_config.txt", "DATA") then
-	file.Write("pam/rtvconfig.txt", util.TableToJSON(PAM.RTV_CONFIG_DEFAULT))
+	file.Write("pam/rtv_config.txt", util.TableToJSON(PAM.RTV_CONFIG_DEFAULT))
 end
 
 if SERVER then
