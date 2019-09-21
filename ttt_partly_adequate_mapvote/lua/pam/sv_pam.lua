@@ -4,6 +4,8 @@ util.AddNetworkString("PAM_Start")
 util.AddNetworkString("PAM_Cancel")
 -- client->server->all
 util.AddNetworkString("PAM_Vote")
+-- client->server->all
+util.AddNetworkString("PAM_UnVote")
 -- server->all
 util.AddNetworkString("PAM_Announce_Winner")
 
@@ -17,6 +19,10 @@ if file.Exists("pam/config.txt", "DATA") then
 	PAM.Config = util.JSONToTable(file.Read("pam/config.txt", "DATA"))
 end
 
+if file.Exists("pam/rtv_config.txt", "DATA") then
+	PAM.RTV_Config = util.JSONToTable(file.Read("pam/rtv_config.txt", "DATA"))
+end
+
 if file.Exists("pam/recentmaps.txt", "DATA") then
 	PAM.RecentMaps = util.JSONToTable(file.Read("pam/recentmaps.txt", "DATA"))
 end
@@ -25,24 +31,24 @@ if file.Exists("pam/playcounts.txt", "DATA") then
 	PAM.Playcounts = util.JSONToTable(file.Read("pam/playcounts.txt", "DATA"))
 end
 
-function PAM.Start(vote_length)
+function PAM.Start(vote_length, allMaps)
 	vote_length = vote_length or PAM.Config.VoteLength
-	
+
 	local all_maps = file.Find("maps/*.bsp", "GAME")
-	
+
 	PAM.Maps = {}
 	PAM.Votes = {}
 
 	local amount = 0
-	
+
 	for k, map in RandomPairs(all_maps) do
 		--don't add too many maps
-		if amount == PAM.Config.MaxMapAmount then
+		if ( not allMaps ) and amount >= PAM.Config.MaxMapAmount then
 			break
 		end
 
 		--don't add maps which were played recently
-		if table.HasValue(PAM.RecentMaps, map) then
+		if ( not allMaps ) and table.HasValue(PAM.RecentMaps, map) then
 			continue
 		end
 
@@ -51,7 +57,7 @@ function PAM.Start(vote_length)
 			if string.find(map, prefix) then
 				amount = amount + 1
 				PAM.Maps[amount] = map:sub(1, -5)
-				
+
 				break
 			end
 		end
@@ -66,16 +72,16 @@ function PAM.Start(vote_length)
 	net.Start("PAM_Start")
 	--transmit amount
 	net.WriteUInt(amount, 32)
+
 	--transmit mapnames
-	
 	for i = 1, amount do
 		net.WriteString(PAM.Maps[i])
-		
+
 		local pc = PAM.Playcounts[PAM.Maps[i]] or 0
-		
+
 		net.WriteUInt(pc, 32)
 	end
-	
+
 	--transmit the length of the vote
 	net.WriteUInt(vote_length, 32)
 	net.Broadcast()
@@ -85,7 +91,7 @@ function PAM.Start(vote_length)
 	--timer for ending it after the vote time is over
 	timer.Create("PAM_Vote_Timer", vote_length, 1, function()
 		PAM.State = PAM.STATE_FINISHED
-		
+
 		local vote_results = {}
 
 		for steam_id, map in pairs(PAM.Votes) do
@@ -96,7 +102,7 @@ function PAM.Start(vote_length)
 			for _, player in ipairs(player.GetAll()) do
 				if player:SteamID() == steam_id then
 					vote_results[map] = vote_results[map] + 1
-					
+
 					break
 				end
 			end
@@ -109,13 +115,13 @@ function PAM.Start(vote_length)
 		net.Broadcast()
 
 		local current_map = game.GetMap():lower()
-		
+
 		if not PAM.Playcounts[current_map] then
 			PAM.Playcounts[current_map] = 1
 		else
 			PAM.Playcounts[current_map] = PAM.Playcounts[current_map] + 1
 		end
-		
+
 		file.Write("pam/playcounts.txt", util.TableToJSON(PAM.Playcounts))
 
 		timer.Simple(4, function()
@@ -126,21 +132,21 @@ end
 
 function PAM.UpdateRecentMaps()
 	table.insert(PAM.RecentMaps, game.GetMap():lower() .. ".bsp")
-	
+
 	while #PAM.RecentMaps > PAM.Config.MapsBeforeRevote do
 		table.remove(PAM.RecentMaps, 1)
 	end
-	
+
 	file.Write("pam/recentmaps.txt", util.TableToJSON(PAM.RecentMaps))
 end
 
 function PAM.Cancel()
 	if PAM.State == PAM.STATE_STARTED then
 		PAM.State = PAM.STATE_DISABLED
-		
+
 		net.Start("PAM_Cancel")
 		net.Broadcast()
-		
+
 		timer.Remove("PAM_Vote_Timer")
 	end
 end
@@ -159,3 +165,42 @@ net.Receive("PAM_Vote", function(len, ply)
 		end
 	end
 end)
+
+local function AddPlayerToRTV(ply)
+	table.insert(PAM.PlayersWantingRTV, ply:SteamID())
+end
+
+local function RemovePlayerFromRTV(ply)
+	table.RemoveByValue(PAM.PlayersWantingRTV, ply:SteamID());
+end
+
+local function CheckForRTV()
+	percentage = #PAM.PlayersWantingRTV / player.GetCount()
+
+	if(PAM.State == PAM.STATE_DISABLED and percentage >= PAM.RTV_Config.NeededPlayerPercentage) then
+		PAM.Start(PAM.RTV_Config.VoteLength, PAM.RTV_Config.AllowAllMaps)
+	end
+end
+
+hook.Add( "PlayerSay", "PAM_RTV_PlayerSayCheck", function(ply, text, team)
+	if PAM.RTV_Config.IsEnabled and PAM.State == PAM.STATE_DISABLED and table.HasValue(PAM.RTV_Config.Commands, string.lower(text)) and not table.HasValue(PAM.PlayersWantingRTV, ply:SteamID()) then
+		AddPlayerToRTV(ply)
+		CheckForRTV()
+	end
+end )
+
+hook.Add( "PlayerDisconnected", "PAM_PlayerDisconnected", function(ply)
+	/* UNTESTED
+	if PAM.State == PAM.STATE_STARTED and PAM.Votes[ply:SteamID()] then
+		net.Start("PAM_UnVote")
+		net.WriteEntity(ply)
+		net.Broadcast();
+	elseif PAM.RTV_Config.IsEnabled and PAM.State == PAM.STATE_DISABLED then
+		if table.HasValue(PAM.PlayersWantingRTV, ply:SteamID()) then
+			RemovePlayerFromRTV(ply)
+		else
+			CheckForRTV()
+		end
+	end
+	*/
+end )
