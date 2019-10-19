@@ -1,19 +1,27 @@
 local CATEGORY_NAME = "PAM"
 
------------------------------- partly adequate mapvote ------------------------------
-function TogglePAM(calling_ply, votetime, should_cancel)
-	if not should_cancel then
-		PAM.Start(votetime)
-		ulx.fancyLogAdmin(calling_ply, "#A called a mapvote!")
-	else
+local function StartPAM(calling_ply, votetime, allowAllMaps)
+	if(PAM.State == PAM.STATE_DISABLED) then
+		PAM.Start(votetime, allowAllMaps)
+		ulx.fancyLogAdmin(calling_ply, "#A started a mapvote!")
+	end
+end
+
+local function CancelPAM(calling_ply)
+	if(PAM.State == PAM.STATE_STARTED) then
 		PAM.Cancel()
 		ulx.fancyLogAdmin(calling_ply, "#A canceled the mapvote!")
 	end
 end
 
-local pamcmd = ulx.command(CATEGORY_NAME, "mapvote", TogglePAM, "!mapvote")
-pamcmd:addParam{ type = ULib.cmds.NumArg, min = 20, default = 30, hint = "time", ULib.cmds.optional, ULib.cmds.round }
-pamcmd:addParam{ type = ULib.cmds.BoolArg, invisible = true }
-pamcmd:defaultAccess(ULib.ACCESS_ADMIN)
-pamcmd:help("Invokes the map vote logic")
-pamcmd:setOpposite("unmapvote", {_, _, true}, "!unmapvote")
+local pamstartcmd = ulx.command(CATEGORY_NAME, "pam_start", StartPAM, "!pam_start")
+pamstartcmd:addParam{ type = ULib.cmds.NumArg, default = 30, hint = "length", ULib.cmds.optional, ULib.cmds.round }
+pamstartcmd:addParam{ type = ULib.cmds.BoolArg, default = false, hint = "allow all maps", ULib.cmds.optional, ULib.cmds.round }
+pamstartcmd:addParam{ type = ULib.cmds.BoolArg, invisible = true }
+pamstartcmd:defaultAccess(ULib.ACCESS_ADMIN)
+pamstartcmd:help("starts a map vote")
+
+local pamcancelcmd = ulx.command(CATEGORY_NAME, "pam_cancel", CancelPAM, "!pam_cancel")
+pamcancelcmd:addParam{ type = ULib.cmds.BoolArg, invisible = true }
+pamcancelcmd:defaultAccess(ULib.ACCESS_ADMIN)
+pamcancelcmd:help("cancels the current map vote")

@@ -6,6 +6,8 @@ util.AddNetworkString("PAM_Cancel")
 util.AddNetworkString("PAM_Vote")
 -- client->server->all
 util.AddNetworkString("PAM_UnVote")
+-- client->server
+util.AddNetworkString("PAM_RTV")
 -- server->all
 util.AddNetworkString("PAM_Announce_Winner")
 
@@ -166,41 +168,40 @@ net.Receive("PAM_Vote", function(len, ply)
 	end
 end)
 
-local function AddPlayerToRTV(ply)
-	table.insert(PAM.PlayersWantingRTV, ply:SteamID())
-end
+net.Receive("PAM_RTV", function(len, ply)
+	if PAM.RTV_Config.IsEnabled and PAM.State == PAM.STATE_DISABLED then
+		rtvReason = ""
+		if table.HasValue(PAM.PlayersWantingRTV, ply:SteamID()) then
+			table.RemoveByValue(PAM.PlayersWantingRTV, ply:SteamID());
+			rtvReason = " no longer wants to rock the vote! "
+		else
+			table.insert(PAM.PlayersWantingRTV, ply:SteamID())
+			rtvReason = " wants to rock the vote! "
+		end
 
-local function RemovePlayerFromRTV(ply)
-	table.RemoveByValue(PAM.PlayersWantingRTV, ply:SteamID());
-end
+		currentCount = #PAM.PlayersWantingRTV
+		neededCount = math.ceil(PAM.RTV_Config.NeededPlayerPercentage * player.GetCount())
 
-local function CheckForRTV()
-	percentage = #PAM.PlayersWantingRTV / player.GetCount()
+		PrintMessage(3, "[PAM] " .. ply:GetName() .. rtvReason .. "(" .. tostring(currentCount) .. "/" .. tostring(neededCount) .. ")")
 
-	if(PAM.State == PAM.STATE_DISABLED and percentage >= PAM.RTV_Config.NeededPlayerPercentage) then
-		PAM.Start(PAM.RTV_Config.VoteLength, PAM.RTV_Config.AllowAllMaps)
+		if (currentCount >= neededCount) then
+			PAM.Start(PAM.RTV_Config.VoteLength, PAM.RTV_Config.AllowAllMaps)
+		end
 	end
-end
+end)
 
-hook.Add( "PlayerSay", "PAM_RTV_PlayerSayCheck", function(ply, text, team)
-	if PAM.RTV_Config.IsEnabled and PAM.State == PAM.STATE_DISABLED and table.HasValue(PAM.RTV_Config.Commands, string.lower(text)) and not table.HasValue(PAM.PlayersWantingRTV, ply:SteamID()) then
-		AddPlayerToRTV(ply)
-		CheckForRTV()
-	end
-end )
-
+/* Untested but needed
 hook.Add( "PlayerDisconnected", "PAM_PlayerDisconnected", function(ply)
-	/* UNTESTED
 	if PAM.State == PAM.STATE_STARTED and PAM.Votes[ply:SteamID()] then
 		net.Start("PAM_UnVote")
 		net.WriteEntity(ply)
 		net.Broadcast();
 	elseif PAM.RTV_Config.IsEnabled and PAM.State == PAM.STATE_DISABLED then
 		if table.HasValue(PAM.PlayersWantingRTV, ply:SteamID()) then
-			RemovePlayerFromRTV(ply)
+			table.RemoveByValue(PAM.PlayersWantingRTV, ply:SteamID());
 		else
 			CheckForRTV()
 		end
 	end
-	*/
 end )
+*/

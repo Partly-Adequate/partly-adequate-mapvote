@@ -39,9 +39,6 @@ PAM.RTV_CONFIG_DEFAULT = {
 
 	--allows the rtv vote to contain all maps
 	AllowAllMaps = false;
-
-	--represent all commands representing "rtv"
-	Commands = {"rtv", "rtv!", "rock the vote", "rock the vote!"};
 }
 
 --the current round

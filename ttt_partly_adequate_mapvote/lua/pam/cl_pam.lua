@@ -1,25 +1,25 @@
 surface.CreateFont("PAM_MapNameFont", {
-		font = "Trebuchet MS",
-		size = 25,
-		weight = 700,
-		antialias = true,
-		shadow = true
+	font = "Trebuchet MS",
+	size = 25,
+	weight = 700,
+	antialias = true,
+	shadow = true
 })
 
 surface.CreateFont("PAM_PlayCountFont", {
-		font = "Trebuchet MS",
-		size = 20,
-		weight = 700,
-		antialias = true,
-		shadow = true
+	font = "Trebuchet MS",
+	size = 20,
+	weight = 700,
+	antialias = true,
+	shadow = true
 })
 
 surface.CreateFont("PAM_VoteFontCountdown", {
-		font = "Tahoma",
-		size = 32,
-		weight = 700,
-		antialias = true,
-		shadow = true
+	font = "Tahoma",
+	size = 32,
+	weight = 700,
+	antialias = true,
+	shadow = true
 })
 
 PAM.EndsAt = 0
@@ -30,22 +30,36 @@ if file.Exists("pam/favoritemaps.txt", "DATA") then
 	PAM.FavoriteMaps = util.JSONToTable(file.Read("pam/favoritemaps.txt", "DATA"))
 end
 
-concommand.Add("ttt_toggle_pam_screen", function(ply, cmd, args, argStr)
-	if gamemode.Get("terrortown") and PAM.Panel and IsValid(PAM.Panel) then
+concommand.Add("ttt_pam_toggle_menu", function(ply, cmd, args, argStr)
+	if gamemode.Get("terrortown") and PAM.State == PAM.STATE_STARTED then
 		PAM.Panel:SetVisible(not PAM.Panel:IsVisible())
 	end
 end)
 
-if bind then
-	bind.Register("ttt_toggle_pam_screen", function()
-		LocalPlayer():ConCommand("ttt_toggle_pam_screen")
-	end, nil, nil, "toggles mapvote screen visibility")
+concommand.Add("ttt_pam_rtv", function(ply, cmd, args, argStr)
+	if gamemode.Get("terrortown") and PAM.State == PAM.STATE_DISABLED then
+		net.Start("PAM_RTV")
+		net.SendToServer()
+	end
+end)
+
+local function RegisterBindings()
+	bind.Register("ttt_pam_toggle_menu", function()
+		LocalPlayer():ConCommand("ttt_pam_toggle_menu")
+	end, nil, "Partly Adequate Mapvote", "Toggle menu visibility", nil)
+
+	bind.Register("ttt_pam_rtv", function()
+		LocalPlayer():ConCommand("ttt_pam_rtv")
+	end, nil, "Partly Adequate Mapvote", "RTV", nil)
 end
+
+hook.Add("Initialize", "PamBindings", RegisterBindings)
 
 net.Receive("PAM_Start", function()
 	PAM.Maps = {}
 	PAM.Votes = {}
 	PAM.Playcounts = {}
+	PAM.State = PAM.STATE_STARTED
 
 	local amount = net.ReadUInt(32)
 
@@ -87,6 +101,7 @@ end)
 
 net.Receive("PAM_Announce_Winner", function()
 	if IsValid(PAM.Panel) then
+		PAM.State = PAM.STATE_FINISHED
 		PAM.Panel:Flash(net.ReadUInt(32))
 	end
 end)
@@ -94,6 +109,7 @@ end)
 net.Receive("PAM_Cancel", function()
 	if IsValid(PAM.Panel) then
 		PAM.Panel:Remove()
+		PAM.State = PAM.STATE_DISABLED
 	end
 end)
 
