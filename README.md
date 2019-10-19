@@ -32,6 +32,13 @@ There is a textfield in the votescreen where searchterms can be inserted.
 Only maps containing all letters from the searchterm in the correct order in their name will be shown.
 With searchterm "ac" and mapname "abc" the map will be shown even though the letters are not adjacent.
 
+## RTV
+When enabled, players can use a the command "ttt_pam_rtv" to start a vote without needing admin permissions. Once enough players ran this commands a vote starts.
+
+
+## QOL
+You can use the command "ttt_pam_toggle_menu" to close / reopen the pam menu in case you closed it or want to change your vote.
+
 # Configuration
 ## Main Config
 The Configuration file for this addon is located in the "pam" folder in the data folder and looks like this:
@@ -61,8 +68,7 @@ The RTV configuration file is located in the "pam" folder in the data folder and
 	"IsEnabled":false,
 	"NeededPlayerPercentage":0.6,
 	"VoteLength":60.0,
-	"AllowAllMaps":false,
-	"Commands":["rtv", "rtv!", "rock the vote", "rock the vote!"]
+	"AllowAllMaps":false
 }
 
 ```
@@ -73,4 +79,3 @@ The RTV configuration file is located in the "pam" folder in the data folder and
 | NeededPlayerPercentage | The percantage of players needed to start a vote using RTV-Commands | 0.6 | must be a floating point value between 0 and 1 | when set to 0.5, half of the players have to run an RTV-Command / when set to 0, one player has to run an RTV-Command / when set to 1, all players have to run an RTV-Command |
 | VoteLength | The length of the voting time | 60.0 | must be a number / mustn't be negative | when set to 60 players will have 60 seconds to vote on maps |
 | AllowAllMaps | Allow all maps to be voted on. This ignores the restrictions from the recently played maps and the MaxMapAmount | false | must be true or false | when set to true all maps with fitting prefixes will be selectable / when set to false the constraints from the recent maps and the maxMapAmount will apply |
-| Commands | All possible commands to start an RTV | ["rtv", "rtv!", "rock the vote", "rock the vote!"] | must be a string array | when empty RTV won't be possible / when "asdf" is an element, players can say "asdf" in chat and start an RTV this way |
