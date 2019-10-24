@@ -88,4 +88,5 @@ if SERVER then
 	include("pam/sv_pam.lua")
 else
 	include("pam/cl_pam.lua")
+	include("pam/cl_commands.lua")
 end

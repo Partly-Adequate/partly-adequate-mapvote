@@ -30,31 +30,6 @@ if file.Exists("pam/favoritemaps.txt", "DATA") then
 	PAM.FavoriteMaps = util.JSONToTable(file.Read("pam/favoritemaps.txt", "DATA"))
 end
 
-concommand.Add("ttt_pam_toggle_menu", function(ply, cmd, args, argStr)
-	if gamemode.Get("terrortown") and PAM.State == PAM.STATE_STARTED then
-		PAM.Panel:SetVisible(not PAM.Panel:IsVisible())
-	end
-end)
-
-concommand.Add("ttt_pam_rtv", function(ply, cmd, args, argStr)
-	if gamemode.Get("terrortown") and PAM.State == PAM.STATE_DISABLED then
-		net.Start("PAM_RTV")
-		net.SendToServer()
-	end
-end)
-
-local function RegisterBindings()
-	bind.Register("ttt_pam_toggle_menu", function()
-		LocalPlayer():ConCommand("ttt_pam_toggle_menu")
-	end, nil, "Partly Adequate Mapvote", "Toggle menu visibility", nil)
-
-	bind.Register("ttt_pam_rtv", function()
-		LocalPlayer():ConCommand("ttt_pam_rtv")
-	end, nil, "Partly Adequate Mapvote", "RTV", nil)
-end
-
-hook.Add("Initialize", "PamBindings", RegisterBindings)
-
 net.Receive("PAM_Start", function()
 	PAM.Maps = {}
 	PAM.Votes = {}
@@ -64,8 +39,11 @@ net.Receive("PAM_Start", function()
 	local amount = net.ReadUInt(32)
 
 	for i = 1, amount do
-		PAM.Maps[i] = net.ReadString()
-		PAM.Playcounts[PAM.Maps[i]] = net.ReadUInt(32)
+		local mapinfo = {};
+		mapinfo.id = i
+		mapinfo.name = net.ReadString()
+		mapinfo.playcount = net.ReadUInt(32)
+		PAM.Maps[i] = mapinfo
 	end
 
 	--the point in time at which the mapvote will end
@@ -76,7 +54,7 @@ net.Receive("PAM_Start", function()
 	end
 
 	PAM.Panel = vgui.Create("VoteScreen")
-	PAM.Panel:InitMapListButtons(PAM.Maps)
+	PAM.Panel:InitMapListButtons()
 	PAM.Panel:RefreshMapList()
 end)
 
@@ -116,48 +94,50 @@ end)
 local PANEL = {}
 
 function PANEL:Init()
+	// menu size
 	local width = ScrW() * 0.5
-	width = width + (200 - (width % 200)) + 23
-
 	local height = ScrH() * 0.75
+	// adjust width to button width + scrollbar
+	width = width + (200 - (width % 200)) + 23
 	self:SetSize(width, height)
+
+	//menu position (centered)
 	self:SetPos((ScrW() - width) * 0.5, (ScrH() - height) * 0.5)
 	self:SetZPos(-100)
+
+	// other menu settings
 	self:SetTitle("Partly Adequate Mapvote")
 	self:SetDeleteOnClose(false)
 	self:SetIcon("vgui/ttt/pam_ic_menu.png")
-
 	self.searchTerm = ""
 	self.showFavorites = false
 
+	// upper settings menu
 	self.VoteSettings = vgui.Create("Panel", self)
-
+	// countdown
 	self.LBLCountDown = vgui.Create("DLabel", self.VoteSettings)
 	self.LBLCountDown:SetFont("PAM_VoteFontCountdown")
 	self.LBLCountDown:SetContentAlignment(5)
 	self.LBLCountDown:SetSize(width - 10, 30)
 	self.LBLCountDown:SetPos(0, 0)
-
+	//search textentry
 	self.TXTSearch = vgui.Create("DTextEntry", self.VoteSettings)
 	self.TXTSearch:SetPlaceholderText("search for maps")
-
 	self.TXTSearch.OnChange = function()
 		self.SearchTerm = self.TXTSearch:GetValue()
-
 		self:RefreshMapList()
 	end
-
 	self.TXTSearch.OnGetFocus = function()
 		self:SetKeyboardInputEnabled(true)
 	end
-
 	self.TXTSearch.OnLoseFocus = function()
 		self:SetKeyboardInputEnabled(false)
 	end
-
 	self.TXTSearch:SetSize(width - 10, 30)
 	self.TXTSearch:SetPos(0, 30)
 
+	// sort combobox
+	// sort function
 	local function CompareStrings(string1, string2)
 		string1 = string.lower(string1)
 		string2 = string.lower(string2)
@@ -165,72 +145,66 @@ function PANEL:Init()
 		for i = 1, math.min(#string1, #string2) do
 			byte1 = string.byte(string1:sub(i, i))
 			byte2 = string.byte(string2:sub(i, i))
-
 			if byte1 < byte2 then
 				return true
 			elseif byte1 > byte2 then
 				return false
 			end
 		end
-
 		return #string1 < #string2
 	end
-
 	self.CBSortBy = vgui.Create("DComboBox", self.VoteSettings)
 	self.CBSortBy:SetValue("Sort by...")
 	self.CBSortBy:SetSize((width - 10) / 2, 30)
 	self.CBSortBy:SetPos(0, 60)
-
+	//choices
 	self.CBSortBy:AddChoice("Mapname [ASC]", function(map_button_1, map_button_2)
-		return CompareStrings(map_button_1.MAPNAME, map_button_2.MAPNAME)
+		return CompareStrings(map_button_1.map.name, map_button_2.map.name)
 	end)
-
 	self.CBSortBy:AddChoice("Mapname [DESC]", function(map_button_1, map_button_2)
-		return not CompareStrings(map_button_1.MAPNAME, map_button_2.MAPNAME)
+		return not CompareStrings(map_button_1.map.name, map_button_2.map.name)
 	end)
-
 	self.CBSortBy:AddChoice("Least played", function(map_button_1, map_button_2)
 		if not map_button_1 or not map_button_2 then
 			return true
 		end
-
-		return map_button_1.TIMESPLAYED < map_button_2.TIMESPLAYED
+		return map_button_1.map.playcount < map_button_2.map.playcount
 	end)
-
 	self.CBSortBy:AddChoice("Most played", function(map_button_1, map_button_2)
 		if not map_button_1 or not map_button_2 then
 			return true
 		end
-
-		return map_button_1.TIMESPLAYED > map_button_2.TIMESPLAYED
+		return map_button_1.map.playcount > map_button_2.map.playcount
 	end)
-
+	// on selected
 	self.CBSortBy.OnSelect = function(panel, index, value)
 		local _, comparator = self.CBSortBy:GetSelected()
-
 		self:SortMapList(comparator)
 	end
 
+	// favorites
 	self.BTNToggleFavorites = vgui.Create("DButton", self.VoteSettings)
 	self.BTNToggleFavorites:SetText("favorites")
 	self.BTNToggleFavorites:SetSize((width - 10) * 0.5, 30)
 	self.BTNToggleFavorites:SetPos((width - 10) * 0.5, 60)
-
 	self.BTNToggleFavorites.DoClick = function()
 		self.showFavorites = not self.showFavorites
-
 		self:RefreshMapList()
 	end
 
+	// vote settings
 	self.VoteSettings:SetZPos(-100)
 	self.VoteSettings:SetSize(width - 10, 90)
 	self.VoteSettings:Dock(TOP)
+
+	// map list
 	self.MapList = vgui.Create("DPanelList", self)
 	self.MapList:Dock(FILL)
 	self.MapList:EnableVerticalScrollbar(true)
 	self.MapList:EnableHorizontal(true)
 	self.MapList:SetZPos(-100)
 
+	// TODO this is bad
 	width = width - 10
 
 	self.Voters = {}
@@ -289,6 +263,9 @@ function PANEL:RemoveVoter(voter)
 	end
 end
 
+// TODO voters should only be added and removed when needed
+// Players disconnecting should result in votes to be revoked
+// Players voting should result in voters to be created/moved
 function PANEL:Think()
 	for _, map_button in pairs(self.MapListButtons) do
 		map_button.NumVotes = 0
@@ -378,87 +355,78 @@ function PANEL:InitMapListButtons(maps)
 	local button_material = Material("vgui/ttt/pam_map_button.png")
 	local size = 200
 
-	for k, v in pairs(maps) do
+	for k, mapinfo in pairs(maps) do
 		local button = vgui.Create("DButton")
-		button.ID = k
-		button.MAPNAME = v
-		button.TIMESPLAYED = 0
-
-		if PAM.Playcounts and PAM.Playcounts[v] then
-			button.TIMESPLAYED = PAM.Playcounts[v]
-		end
-
+		button.voterCount = 0
+		button.map = mapinfo
 		button:SetSize(size, size)
-		button:SetTooltip(button.MAPNAME)
 		button:SetText("")
 
+		// on button clicked
 		button.DoClick = function()
 			net.Start("PAM_Vote")
-			net.WriteUInt(button.ID, 32)
+			net.WriteUInt(mapinfo.id, 32)
 			net.SendToServer()
 		end
 
+		// map thumbnail
 		local mapImage = vgui.Create("DImage", button)
 		local mapImageMat = map_missing_material
-
-		if file.Exists("maps/thumb/" .. button.MAPNAME .. ".png", "GAME") then
-			mapImageMat = Material("maps/thumb/" .. button.MAPNAME .. ".png")
+		if file.Exists("maps/thumb/" .. mapinfo.name .. ".png", "GAME") then
+			mapImageMat = Material("maps/thumb/" .. mapinfo.name .. ".png")
 		end
-
 		mapImage:SetMaterial(mapImageMat)
 		mapImage:SetSize(size, size)
 
+		// button texture
 		local buttonImage = vgui.Create("DImage", button)
 		buttonImage:SetMaterial(button_material)
 		buttonImage:SetSize(size, size)
 
+		// mapname label
 		local lblMapName = vgui.Create("DLabel", button)
 		lblMapName:SetPos(5, 0)
 		lblMapName:SetSize(190, 31)
 		lblMapName:SetContentAlignment(4)
-		lblMapName:SetText(button.MAPNAME)
+		lblMapName:SetText(mapinfo.name)
 		lblMapName:SetFont("PAM_MapNameFont")
 
+		// playcount label
 		local lblPlayCount = vgui.Create("DLabel", button)
 		lblPlayCount:SetPos(5, 169)
 		lblPlayCount:SetSize(190, 31)
 		lblPlayCount:SetContentAlignment(4)
-
-		if button.TIMESPLAYED == 0 then
+		lblPlayCount:SetFont("PAM_PlayCountFont")
+		if mapinfo.playcount == 0 then
 			lblPlayCount:SetText("Not played yet")
-		elseif button.TIMESPLAYED == 1 then
+		elseif mapinfo.playcount == 1 then
 			lblPlayCount:SetText("Played once")
 		else
-			lblPlayCount:SetText("Played " .. button.TIMESPLAYED .. " times")
+			lblPlayCount:SetText("Played " .. mapinfo.playcount .. " times")
 		end
 
-		lblPlayCount:SetFont("PAM_PlayCountFont")
-
+		// heart for favorites
 		local ibtnFavorite = vgui.Create("DImageButton", button)
-		ibtnFavorite:SetImage("vgui/ttt/pam_ic_missing.vmt")
-
 		if table.HasValue(PAM.FavoriteMaps, button.MAPNAME) then
 			ibtnFavorite:SetImage("vgui/ttt/pam_ic_fav.vmt")
-			button.ISFAVORITE = true
+			button.isFavorite = true
 		else
 			ibtnFavorite:SetImage("vgui/ttt/pam_ic_nofav.vmt")
-			button.ISFAVORITE = false
+			button.isFavorite = false
 		end
-
 		ibtnFavorite:SetSize(31, 31)
 		ibtnFavorite:SetPos(size - 31, size - 31)
-
 		ibtnFavorite.DoClick = function()
-			if button.ISFAVORITE then
+			if button.isFavorite then
 				if PAM.Panel:RemoveFromFavorites(button.MAPNAME) then
-					button.ISFAVORITE = false
+					button.isFavorite = false
 
 					ibtnFavorite:SetImage("vgui/ttt/pam_ic_nofav.vmt")
 					PAM.Panel:RefreshMapList()
 				end
 			else
 				if PAM.Panel:AddToFavorites(button.MAPNAME) then
-					button.ISFAVORITE = true
+					button.isFavorite = true
 
 					ibtnFavorite:SetImage("vgui/ttt/pam_ic_fav.vmt")
 					PAM.Panel:RefreshMapList()
@@ -466,25 +434,20 @@ function PANEL:InitMapListButtons(maps)
 			end
 		end
 
-		button.Paint = function(s, w, h)
-
-		end
-
+		// override default texture
+		button.Paint = function(s, w, h) end
 		button:SetPaintBackground(false)
-
-		button.NumVotes = 0
 
 		table.insert(self.MapListButtons, button)
 	end
 end
 
 function PANEL:GetMapButton(id)
-	for _, v in pairs(self.MapListButtons) do
-		if v.ID == id then
-			return v
+	for _, button in pairs(self.MapListButtons) do
+		if button.map.id == id then
+			return button
 		end
 	end
-
 	return false
 end
 
