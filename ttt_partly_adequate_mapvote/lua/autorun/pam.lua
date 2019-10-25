@@ -83,10 +83,18 @@ end
 
 if SERVER then
 	AddCSLuaFile()
-	AddCSLuaFile("pam/cl_pam.lua")
 
-	include("pam/sv_pam.lua")
+	AddCSLuaFile("pam/client/cl_init.lua")
+	AddCSLuaFile("pam/client/cl_gui.lua")
+	AddCSLuaFile("pam/client/cl_networking.lua")
+	AddCSLuaFile("pam/client/cl_commands.lua")
+
+	include("pam/server/sv_init.lua")
+	include("pam/server/sv_pam.lua")
+	include("pam/server/sv_networking.lua")
 else
-	include("pam/cl_pam.lua")
-	include("pam/cl_commands.lua")
+	include("pam/client/cl_init.lua")
+	include("pam/client/cl_gui.lua")
+	include("pam/client/cl_networking.lua")
+	include("pam/client/cl_commands.lua")
 end

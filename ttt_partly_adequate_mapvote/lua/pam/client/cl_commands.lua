@@ -14,7 +14,7 @@ concommand.Add("ttt_pam_rtv", function(ply, cmd, args, argStr)
 end)
 
 //registers commands for the ttt2 bind menu
-hook.Add("Initialize", "PamBindings", function
+hook.Add("Initialize", "PamBindings", function()
 	bind.Register("ttt_pam_toggle_menu", function()
 		LocalPlayer():ConCommand("ttt_pam_toggle_menu")
 	end, nil, "Partly Adequate Mapvote", "Toggle menu visibility", nil)

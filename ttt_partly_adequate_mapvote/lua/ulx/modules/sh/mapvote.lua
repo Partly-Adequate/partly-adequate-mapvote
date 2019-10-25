@@ -15,7 +15,7 @@ local function CancelPAM(calling_ply)
 end
 
 local pamstartcmd = ulx.command(CATEGORY_NAME, "pam_start", StartPAM, "!pam_start")
-pamstartcmd:addParam{ type = ULib.cmds.NumArg, default = 30, hint = "length", ULib.cmds.optional, ULib.cmds.round }
+pamstartcmd:addParam{ type = ULib.cmds.NumArg, default = 60, hint = "length", ULib.cmds.optional, ULib.cmds.round }
 pamstartcmd:addParam{ type = ULib.cmds.BoolArg, default = false, hint = "allow all maps", ULib.cmds.optional, ULib.cmds.round }
 pamstartcmd:addParam{ type = ULib.cmds.BoolArg, invisible = true }
 pamstartcmd:defaultAccess(ULib.ACCESS_ADMIN)
