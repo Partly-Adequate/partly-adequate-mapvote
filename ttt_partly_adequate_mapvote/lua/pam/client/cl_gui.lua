@@ -179,12 +179,12 @@ function PANEL:InitVotedOn(parent, width, height)
 end
 
 function PANEL:InitMapList(width, height)
-	local ScrollPanel = vgui.Create("DScrollPanel", self)
-	ScrollPanel:SetSize(width, height - 4 * settingsHeight)
-	ScrollPanel:SetPos(borderSize / 2, settingsHeight * 4 + borderSize / 2)
-	self.MapList = vgui.Create("DIconLayout", ScrollPanel)
-	self.MapList:Dock(FILL)
+	self.MapList = vgui.Create("DPanelList", self)
+	self.MapList:SetSize(width, height - 4 * settingsHeight)
+	self.MapList:SetPos(borderSize / 2, settingsHeight * 4 + borderSize / 2)
+	self.MapList:EnableHorizontal(true)
 	self:InitMapButtons()
+	self:RefreshMapList()
 end
 
 function PANEL:AddVoter(ply)
@@ -262,6 +262,7 @@ function PANEL:UpdateVoters()
 			end
 		end
 	end
+	self:RefreshMapList()
 end
 
 function PANEL:FitsSearchTerm(button)
@@ -289,17 +290,15 @@ function PANEL:FitsSearchTerm(button)
 end
 
 function PANEL:SortMapList(comparator)
-	// TODO sort the buttons
+	table.sort(self.MapButtons, comparator)
+	self:RefreshMapList()
 end
 
 function PANEL:RefreshMapList()
+	self.MapList:Clear()
 	for _, mapButton in pairs(self.MapButtons) do
 		if (not winnerID or mapButton.map.id == winnerID) and self:FitsSearchTerm(mapButton) and (not self.showFavorites or mapButton.isFavorite) and (not self.showVotedOn or mapButton.NumVotes > 0) then
-			//TODO add this button to the list
-			mapButton:SetVisible(true)
-		else
-			//TODO remove this button from the list
-			mapButton:SetVisible(false)
+			self.MapList:AddItem(mapButton)
 		end
 	end
 end
@@ -315,7 +314,7 @@ function PANEL:InitMapButtons()
 	local map_missing_material = Material("vgui/ttt/pam_ic_missing.png")
 	local button_material = Material("vgui/ttt/pam_map_button.png")
 	for k, mapinfo in pairs(PAM.Maps) do
-		local button = self.MapList:Add("DButton")
+		local button = vgui.Create("DButton")
 		button.voterCount = 0
 		button.map = mapinfo
 		button:SetSize(mapButtonSize, mapButtonSize)
