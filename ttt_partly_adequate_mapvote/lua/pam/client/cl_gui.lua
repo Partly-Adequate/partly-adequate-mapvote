@@ -1,29 +1,62 @@
 local PANEL = {}
 
 // alignment helping values
-local mapButtonSize = 180;
-local mapImageSize = mapButtonSize - 50;
+local mapButtonSize = 150
+local mapImageSize = mapButtonSize - 50
 local mapButtonLabelSize = (mapButtonSize - mapImageSize) / 2
-local avatarSize = mapButtonLabelSize - 6;
-local scrollBarSize = 25;
-local settingsHeight = 20;
-local borderSize = 8;
+local avatarSize = mapButtonLabelSize - 6
+local borderSize = 20
+local scrollBarSize = 14
+local settingsHeight = 25
 local avatarsPerRow = math.floor(mapImageSize / mapButtonLabelSize)
 local avatarSpace = mapImageSize / avatarsPerRow
 
+// Colors
+local colBase = {}
+local colBaseDarker = {}
+local colBaseDarkest = {}
+local colTextBase = {}
+local colTextDarker = {}
+local colTextDarkest = {}
+
+surface.CreateFont("PAM_MapNameFont", {
+	font = "Trebuchet MS",
+	size = mapButtonLabelSize * 0.75
+})
+
+surface.CreateFont("PAM_PlayCountFont", {
+	font = "Trebuchet MS",
+	size = mapButtonLabelSize * 0.5
+})
+
+surface.CreateFont("PAM_VoteFontCountdown", {
+	font = "Trebuchet MS",
+	size = settingsHeight - 1
+})
+
+surface.CreateFont("PAM_Settings", {
+	font = "Trebuchet MS",
+	size = settingsHeight * 0.66
+})
+
 function PANEL:Init()
 	local width = ScrW() * 0.5
-	local height = ScrH() * 0.75
+	local height = ScrH() * 0.75 + borderSize / 2
 	// adjust width to button width + scrollbar
-	width = width + (mapButtonSize - (width % mapButtonSize)) + scrollBarSize;
-
+	width = width + (mapButtonSize - (width % mapButtonSize)) + scrollBarSize + borderSize;
 	self:SetSize(width, height)
 	self:SetPos((ScrW() - width) * 0.5, (ScrH() - height) * 0.5)
 	self:SetZPos(-100)
+	self:SetTitle("Partly Adequate Mapvote")
+	self:SetDeleteOnClose(false)
+
+	self:ChangeColorTheme({r = 40, g = 40, b = 40, a = 255}, {r = 200, g = 200, b = 200, a = 255})
 
 	self.Paint = function(s, w, h)
-		surface.SetDrawColor(75, 75, 75)
-		surface.DrawRect(0, 0, width, height)
+		surface.SetDrawColor(colBaseDarkest)
+		surface.DrawRect(0, 0, w, 25)
+		surface.SetDrawColor(colBase)
+		surface.DrawRect(0, 25, w, h - 25)
 	end
 
 	self.searchTerm = ""
@@ -34,37 +67,77 @@ function PANEL:Init()
 	self.timeLeft = 0
 	self.winnerID = nil
 
-	self:InitSettings(width - borderSize, height - borderSize)
-	self:InitMapList(width - borderSize, height - borderSize)
+	local container = vgui.Create("DPanel", self)
+	container:SetSize(width - borderSize, height - borderSize / 2 - 25)
+	container:SetPos(borderSize / 2, 25)
+	container.Paint = function(s, w, h) end
+
+	self:InitSettings(container, 0, 0, width - borderSize, settingsHeight * 3)
+	self:InitMapList(container, 0, settingsHeight * 3, width - borderSize, height - borderSize / 2 - 25 - settingsHeight * 3)
 
 	self:MakePopup()
 	self:SetKeyboardInputEnabled(false)
 end
 
-function PANEL:InitSettings(width, height)
-	local VoteSettings = vgui.Create("Panel", self)
-	VoteSettings:SetSize(width, 3 * settingsHeight)
-	VoteSettings:SetPos(borderSize / 2, settingsHeight + borderSize / 2)
-	self:InitCountDown(VoteSettings, width, height)
-	self:InitSortBox(VoteSettings, width, height)
-	self:InitSearchArea(VoteSettings, width, height)
-	self:InitFavorites(VoteSettings, width, height)
-	self:InitVotedOn(VoteSettings, width, height)
+function PANEL:InitSettings(parent, posX, posY, width, height)
+	local VoteSettings = vgui.Create("Panel", parent)
+	VoteSettings:SetSize(width, height)
+	VoteSettings:SetPos(posX, posY)
+	VoteSettings.Paint = function(s, w, h) end
+
+	self:InitCountDown(VoteSettings, 0, 0, width, settingsHeight)
+	self:InitSearchArea(VoteSettings, 0, settingsHeight, width / 2, settingsHeight)
+	self:InitFavorites(VoteSettings, width / 2, settingsHeight, width / 2, settingsHeight)
+	self:InitVotedOn(VoteSettings, width / 2, 2 * settingsHeight, width / 2, settingsHeight)
+	self:InitSortBox(VoteSettings, 0, 2 * settingsHeight, width / 2, settingsHeight)
 end
 
-function PANEL:InitCountDown(parent, width, height)
+function PANEL:InitCountDown(parent, posX, posY, width, height)
 	local LBLCountDown = vgui.Create("DLabel", parent)
 	LBLCountDown:SetFont("PAM_VoteFontCountdown")
+	LBLCountDown:SetTextColor(colTextDarker)
 	LBLCountDown:SetContentAlignment(5)
-	LBLCountDown:SetSize(width, settingsHeight)
-	LBLCountDown:SetPos(0, 0)
+	LBLCountDown:SetSize(width, height)
+	LBLCountDown:SetPos(posX, posY)
 	LBLCountDown.Think = function()
 		local timeLeft = math.Round(math.max(PAM.EndsAt - CurTime(), 0))
 		LBLCountDown:SetText(timeLeft .. " seconds left!")
 	end
 end
 
-function PANEL:InitSortBox(parent, width, height)
+function PANEL:InitSearchArea(parent, posX, posY, width, height)
+	local container = vgui.Create("DPanel", parent)
+	container:SetSize(width, height)
+	container:SetPos(posX, posY)
+	container.Paint = function(s, w, h)
+		surface.SetDrawColor(colBaseDarkest)
+		surface.DrawRect(0, 0, w, h)
+		surface.SetDrawColor(colBaseDarker)
+		surface.DrawRect(2, 2, w - 4, h - 4)
+	end
+
+	local TXTSearch = vgui.Create("DTextEntry", container)
+	TXTSearch:SetPlaceholderText("Search for maps...")
+	TXTSearch:SetFont("PAM_Settings")
+	TXTSearch.OnChange = function()
+		self.SearchTerm = TXTSearch:GetValue()
+		self:RefreshMapList()
+	end
+	TXTSearch.OnGetFocus = function()
+		self:SetKeyboardInputEnabled(true)
+	end
+	TXTSearch.OnLoseFocus = function()
+		self:SetKeyboardInputEnabled(false)
+	end
+	TXTSearch:SetSize(width, height)
+	TXTSearch:SetPos(0, 0)
+	TXTSearch:SetPaintBackground(false)
+	TXTSearch:SetTextColor(colTextDarker)
+	TXTSearch:SetCursorColor(colTextDarker)
+	TXTSearch:SetPlaceholderColor(colTextDarker)
+end
+
+function PANEL:InitSortBox(parent, posX, posY, width, height)
 	local function CompareStrings(string1, string2)
 		string1 = string.lower(string1)
 		string2 = string.lower(string2)
@@ -83,13 +156,21 @@ function PANEL:InitSortBox(parent, width, height)
 
 	local CBSortBy = vgui.Create("DComboBox", parent)
 	CBSortBy:SetValue("Sort by...")
-	CBSortBy:SetSize(width / 2, settingsHeight)
-	CBSortBy:SetPos(width / 2, settingsHeight)
+	CBSortBy:SetSize(width, height)
+	CBSortBy:SetPos(posX, posY)
+	CBSortBy.Paint = function(s, w, h)
+		surface.SetDrawColor(colBaseDarkest)
+		surface.DrawRect(0, 0, w, h)
+		surface.SetDrawColor(colBaseDarker)
+		surface.DrawRect(2, 2, w - 4, h - 4)
+	end
+	CBSortBy:SetTextColor(colTextDarker)
+	CBSortBy:SetFont("PAM_Settings")
 
-	CBSortBy:AddChoice("Mapname [ASC]", function(map_button_1, map_button_2)
+	CBSortBy:AddChoice("Name [a-z]", function(map_button_1, map_button_2)
 		return CompareStrings(map_button_1.map.name, map_button_2.map.name)
 	end)
-	CBSortBy:AddChoice("Mapname [DESC]", function(map_button_1, map_button_2)
+	CBSortBy:AddChoice("Name [z-a]", function(map_button_1, map_button_2)
 		return not CompareStrings(map_button_1.map.name, map_button_2.map.name)
 	end)
 	CBSortBy:AddChoice("Least played", function(map_button_1, map_button_2)
@@ -111,34 +192,25 @@ function PANEL:InitSortBox(parent, width, height)
 	end
 end
 
-function PANEL:InitSearchArea(parent, width, height)
-	local TXTSearch = vgui.Create("DTextEntry", parent)
-	TXTSearch:SetPlaceholderText("search for maps")
-	TXTSearch.OnChange = function()
-		self.SearchTerm = TXTSearch:GetValue()
-		self:RefreshMapList()
-	end
-	TXTSearch.OnGetFocus = function()
-		self:SetKeyboardInputEnabled(true)
-	end
-	TXTSearch.OnLoseFocus = function()
-		self:SetKeyboardInputEnabled(false)
-	end
-	TXTSearch:SetSize(width / 2, settingsHeight)
-	TXTSearch:SetPos(0, settingsHeight)
-end
-
-function PANEL:InitFavorites(parent, width, height)
+function PANEL:InitFavorites(parent, posX, posY, width, height)
 	local BTNToggleFavorites = vgui.Create("DButton", parent)
-	BTNToggleFavorites:SetText("favorites")
-	BTNToggleFavorites:SetSize(width / 2, settingsHeight)
-	BTNToggleFavorites:SetPos(width / 2, settingsHeight * 2)
+	BTNToggleFavorites:SetText("Show favorites")
+	BTNToggleFavorites:SetSize(width, height)
+	BTNToggleFavorites:SetPos(posX, posY)
+	BTNToggleFavorites:SetTextColor(colTextDarker)
+	BTNToggleFavorites:SetFont("PAM_Settings")
+	BTNToggleFavorites.Paint = function(s, w, h)
+		surface.SetDrawColor(colBaseDarkest)
+		surface.DrawRect(0, 0, w, h)
+		surface.SetDrawColor(colBaseDarker)
+		surface.DrawRect(2, 2, w - 4, h - 4)
+	end
 
-	local imageFavorites = "vgui/ttt/pam_ic_fav"
-	local imageNotFavorites = "vgui/ttt/pam_ic_nofav"
+	local imageFavorites = "vgui/ttt/pam/ic_favorite"
+	local imageNotFavorites = "vgui/ttt/pam/ic_not_favorite"
 
 	local icon = vgui.Create("DImage", BTNToggleFavorites)
-	icon:SetPos(width / 2 - settingsHeight, 0)
+	icon:SetPos(0, 0)
 	icon:SetSize(settingsHeight, settingsHeight)
 	icon:SetImage(imageNotFavorites)
 
@@ -153,17 +225,25 @@ function PANEL:InitFavorites(parent, width, height)
 	end
 end
 
-function PANEL:InitVotedOn(parent, width, height)
+function PANEL:InitVotedOn(parent, posX, posY, width, height)
 	local BTNToggleVotedOn = vgui.Create("DButton", parent)
-	BTNToggleVotedOn:SetText("voted on")
-	BTNToggleVotedOn:SetSize(width / 2, settingsHeight)
-	BTNToggleVotedOn:SetPos(0, settingsHeight * 2)
+	BTNToggleVotedOn:SetText("Show maps being voted on")
+	BTNToggleVotedOn:SetSize(width, height)
+	BTNToggleVotedOn:SetPos(posX, posY)
+	BTNToggleVotedOn:SetTextColor(colTextDarker)
+	BTNToggleVotedOn:SetFont("PAM_Settings")
+	BTNToggleVotedOn.Paint = function(s, w, h)
+		surface.SetDrawColor(colBaseDarkest)
+		surface.DrawRect(0, 0, w, h)
+		surface.SetDrawColor(colBaseDarker)
+		surface.DrawRect(2, 2, w - 4, h - 4)
+	end
 
-	local imageVotedOn = "vgui/ttt/pam_ic_fav"
-	local imageNotVotedOn = "vgui/ttt/pam_ic_nofav"
+	local imageVotedOn = "vgui/ttt/pam/ic_voted"
+	local imageNotVotedOn = "vgui/ttt/pam/ic_not_voted"
 
 	local icon = vgui.Create("DImage", BTNToggleVotedOn)
-	icon:SetPos(width / 2 - settingsHeight, 0)
+	icon:SetPos(0, 0)
 	icon:SetSize(settingsHeight, settingsHeight)
 	icon:SetImage(imageNotVotedOn)
 
@@ -178,13 +258,42 @@ function PANEL:InitVotedOn(parent, width, height)
 	end
 end
 
-function PANEL:InitMapList(width, height)
-	self.MapList = vgui.Create("DPanelList", self)
-	self.MapList:SetSize(width, height - 4 * settingsHeight)
-	self.MapList:SetPos(borderSize / 2, settingsHeight * 4 + borderSize / 2)
+function PANEL:InitMapList(parent, posX, posY, width, height)
+	local mapListContainer = vgui.Create("DPanel", parent)
+	mapListContainer:SetSize(width, height)
+	mapListContainer:SetPos(posX, posY)
+
+	mapListContainer.Paint = function(s, w, h)
+		surface.SetDrawColor(colBaseDarker)
+		surface.DrawRect(0, 0, w, h)
+		surface.SetDrawColor(colBaseDarkest)
+		surface.DrawRect(w - scrollBarSize, 0, scrollBarSize, h)
+	end
+
+	self.MapList = vgui.Create("DPanelList", mapListContainer)
+	self.MapList:SetSize(width, height)
+	self.MapList:SetPos(0, 0)
 	self.MapList:EnableHorizontal(true)
+	self.MapList:EnableVerticalScrollbar()
 	self:InitMapButtons()
 	self:RefreshMapList()
+end
+
+function PANEL:ChangeColorTheme(baseColor, textColor)
+	local function modify(value)
+		if(value < 128) then
+			return value * 0.7
+		else
+			return 255 - (255 - value) * 0.7
+		end
+	end
+
+	colTextBase = textColor
+	colTextDarker = {r = modify(colTextBase.r), g = modify(colTextBase.g), b = modify(colTextBase.b), a = 255}
+	colTextDarkest = {r = modify(colTextDarker.r), g = modify(colTextDarker.g), b = modify(colTextDarker.b), a = 255}
+	colBase = baseColor
+	colBaseDarker = {r = modify(colBase.r), g = modify(colBase.g), b = modify(colBase.b), a = 255}
+	colBaseDarkest = {r = modify(colBaseDarker.r), g = modify(colBaseDarker.g), b = modify(colBaseDarker.b), a = 255}
 end
 
 function PANEL:AddVoter(ply)
@@ -202,7 +311,7 @@ function PANEL:AddVoter(ply)
 	newVoter:SetSize(mapButtonLabelSize, mapButtonLabelSize)
 	newVoter:SetTooltip(ply:Name())
 	newVoter.Paint = function(s, w, h)
-		surface.SetDrawColor(0, 0, 0)
+		surface.SetDrawColor(colBaseDarkest)
 		surface.DrawRect(1, 1, mapButtonLabelSize - 2, mapButtonLabelSize - 2)
 	end
 
@@ -229,7 +338,7 @@ end
 
 function PANEL:UpdateVoters()
 	for _, mapButton in pairs(self.MapButtons) do
-		mapButton.NumVotes = 0
+		mapButton.voterCount = 0
 	end
 
 	for _, voter in pairs(self.Voters) do
@@ -243,21 +352,21 @@ function PANEL:UpdateVoters()
 
 				if IsValid(mapButton) then
 					voter:SetParent(mapButton)
-					local row = math.floor(mapButton.NumVotes / avatarsPerRow)
+					local row = math.floor(mapButton.voterCount / avatarsPerRow)
 					local newY = 0
 					local newX = 0
 
 					if row < 2 then
-						newY = mapButtonLabelSize + avatarSpace * (mapButton.NumVotes % avatarsPerRow)
+						newY = mapButtonLabelSize + avatarSpace * (mapButton.voterCount % avatarsPerRow)
 						newX = (mapImageSize + avatarSpace) * row
 					else
-						newX = mapButtonLabelSize + avatarSpace * (mapButton.NumVotes % avatarsPerRow)
+						newX = mapButtonLabelSize + avatarSpace * (mapButton.voterCount % avatarsPerRow)
 						newY = mapButtonLabelSize + avatarSpace * (row - 2)
 					end
 
 					print(tostring(newX) .. ", " .. tostring(newY))
 					voter:SetPos(newX, newY)
-					mapButton.NumVotes = mapButton.NumVotes + 1
+					mapButton.voterCount = mapButton.voterCount + 1
 				end
 			end
 		end
@@ -297,8 +406,11 @@ end
 function PANEL:RefreshMapList()
 	self.MapList:Clear()
 	for _, mapButton in pairs(self.MapButtons) do
-		if (not winnerID or mapButton.map.id == winnerID) and self:FitsSearchTerm(mapButton) and (not self.showFavorites or mapButton.isFavorite) and (not self.showVotedOn or mapButton.NumVotes > 0) then
+		if (not winnerID or mapButton.map.id == winnerID) and self:FitsSearchTerm(mapButton) and (not self.showFavorites or mapButton.isFavorite) and (not self.showVotedOn or mapButton.voterCount > 0) then
 			self.MapList:AddItem(mapButton)
+			mapButton:SetVisible(true)
+		else
+			mapButton:SetVisible(false)
 		end
 	end
 end
@@ -311,8 +423,7 @@ function PANEL:ShowMapButton(MapButton)
 end
 
 function PANEL:InitMapButtons()
-	local map_missing_material = Material("vgui/ttt/pam_ic_missing.png")
-	local button_material = Material("vgui/ttt/pam_map_button.png")
+	local map_missing_material = Material("vgui/ttt/pam/img_missing.png")
 	for k, mapinfo in pairs(PAM.Maps) do
 		local button = vgui.Create("DButton")
 		button.voterCount = 0
@@ -340,7 +451,7 @@ function PANEL:InitMapButtons()
 		local imageBorder = vgui.Create("DPanel", mapImage)
 		imageBorder:SetSize(mapImageSize, mapImageSize)
 		imageBorder.Paint = function(s, w, h)
-			surface.SetDrawColor(0, 0, 0)
+			surface.SetDrawColor(colBaseDarkest)
 			surface.DrawOutlinedRect(0, 0, mapImageSize, mapImageSize)
 		end
 
@@ -348,15 +459,17 @@ function PANEL:InitMapButtons()
 		local lblMapName = vgui.Create("DLabel", button)
 		lblMapName:SetPos(0, 0)
 		lblMapName:SetSize(mapButtonSize, mapButtonLabelSize)
-		lblMapName:SetContentAlignment(4)
+		lblMapName:SetContentAlignment(5)
 		lblMapName:SetText(mapinfo.name)
+		lblMapName:SetTextColor(colTextBase)
 		lblMapName:SetFont("PAM_MapNameFont")
 
 		// playcount label
 		local lblPlayCount = vgui.Create("DLabel", button)
 		lblPlayCount:SetPos(0, mapButtonSize - mapButtonLabelSize)
 		lblPlayCount:SetSize(mapButtonSize, mapButtonLabelSize)
-		lblPlayCount:SetContentAlignment(4)
+		lblPlayCount:SetContentAlignment(5)
+		lblPlayCount:SetTextColor(colTextDarker)
 		lblPlayCount:SetFont("PAM_PlayCountFont")
 		if mapinfo.playcount == 0 then
 			lblPlayCount:SetText("Not played yet")
@@ -369,44 +482,43 @@ function PANEL:InitMapButtons()
 		// heart for favorites
 		local ibtnFavorite = vgui.Create("DImageButton", button)
 		if table.HasValue(PAM.FavoriteMaps, button.map.name) then
-			ibtnFavorite:SetImage("vgui/ttt/pam_ic_fav.vmt")
+			ibtnFavorite:SetImage("vgui/ttt/pam/ic_favorite.vmt")
 			button.isFavorite = true
 		else
-			ibtnFavorite:SetImage("vgui/ttt/pam_ic_nofav.vmt")
+			ibtnFavorite:SetImage("vgui/ttt/pam/ic_not_favorite.vmt")
 			button.isFavorite = false
 		end
 		ibtnFavorite:SetSize(mapButtonLabelSize, mapButtonLabelSize)
 		ibtnFavorite:SetPos(mapButtonSize - mapButtonLabelSize, mapButtonSize - mapButtonLabelSize)
 		ibtnFavorite.DoClick = function()
 			if button.isFavorite then
-				if PAM.Panel:RemoveFromFavorites(button.map.name) then
+				if self:RemoveFromFavorites(button.map.name) then
 					button.isFavorite = false
 
-					ibtnFavorite:SetImage("vgui/ttt/pam_ic_nofav.vmt")
-					PAM.Panel:RefreshMapList()
+					ibtnFavorite:SetImage("vgui/ttt/pam/ic_not_favorite.vmt")
+					self:RefreshMapList()
 				end
 			else
-				if PAM.Panel:AddToFavorites(button.map.name) then
+				if self:AddToFavorites(button.map.name) then
 					button.isFavorite = true
 
-					ibtnFavorite:SetImage("vgui/ttt/pam_ic_fav.vmt")
-					PAM.Panel:RefreshMapList()
+					ibtnFavorite:SetImage("vgui/ttt/pam/ic_favorite.vmt")
+					self:RefreshMapList()
 				end
 			end
 		end
 
 		// override default texture
 		button.Paint = function(s, w, h)
-			surface.SetDrawColor(50, 50, 50)
+			surface.SetDrawColor(colBase)
 			surface.DrawRect(0, 0, mapButtonSize, mapButtonSize);
-			surface.SetDrawColor(100, 100, 100)
+			surface.SetDrawColor(colBaseDarkest)
 			surface.DrawRect(0, 0, mapButtonSize, mapButtonLabelSize);
-			surface.DrawRect(0, mapButtonSize - mapButtonLabelSize, mapButtonSize, mapButtonLabelSize);
-			surface.SetDrawColor(0, 0, 0)
+
 			surface.DrawOutlinedRect(0, 0, mapButtonSize, mapButtonSize);
-			surface.DrawOutlinedRect(0, mapButtonLabelSize, mapButtonSize, mapImageSize);
-			surface.DrawOutlinedRect(0, mapButtonLabelSize - 1, mapButtonSize, mapImageSize + 2);
-			surface.DrawOutlinedRect(mapButtonLabelSize - 1, mapButtonLabelSize - 1, mapImageSize + 2, mapImageSize + 2);
+			surface.DrawOutlinedRect(mapButtonLabelSize - 1, mapButtonLabelSize - 1, mapImageSize + 2, mapImageSize + 2)
+			surface.DrawLine(0, mapButtonLabelSize, mapButtonSize, mapButtonLabelSize);
+			surface.DrawLine(0, mapButtonLabelSize - 1, mapButtonSize, mapButtonLabelSize - 1);
 		end
 
 		table.insert(self.MapButtons, button)
