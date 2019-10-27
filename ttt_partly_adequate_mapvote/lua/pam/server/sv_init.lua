@@ -1,10 +1,14 @@
+-- ulx->server
 -- server->all
 util.AddNetworkString("PAM_Start")
--- client->server->all
+-- ulx->server
+-- server->all
 util.AddNetworkString("PAM_Cancel")
--- client->server->all
+-- client->server
+-- server->all
 util.AddNetworkString("PAM_Vote")
--- client->server->all
+-- client->server
+-- server->all
 util.AddNetworkString("PAM_UnVote")
 -- client->server
 util.AddNetworkString("PAM_RTV")
