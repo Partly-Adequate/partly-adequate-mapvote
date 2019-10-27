@@ -3,6 +3,8 @@ Partly Adequate Mapvote
 # Description
 This Garry's Mod addon for the terrortown gamemode adds a comfortable way to democratically vote on maps to play for the next round.
 
+[workshop page](https://steamcommunity.com/sharedfiles/filedetails/?id=1839994538)
+
 # Features
 ## Playcounts
 Everytime a map is played a counter will increase and be saved server sided. When voting on maps the buttons will show the number of times the map has been played on this server before.
