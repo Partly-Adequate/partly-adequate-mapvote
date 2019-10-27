@@ -1,7 +1,6 @@
 net.Receive("PAM_Start", function()
 	PAM.Maps = {}
 	PAM.Votes = {}
-	PAM.Playcounts = {}
 	PAM.State = PAM.STATE_STARTED
 
 	local amount = net.ReadUInt(32)

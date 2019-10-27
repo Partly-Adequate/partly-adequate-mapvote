@@ -1,23 +1,21 @@
-local PANEL = {}
+PANEL = {}
 
 // alignment helping values
 local mapButtonSize = 150
 local mapImageSize = mapButtonSize - 50
 local mapButtonLabelSize = (mapButtonSize - mapImageSize) / 2
 local avatarSize = mapButtonLabelSize - 6
-local borderSize = 20
+local borderSize = 0
 local scrollBarSize = 14
 local settingsHeight = 25
 local avatarsPerRow = math.floor(mapImageSize / mapButtonLabelSize)
 local avatarSpace = mapImageSize / avatarsPerRow
 
 // Colors
-local colBase = {}
-local colBaseDarker = {}
-local colBaseDarkest = {}
-local colTextBase = {}
-local colTextDarker = {}
-local colTextDarkest = {}
+local colBase = {r = 40, g = 40, b = 40, a = 255}
+local colBaseDarker = {r = 30, g = 30, b = 30, a = 255}
+local colBaseDarkest = {r = 20, g = 20, b = 20, a = 255}
+local colText = {r = 150, g = 150, b = 150, a = 255}
 
 surface.CreateFont("PAM_MapNameFont", {
 	font = "Trebuchet MS",
@@ -50,8 +48,6 @@ function PANEL:Init()
 	self:SetTitle("Partly Adequate Mapvote")
 	self:SetDeleteOnClose(false)
 
-	self:ChangeColorTheme({r = 40, g = 40, b = 40, a = 255}, {r = 200, g = 200, b = 200, a = 255})
-
 	self.Paint = function(s, w, h)
 		surface.SetDrawColor(colBaseDarkest)
 		surface.DrawRect(0, 0, w, 25)
@@ -65,11 +61,10 @@ function PANEL:Init()
 	self.Voters = {}
 	self.MapButtons = {}
 	self.timeLeft = 0
-	self.winnerID = nil
 
 	local container = vgui.Create("DPanel", self)
-	container:SetSize(width - borderSize, height - borderSize / 2 - 25)
-	container:SetPos(borderSize / 2, 25)
+	container:SetSize(width - borderSize, height - borderSize - 25)
+	container:SetPos(borderSize / 2, 25 + borderSize / 2)
 	container.Paint = function(s, w, h) end
 
 	self:InitSettings(container, 0, 0, width - borderSize, settingsHeight * 3)
@@ -95,10 +90,16 @@ end
 function PANEL:InitCountDown(parent, posX, posY, width, height)
 	local LBLCountDown = vgui.Create("DLabel", parent)
 	LBLCountDown:SetFont("PAM_VoteFontCountdown")
-	LBLCountDown:SetTextColor(colTextDarker)
+	LBLCountDown:SetTextColor(colText)
 	LBLCountDown:SetContentAlignment(5)
 	LBLCountDown:SetSize(width, height)
 	LBLCountDown:SetPos(posX, posY)
+	LBLCountDown.Paint = function(s, w, h)
+		surface.SetDrawColor(colBaseDarkest)
+		surface.DrawRect(0, 0, w, h)
+		surface.SetDrawColor(colBase)
+		surface.DrawRect(2, 2, w - 4, h - 4)
+	end
 	LBLCountDown.Think = function()
 		local timeLeft = math.Round(math.max(PAM.EndsAt - CurTime(), 0))
 		LBLCountDown:SetText(timeLeft .. " seconds left!")
@@ -112,7 +113,7 @@ function PANEL:InitSearchArea(parent, posX, posY, width, height)
 	container.Paint = function(s, w, h)
 		surface.SetDrawColor(colBaseDarkest)
 		surface.DrawRect(0, 0, w, h)
-		surface.SetDrawColor(colBaseDarker)
+		surface.SetDrawColor(colBase)
 		surface.DrawRect(2, 2, w - 4, h - 4)
 	end
 
@@ -132,9 +133,9 @@ function PANEL:InitSearchArea(parent, posX, posY, width, height)
 	TXTSearch:SetSize(width, height)
 	TXTSearch:SetPos(0, 0)
 	TXTSearch:SetPaintBackground(false)
-	TXTSearch:SetTextColor(colTextDarker)
-	TXTSearch:SetCursorColor(colTextDarker)
-	TXTSearch:SetPlaceholderColor(colTextDarker)
+	TXTSearch:SetTextColor(colText)
+	TXTSearch:SetCursorColor(colText)
+	TXTSearch:SetPlaceholderColor(colText)
 end
 
 function PANEL:InitSortBox(parent, posX, posY, width, height)
@@ -161,10 +162,10 @@ function PANEL:InitSortBox(parent, posX, posY, width, height)
 	CBSortBy.Paint = function(s, w, h)
 		surface.SetDrawColor(colBaseDarkest)
 		surface.DrawRect(0, 0, w, h)
-		surface.SetDrawColor(colBaseDarker)
+		surface.SetDrawColor(colBase)
 		surface.DrawRect(2, 2, w - 4, h - 4)
 	end
-	CBSortBy:SetTextColor(colTextDarker)
+	CBSortBy:SetTextColor(colText)
 	CBSortBy:SetFont("PAM_Settings")
 
 	CBSortBy:AddChoice("Name [a-z]", function(map_button_1, map_button_2)
@@ -197,12 +198,12 @@ function PANEL:InitFavorites(parent, posX, posY, width, height)
 	BTNToggleFavorites:SetText("Show favorites")
 	BTNToggleFavorites:SetSize(width, height)
 	BTNToggleFavorites:SetPos(posX, posY)
-	BTNToggleFavorites:SetTextColor(colTextDarker)
+	BTNToggleFavorites:SetTextColor(colText)
 	BTNToggleFavorites:SetFont("PAM_Settings")
 	BTNToggleFavorites.Paint = function(s, w, h)
 		surface.SetDrawColor(colBaseDarkest)
 		surface.DrawRect(0, 0, w, h)
-		surface.SetDrawColor(colBaseDarker)
+		surface.SetDrawColor(colBase)
 		surface.DrawRect(2, 2, w - 4, h - 4)
 	end
 
@@ -230,12 +231,12 @@ function PANEL:InitVotedOn(parent, posX, posY, width, height)
 	BTNToggleVotedOn:SetText("Show maps being voted on")
 	BTNToggleVotedOn:SetSize(width, height)
 	BTNToggleVotedOn:SetPos(posX, posY)
-	BTNToggleVotedOn:SetTextColor(colTextDarker)
+	BTNToggleVotedOn:SetTextColor(colText)
 	BTNToggleVotedOn:SetFont("PAM_Settings")
 	BTNToggleVotedOn.Paint = function(s, w, h)
 		surface.SetDrawColor(colBaseDarkest)
 		surface.DrawRect(0, 0, w, h)
-		surface.SetDrawColor(colBaseDarker)
+		surface.SetDrawColor(colBase)
 		surface.DrawRect(2, 2, w - 4, h - 4)
 	end
 
@@ -277,23 +278,6 @@ function PANEL:InitMapList(parent, posX, posY, width, height)
 	self.MapList:EnableVerticalScrollbar()
 	self:InitMapButtons()
 	self:RefreshMapList()
-end
-
-function PANEL:ChangeColorTheme(baseColor, textColor)
-	local function modify(value)
-		if(value < 128) then
-			return value * 0.7
-		else
-			return 255 - (255 - value) * 0.7
-		end
-	end
-
-	colTextBase = textColor
-	colTextDarker = {r = modify(colTextBase.r), g = modify(colTextBase.g), b = modify(colTextBase.b), a = 255}
-	colTextDarkest = {r = modify(colTextDarker.r), g = modify(colTextDarker.g), b = modify(colTextDarker.b), a = 255}
-	colBase = baseColor
-	colBaseDarker = {r = modify(colBase.r), g = modify(colBase.g), b = modify(colBase.b), a = 255}
-	colBaseDarkest = {r = modify(colBaseDarker.r), g = modify(colBaseDarker.g), b = modify(colBaseDarker.b), a = 255}
 end
 
 function PANEL:AddVoter(ply)
@@ -377,13 +361,8 @@ end
 function PANEL:FitsSearchTerm(button)
 	local searchTerm = self.SearchTerm
 
-	if not searchTerm or searchTerm == "" then
-		return true
-	end
-
-	if #searchTerm > #button.map.name then
-		return false
-	end
+	if not searchTerm or searchTerm == "" then return true end
+	if #searchTerm > #button.map.name then return false end
 
 	local i = 1
 	for j = 1, #button.map.name do
@@ -406,19 +385,12 @@ end
 function PANEL:RefreshMapList()
 	self.MapList:Clear()
 	for _, mapButton in pairs(self.MapButtons) do
-		if (not winnerID or mapButton.map.id == winnerID) and self:FitsSearchTerm(mapButton) and (not self.showFavorites or mapButton.isFavorite) and (not self.showVotedOn or mapButton.voterCount > 0) then
+		if (not self.winnerID or mapButton.map.id == self.winnerID) and self:FitsSearchTerm(mapButton) and (not self.showFavorites or mapButton.isFavorite) and (not self.showVotedOn or mapButton.voterCount > 0) then
 			self.MapList:AddItem(mapButton)
 			mapButton:SetVisible(true)
 		else
 			mapButton:SetVisible(false)
 		end
-	end
-end
-
-function PANEL:ShowMapButton(MapButton)
-	if IsValid(MapButton) then
-		self.winnerID = MapButton.map.id
-		self:RefreshMapList()
 	end
 end
 
@@ -431,7 +403,6 @@ function PANEL:InitMapButtons()
 		button:SetSize(mapButtonSize, mapButtonSize)
 		button:SetText("")
 
-		// on button clicked
 		button.DoClick = function()
 			net.Start("PAM_Vote")
 			net.WriteUInt(mapinfo.id, 32)
@@ -461,7 +432,7 @@ function PANEL:InitMapButtons()
 		lblMapName:SetSize(mapButtonSize, mapButtonLabelSize)
 		lblMapName:SetContentAlignment(5)
 		lblMapName:SetText(mapinfo.name)
-		lblMapName:SetTextColor(colTextBase)
+		lblMapName:SetTextColor(colText)
 		lblMapName:SetFont("PAM_MapNameFont")
 
 		// playcount label
@@ -469,7 +440,7 @@ function PANEL:InitMapButtons()
 		lblPlayCount:SetPos(0, mapButtonSize - mapButtonLabelSize)
 		lblPlayCount:SetSize(mapButtonSize, mapButtonLabelSize)
 		lblPlayCount:SetContentAlignment(5)
-		lblPlayCount:SetTextColor(colTextDarker)
+		lblPlayCount:SetTextColor(colText)
 		lblPlayCount:SetFont("PAM_PlayCountFont")
 		if mapinfo.playcount == 0 then
 			lblPlayCount:SetText("Not played yet")
@@ -538,15 +509,12 @@ end
 function PANEL:Flash(id)
 	self:SetVisible(true)
 
-	local selectedMapButton = self:GetMapButton(id)
+	self.winnerID = id
+	self:RefreshMapList()
 
-	if IsValid(selectedMapButton) then
-		self:ShowMapButton(selectedMapButton)
-
-		timer.Create("ttt_pam_notification", 0.4, 3, function()
-			surface.PlaySound("hl1/fvox/blip.wav")
-		end)
-	end
+	timer.Create("ttt_pam_notification", 0.4, 3, function()
+		surface.PlaySound("hl1/fvox/blip.wav")
+	end)
 end
 
 function PANEL:AddToFavorites(mapname)
