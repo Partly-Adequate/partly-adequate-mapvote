@@ -41,9 +41,6 @@ PAM.RTV_CONFIG_DEFAULT = {
 	AllowAllMaps = false;
 }
 
---the current round
-PAM.Round = 0
-
 --the current state
 PAM.State = PAM.STATE_DISABLED
 

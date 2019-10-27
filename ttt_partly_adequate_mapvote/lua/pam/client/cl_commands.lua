@@ -1,7 +1,9 @@
 // toggle menu visibility
 concommand.Add("ttt_pam_toggle_menu", function(ply, cmd, args, argStr)
 	if gamemode.Get("terrortown") and PAM.State == PAM.STATE_STARTED then
-		PAM.Panel:SetVisible(not PAM.Panel:IsVisible())
+		if !hook.Run("PAM_OnMenuToggled") and IsValid(PAM.Panel) then
+			PAM.Panel:SetVisible(not PAM.Panel:IsVisible())
+		end
 	end
 end)
 
