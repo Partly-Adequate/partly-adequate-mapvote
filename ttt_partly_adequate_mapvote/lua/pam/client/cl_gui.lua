@@ -288,8 +288,6 @@ function PANEL:AddVoter(ply)
 		end
 	end
 
-	print("adding voter")
-
 	local newVoter = vgui.Create("DPanel")
 	newVoter.player = ply
 	newVoter:SetSize(mapButtonLabelSize, mapButtonLabelSize)
@@ -348,7 +346,6 @@ function PANEL:UpdateVoters()
 						newY = mapButtonLabelSize + avatarSpace * (row - 2)
 					end
 
-					print(tostring(newX) .. ", " .. tostring(newY))
 					voter:SetPos(newX, newY)
 					mapButton.voterCount = mapButton.voterCount + 1
 				end
