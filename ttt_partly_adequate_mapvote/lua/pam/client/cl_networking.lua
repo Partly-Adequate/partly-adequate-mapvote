@@ -15,7 +15,10 @@ net.Receive("PAM_Start", function()
 
 	--the point in time at which the mapvote will end
 	PAM.EndsAt = CurTime() + net.ReadUInt(32)
-	PAM.Panel = vgui.Create("ttt_pam_votescreen")
+	PAM.Panel = hook.Run("PAM_LoadGUI")
+	if not PAM.Panel then
+		PAM.Panel = vgui.Create("ttt_pam_votescreen")
+	end
 end)
 
 net.Receive("PAM_Vote", function()
