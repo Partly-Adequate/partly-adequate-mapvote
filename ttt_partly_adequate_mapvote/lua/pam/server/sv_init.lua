@@ -15,6 +15,54 @@ util.AddNetworkString("PAM_RTV")
 -- server->all
 util.AddNetworkString("PAM_Announce_Winner")
 
+--the default configuration
+PAM.CONFIG_DEFAULT = {
+
+	--length of voting time in seconds
+	VoteLength = 30,
+
+	--prefixes for searching maps
+	MapPrefixes = {"ttt_"},
+
+	--the amount of rounds needed for a map to appear again
+	MapsBeforeRevote = 3,
+
+	--the amount of maps to select from
+	MaxMapAmount = 15
+}
+
+--the default RTV configuration
+PAM.RTV_CONFIG_DEFAULT = {
+	--is rtv used
+	IsEnabled = false,
+
+	--1 for all players, 0 for 1 player
+	NeededPlayerPercentage = 0.6,
+
+	--length of rtv voting time in seconds
+	VoteLength = 60,
+
+	--allows the rtv vote to contain all maps
+	AllowAllMaps = false;
+}
+
+--the current configuration
+PAM.Config = {}
+PAM.RTV_Config = {}
+
+-- the recently played maps
+PAM.RecentMaps = {}
+
+-- the play counts of each map
+PAM.Playcounts = {}
+
+-- the players wanting to rock the vote
+PAM.PlayersWantingRTV = {}
+
+-- set fallback metatable
+setmetatable(PAM.Config, PAM.CONFIG_DEFAULT)
+setmetatable(PAM.RTV_Config, PAM.RTV_CONFIG_DEFAULT)
+
 resource.AddFile("materials/vgui/ttt/pam_ic_missing.vmt")
 resource.AddFile("materials/vgui/ttt/pam_ic_menu.vmt")
 resource.AddFile("materials/vgui/ttt/pam_map_button.vmt")

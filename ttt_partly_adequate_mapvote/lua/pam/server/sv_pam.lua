@@ -1,4 +1,3 @@
-// TODO add entire config as parameter
 function PAM.Start(vote_length, allMaps)
 	vote_length = vote_length or PAM.Config.VoteLength
 
