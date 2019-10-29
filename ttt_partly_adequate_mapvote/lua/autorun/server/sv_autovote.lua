@@ -10,7 +10,6 @@ hook.Add("Initialize", "PAMAutoStart", function()
 			if rounds_left <= 0 or time_left <= 0 then
 				timer.Stop("end2prep")
 
-				PAM.UpdateRecentMaps()
 				PAM.Start(nil, false)
 			end
 		end

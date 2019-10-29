@@ -1,63 +1,80 @@
-function PAM.Start(vote_length, allMaps)
-	vote_length = vote_length or PAM.Config.VoteLength
-
+function PAM.Start(vote_length, allow_all_maps)
+	print("pam started")
+	vote_length = vote_length or PAM.config.vote_length
 	local all_maps = file.Find("maps/*.bsp", "GAME")
 
-	PAM.Maps = {}
-	PAM.Votes = {}
+	-- TODO parameter for updating recent_maps
+	PAM.UpdateRecentMaps()
 
-	local amount = 0
+	PAM.maps = {}
+	PAM.votes = {}
 
-	for k, map in RandomPairs(all_maps) do
-		--don't add too many maps
-		if ( not allMaps ) and amount >= PAM.Config.MaxMapAmount then
+	local map_amount = 0
+
+	local function AddMap(map)
+		map_amount = map_amount + 1
+		PAM.maps[map_amount] = map:sub(1, -5)
+	end
+
+	for _, map in RandomPairs(all_maps) do
+		-- don't add too many maps
+		if (not allow_all_maps) and map_amount >= PAM.config.max_map_amount then
 			break
 		end
 
-		--don't add maps which were played recently
-		if ( not allMaps ) and table.HasValue(PAM.RecentMaps, map) then
+		-- don't add maps which were played recently
+		if (not allow_all_maps) and table.HasValue(PAM.recent_maps, map) then
 			continue
 		end
 
-		--add maps where at least one prefix fits
-		for _, prefix in pairs(PAM.Config.MapPrefixes) do
-			if string.find(map, prefix) then
-				amount = amount + 1
-				PAM.Maps[amount] = map:sub(1, -5)
+		-- don't add blacklisted maps
+		-- if table.HasValue(PAM.map_blacklist, map) then
+		-- 	continue
+		-- end
 
+		-- add whitelisted maps
+		-- if table.HasValue(PAM.map_whitelist, map) then
+		-- 	AddMap(map)
+		-- 	continue
+		-- end
+
+		--add maps where at least one prefix fits
+		for _, prefix in pairs(PAM.config.map_prefixes) do
+			if string.find(map, prefix) then
+				AddMap(map)
 				break
 			end
 		end
 	end
 
-	if amount <= 0 then
-		amount = 1
-		PAM.Maps[amount] = game.GetMap():lower()
+	if map_amount <= 0 then
+		AddMap(game.GetMap():lower())
 	end
 
-	--send start info to all clients
+	-- send start info to all clients
 	net.Start("PAM_Start")
-	--transmit amount
-	net.WriteUInt(amount, 32)
-	--transmit mapnames
-	for i = 1, amount do
-		net.WriteString(PAM.Maps[i])
-		local pc = PAM.Playcounts[PAM.Maps[i]] or 0
-		net.WriteUInt(pc, 32)
+	-- transmit amount of maps
+	net.WriteUInt(map_amount, 32)
+	-- transmit map information
+	for i = 1, map_amount do
+		net.WriteString(PAM.maps[i])
+		local times_played = PAM.playcounts[PAM.maps[i]] or 0
+		net.WriteUInt(times_played, 32)
 	end
-	--transmit the length of the vote
+
+	-- transmit the length of the vote
 	net.WriteUInt(vote_length, 32)
 	net.Broadcast()
 
-	PAM.State = PAM.STATE_STARTED
+	PAM.state = PAM.STATE_STARTED
 
 	--timer for ending it after the vote time is over
 	timer.Create("PAM_Vote_Timer", vote_length, 1, function()
-		PAM.State = PAM.STATE_FINISHED
+		PAM.state = PAM.STATE_FINISHED
 
 		local vote_results = {}
 
-		for steam_id, map in pairs(PAM.Votes) do
+		for steam_id, map in pairs(PAM.votes) do
 			if not vote_results[map] then
 				vote_results[map] = 0
 			end
@@ -78,33 +95,33 @@ function PAM.Start(vote_length, allMaps)
 
 		local current_map = game.GetMap():lower()
 
-		if not PAM.Playcounts[current_map] then
-			PAM.Playcounts[current_map] = 1
+		if not PAM.playcounts[current_map] then
+			PAM.playcounts[current_map] = 1
 		else
-			PAM.Playcounts[current_map] = PAM.Playcounts[current_map] + 1
+			PAM.playcounts[current_map] = PAM.playcounts[current_map] + 1
 		end
 
-		file.Write("pam/playcounts.txt", util.TableToJSON(PAM.Playcounts))
+		file.Write("pam/playcounts.txt", util.TableToJSON(PAM.playcounts))
 
 		timer.Simple(4, function()
-			RunConsoleCommand("changelevel", PAM.Maps[winning_map_index])
+			RunConsoleCommand("changelevel", PAM.maps[winning_map_index])
 		end)
 	end)
 end
 
 function PAM.UpdateRecentMaps()
-	table.insert(PAM.RecentMaps, game.GetMap():lower() .. ".bsp")
+	table.insert(PAM.recent_maps, game.GetMap():lower() .. ".bsp")
 
-	while #PAM.RecentMaps > PAM.Config.MapsBeforeRevote do
-		table.remove(PAM.RecentMaps, 1)
+	while #PAM.recent_maps > 3 do
+		table.remove(PAM.recent_maps, 1)
 	end
 
-	file.Write("pam/recentmaps.txt", util.TableToJSON(PAM.RecentMaps))
+	file.Write("pam/recentmaps.txt", util.TableToJSON(PAM.recent_maps))
 end
 
 function PAM.Cancel()
-	if PAM.State == PAM.STATE_STARTED then
-		PAM.State = PAM.STATE_DISABLED
+	if PAM.state == PAM.STATE_STARTED then
+		PAM.state = PAM.STATE_DISABLED
 
 		net.Start("PAM_Cancel")
 		net.Broadcast()

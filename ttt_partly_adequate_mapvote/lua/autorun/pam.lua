@@ -3,39 +3,31 @@ PAM = {}
 --the possible states
 --for when it hasn't started yet
 PAM.STATE_DISABLED = 0
-
 --for when voting is possible
 PAM.STATE_STARTED = 1
-
 --for when the winner is announced
 PAM.STATE_FINISHED = 2
 
 --the current state
-PAM.State = PAM.STATE_DISABLED
+PAM.state = PAM.STATE_DISABLED
 
 --the voteable maps
-PAM.Maps = {}
+PAM.maps = {}
 
 --the votes
-PAM.Votes = {}
+PAM.votes = {}
 
 if not file.Exists("pam", "DATA") then
 	file.CreateDir("pam")
-end
-
-if not file.Exists("pam/config.txt", "DATA") then
-	file.Write("pam/config.txt", util.TableToJSON(PAM.CONFIG_DEFAULT))
-end
-
-if not file.Exists("pam/rtv_config.txt", "DATA") then
-	file.Write("pam/rtv_config.txt", util.TableToJSON(PAM.RTV_CONFIG_DEFAULT))
 end
 
 if SERVER then
 	AddCSLuaFile()
 
 	AddCSLuaFile("pam/client/cl_init.lua")
-	AddCSLuaFile("pam/client/cl_gui.lua")
+	AddCSLuaFile("pam/client/cl_pam.lua")
+	AddCSLuaFile("pam/client/cl_default_votescreen.lua")
+	AddCSLuaFile("pam/client/cl_default_menu.lua")
 	AddCSLuaFile("pam/client/cl_networking.lua")
 	AddCSLuaFile("pam/client/cl_commands.lua")
 
@@ -44,7 +36,9 @@ if SERVER then
 	include("pam/server/sv_networking.lua")
 else
 	include("pam/client/cl_init.lua")
-	include("pam/client/cl_gui.lua")
+	include("pam/client/cl_pam.lua")
+	include("pam/client/cl_default_votescreen.lua")
+	include("pam/client/cl_default_menu.lua")
 	include("pam/client/cl_networking.lua")
 	include("pam/client/cl_commands.lua")
 end
