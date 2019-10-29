@@ -25,5 +25,18 @@ function menu.Toggle()
 	panel:SetVisible(not panel:IsVisible())
 end
 
--- TODO make a hook for this after all lua files have been loaded
+function menu.OnEnable()
+
+end
+
+function menu.OnDisable()
+
+end
+
+-- Set this as default
+-- TODO find better sulution
 PAM.menu = menu
+
+hook.Add("PAM_Register_Menus", "PAM_Register_Menu_Default", function()
+	PAM.RegisterMenu("Default", menu)
+end)

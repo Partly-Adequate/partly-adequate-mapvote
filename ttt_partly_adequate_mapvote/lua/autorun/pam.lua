@@ -30,6 +30,7 @@ if SERVER then
 	AddCSLuaFile("pam/client/cl_default_menu.lua")
 	AddCSLuaFile("pam/client/cl_networking.lua")
 	AddCSLuaFile("pam/client/cl_commands.lua")
+	AddCSLuaFile("pam/client/cl_menu_manager.lua")
 
 	include("pam/server/sv_init.lua")
 	include("pam/server/sv_pam.lua")
@@ -41,4 +42,5 @@ else
 	include("pam/client/cl_default_menu.lua")
 	include("pam/client/cl_networking.lua")
 	include("pam/client/cl_commands.lua")
+	include("pam/client/cl_menu_manager.lua")
 end
