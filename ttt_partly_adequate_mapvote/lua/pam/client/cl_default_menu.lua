@@ -2,7 +2,7 @@ local menu = {}
 local panel = nil
 
 function menu.OnVoteStarted()
-	panel = vgui.Create("ttt_pam_votescreen_default")
+	panel = vgui.Create("pam_votescreen_default")
 end
 
 function menu.OnVoteCanceled()
@@ -21,7 +21,7 @@ function menu.OnWinnerAnnounced(map_id)
 	panel:AnnounceWinner(map_id)
 end
 
-function menu.Toggle()
+function menu.ToggleVisibility()
 	panel:SetVisible(not panel:IsVisible())
 end
 
@@ -33,10 +33,4 @@ function menu.OnDisable()
 
 end
 
--- Set this as default
--- TODO find better sulution
-PAM.menu = menu
-
-hook.Add("PAM_Register_Menus", "PAM_Register_Menu_Default", function()
-	PAM.RegisterMenu("Default", menu)
-end)
+PAM.RegisterMenu("Default", menu)

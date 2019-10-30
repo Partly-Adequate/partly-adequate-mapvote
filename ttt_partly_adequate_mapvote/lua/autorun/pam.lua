@@ -26,11 +26,11 @@ if SERVER then
 
 	AddCSLuaFile("pam/client/cl_init.lua")
 	AddCSLuaFile("pam/client/cl_pam.lua")
+	AddCSLuaFile("pam/client/cl_menu_manager.lua")
 	AddCSLuaFile("pam/client/cl_default_votescreen.lua")
 	AddCSLuaFile("pam/client/cl_default_menu.lua")
 	AddCSLuaFile("pam/client/cl_networking.lua")
 	AddCSLuaFile("pam/client/cl_commands.lua")
-	AddCSLuaFile("pam/client/cl_menu_manager.lua")
 
 	include("pam/server/sv_init.lua")
 	include("pam/server/sv_pam.lua")
@@ -38,9 +38,9 @@ if SERVER then
 else
 	include("pam/client/cl_init.lua")
 	include("pam/client/cl_pam.lua")
+	include("pam/client/cl_menu_manager.lua")
 	include("pam/client/cl_default_votescreen.lua")
 	include("pam/client/cl_default_menu.lua")
 	include("pam/client/cl_networking.lua")
 	include("pam/client/cl_commands.lua")
-	include("pam/client/cl_menu_manager.lua")
 end

@@ -1,4 +1,4 @@
-PANEL = {}
+local PANEL = {}
 
 -- alignment helping values
 local map_button_size = 150
@@ -497,9 +497,9 @@ function PANEL:AnnounceWinner(id)
 	self.winner_id = id
 	self:RefreshMapList()
 
-	timer.Create("ttt_pam_notification", 0.4, 3, function()
+	timer.Create("pam_notification", 0.4, 3, function()
 		surface.PlaySound("hl1/fvox/blip.wav")
 	end)
 end
 
-derma.DefineControl("ttt_pam_votescreen_default", "", PANEL, "DFrame")
+derma.DefineControl("pam_votescreen_default", "", PANEL, "DFrame")

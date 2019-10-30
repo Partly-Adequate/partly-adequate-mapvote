@@ -16,7 +16,7 @@ net.Receive("PAM_Start", function()
 	--the point in time at which the mapvote will end
 	PAM.ends_at = CurTime() + net.ReadUInt(32)
 
-	PAM.menu.OnVoteStarted()
+	PAM.vote_menu.OnVoteStarted()
 end)
 
 net.Receive("PAM_Vote", function()
@@ -25,7 +25,7 @@ net.Receive("PAM_Vote", function()
 
 	if IsValid(ply) then
 		PAM.votes[ply:SteamID()] = map_id
-		PAM.menu.OnVoterAdded(ply, map_id)
+		PAM.vote_menu.OnVoterAdded(ply, map_id)
 	end
 end)
 
@@ -33,19 +33,19 @@ net.Receive("PAM_OnUnVote", function()
 	local ply = net.ReadEntity()
 	if IsValid(ply) then
 		PAM.votes[ply:SteamID()] = nil
-		PAM.menu.OnVoterRemoved(ply)
+		PAM.vote_menu.OnVoterRemoved(ply)
 	end
 end)
 
 net.Receive("PAM_Announce_Winner", function()
 	map_id = net.ReadUInt(32)
 	PAM.state = PAM.STATE_FINISHED
-	PAM.menu.OnWinnerAnnounced(map_id)
+	PAM.vote_menu.OnWinnerAnnounced(map_id)
 end)
 
 net.Receive("PAM_Cancel", function()
 	if PAM.state == PAM.STATE_STARTED then
 		PAM.state = PAM.STATE_DISABLED
-		PAM.menu.OnVoteCanceled()
+		PAM.vote_menu.OnVoteCanceled()
 	end
 end)
