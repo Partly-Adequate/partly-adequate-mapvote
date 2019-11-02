@@ -15,7 +15,11 @@ end)
 
 -- create a menu selection screen
 concommand.Add("pam_menu_selection", function(player, cmd, args, arg_str)
-	vgui.Create("pam_menu_selection")
+	if IsValid(PAM.menu_manager) then
+		PAM.menu_manager:Remove()
+	else
+		PAM.menu_manager = vgui.Create("pam_menu_selection")
+	end
 end)
 
 -- registers commands for the ttt2 bind menu

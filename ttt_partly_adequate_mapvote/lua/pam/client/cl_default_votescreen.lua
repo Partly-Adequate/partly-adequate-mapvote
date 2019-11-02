@@ -17,11 +17,11 @@ local col_base_darkest = {r = 20, g = 20, b = 20, a = 255}
 local col_text = {r = 150, g = 150, b = 150, a = 255}
 
 -- images and icons
-local ic_favorite = Material("vgui/ttt/pam/ic_favorite")
-local ic_not_favorite = Material("vgui/ttt/pam/ic_not_favorite")
-local ic_voted_on = Material("vgui/ttt/pam/ic_voted")
-local ic_not_voted_on = Material("vgui/ttt/pam/ic_not_voted")
-local img_missing_map = Material("vgui/ttt/pam/img_missing.png")
+local ic_favorite = Material("vgui/pam/ic_favorite")
+local ic_not_favorite = Material("vgui/pam/ic_not_favorite")
+local ic_voted_on = Material("vgui/pam/ic_voted")
+local ic_not_voted_on = Material("vgui/pam/ic_not_voted")
+local img_missing_map = Material("vgui/pam/img_missing.png")
 
 surface.CreateFont("PAM_MapNameFont", {
 	font = "Trebuchet MS",
@@ -446,10 +446,10 @@ function PANEL:InitMapButtons()
 		-- heart for favorites
 		local ibtn_favorite = vgui.Create("DImageButton", map_button)
 		if PAM.IsFavorite(map_button.map.name) then
-			ibtn_favorite:SetImage("vgui/ttt/pam/ic_favorite.vmt")
+			ibtn_favorite:SetMaterial(ic_favorite)
 			map_button.is_favorite = true
 		else
-			ibtn_favorite:SetImage("vgui/ttt/pam/ic_not_favorite.vmt")
+			ibtn_favorite:SetMaterial(ic_not_favorite)
 			map_button.is_favorite = false
 		end
 		ibtn_favorite:SetSize(map_button_label_size, map_button_label_size)
