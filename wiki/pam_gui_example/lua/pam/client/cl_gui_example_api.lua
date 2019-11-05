@@ -1,40 +1,39 @@
-hook.Add("PAM_OnVoteStarted", "PAM_OnVoteStarted_Example", function()
-	PAM.Panel = vgui.Create("ttt_pam_votescreen_example")
+local menu = {}
+local panel = nil
+menu.id = "Example"
 
-	// cancel default action
-	return true
-end)
+function menu.OnVoteStarted()
+	panel = vgui.Create("ttt_pam_votescreen_example")
+end
 
-hook.Add("PAM_OnPlayerVoted", "PAM_OnPlayerVoted_Example", function(ply, mapID)
-	PAM.Panel:AddVoter(ply, mapID)
+function menu.OnVoteCanceled()
+	panel:Remove()
+end
 
-	// cancel default action
-	return true
-end)
+function menu.OnVoterAdded(ply, map_id)
+	panel:AddVoter(ply, map_id)
+end
 
-hook.Add("PAM_OnPlayerUnVoted", "PAM_OnPlayerUnVoted_Example", function(ply)
-	PAM.Panel:RemoveVoter(ply)
+function menu.OnVoterRemoved(ply)
+	panel:RemoveVoter(ply)
+end
 
-	// cancel default action
-	return true
-end)
+function menu.OnWinnerAnnounced(map_id)
+	panel:AnnounceWinner(map_id)
+end
 
-hook.Add("PAM_OnWinnerAnnounced", "PAM_OnWinnerAnnounced_Example", function(mapID)
-	PAM.Panel:AnnounceWinner(mapID)
+function menu.ToggleVisibility()
+	panel:SetVisible(not panel:IsVisible())
+end
 
-	// cancel default action
-	return true
-end)
+function menu.OnEnable()
 
-hook.Add("PAM_Cancel", "PAM_Cancel_Example", function()
-	PAM.Panel:Remove()
+end
 
-	// cancel default action
-	return true
-end)
+function menu.OnDisable()
 
-hook.Add("PAM_OnMenuToggled", "PAM_OnMenuToggled_Example", function()
-	PAM.Panel:SetVisible(not PAM.Panel:IsVisible())
-	// cancel default action
-	return true
+end
+
+hook.Add("PAM_Register_Menus", "PAM_Register_Menus_Example", function()
+	PAM.RegisterMenu(menu)
 end)
