@@ -131,4 +131,4 @@ function PANEL:AnnounceWinner(id)
 	end)
 end
 
-derma.DefineControl("ttt_pam_votescreen_example", "", PANEL, "DFrame")
+derma.DefineControl("pam_votescreen_example", "", PANEL, "DFrame")
