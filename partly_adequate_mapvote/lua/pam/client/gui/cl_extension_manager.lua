@@ -1,5 +1,3 @@
-local vote_menus = {}
-local vote_menu_count = 0
 local PANEL = {}
 
 local button_height = 25
@@ -56,37 +54,39 @@ function PANEL:Init()
 	ilo_buttons:SetSize(width - scroll_bar_width, height - menu_bar_height - button_height)
 	ilo_buttons:SetPos(0, 0)
 
-	for _, vote_menu in pairs(vote_menus) do
-		local menu_button = ilo_buttons:Add("DButton")
-		menu_button:SetSize(button_width, button_height)
-		menu_button.Paint = function(s, w, h)
+	for _, extension in pairs(PAM.extensions) do
+		local btn_extension = ilo_buttons:Add("DButton")
+		btn_extension:SetSize(button_width, button_height)
+		btn_extension.Paint = function(s, w, h)
 			surface.SetDrawColor(col_base_darkest)
 			surface.DrawRect(0, 0, button_width, button_height)
 			surface.SetDrawColor(col_base)
 			surface.DrawRect(2, 2, button_width - 4, button_height - 4)
 		end
-		menu_button:SetTextColor(col_text)
-		menu_button:SetText(vote_menu.id)
-		menu_button:SetContentAlignment(5)
+		btn_extension:SetTextColor(col_text)
+		btn_extension:SetText(extension.id)
+		btn_extension:SetContentAlignment(5)
 
-		menu_button.vote_menu = vote_menu
+		btn_extension.extension = extension
 
-		local ic_is_selected = vgui.Create("DImage", menu_button)
+		local ic_is_selected = vgui.Create("DImage", btn_extension)
 		ic_is_selected:SetSize(button_height, button_height)
 		ic_is_selected:SetPos(0, 0)
 
-		ic_is_selected:SetMaterial(ic_not_selected)
-
-		menu_button.DoClick = function()
-			PAM.EnableMenu(menu_button.vote_menu.id)
+		if extension.is_enabled then
+			ic_is_selected:SetMaterial(ic_selected)
+		else
+			ic_is_selected:SetMaterial(ic_not_selected)
 		end
 
-		-- TODO find better way to show icons
-		menu_button.Think = function()
-			if PAM.vote_menu.id == menu_button.vote_menu.id then
-				ic_is_selected:SetMaterial(ic_selected)
-			else
+		btn_extension.DoClick = function()
+			local extension = btn_extension.extension
+			if extension.is_enabled then
+				PAM.DisableExtension(extension.id)
 				ic_is_selected:SetMaterial(ic_not_selected)
+			else
+				PAM.EnableExtension(extension.id)
+				ic_is_selected:SetMaterial(ic_selected)
 			end
 		end
 	end
@@ -96,22 +96,3 @@ function PANEL:Init()
 end
 
 derma.DefineControl("pam_menu_selection", "", PANEL, "DFrame")
-
-function PAM.RegisterMenu(vote_menu)
-	vote_menus[vote_menu.id] = vote_menu
-end
-
-function PAM.EnableMenu(id)
-	if PAM.state == PAM.STATE_DISABLED then
-		local vote_menu = vote_menus[id]
-		if IsValid(PAM.vote_menu) then
-			PAM.vote_menu.OnDisable()
-		end
-		PAM.vote_menu = vote_menu
-		PAM.vote_menu.OnEnable()
-	end
-end
-
-hook.Add("Initialize", "PAM_GuiManager", function()
-	hook.Run("PAM_Register_Menus")
-end)

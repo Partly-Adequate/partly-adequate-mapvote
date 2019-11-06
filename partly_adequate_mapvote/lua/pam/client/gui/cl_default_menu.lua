@@ -1,6 +1,7 @@
 local menu = {}
 local panel = nil
 menu.id = "Default"
+menu.is_enabled = true
 
 function menu.OnVoteStarted()
 	panel = vgui.Create("pam_votescreen_default")
@@ -34,8 +35,6 @@ function menu.OnDisable()
 
 end
 
-PAM.vote_menu = menu
-
-hook.Add("PAM_Register_Menus", "PAM_Register_Menus_Default", function()
-	PAM.RegisterMenu(menu)
+hook.Add("PAM_Register_Client_Extensions", "PAM_Register_Menus_Default", function()
+	PAM.RegisterExtension(menu)
 end)

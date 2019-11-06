@@ -4,6 +4,8 @@ local panel = nil
 
 -- unique identifier for this menu
 menu.id = "Example"
+-- default state
+menu.is_enabled = false
 
 -- called after the client has received all important information
 function menu.OnVoteStarted()
@@ -50,6 +52,6 @@ function menu.OnDisable()
 end
 
 -- PAM_Register_Menus hook is used for registering this menu
-hook.Add("PAM_Register_Menus", "PAM_Register_Menus_Example", function()
-	PAM.RegisterMenu(menu)
+hook.Add("PAM_Register_Client_Extensions", "PAM_Register_Menus_Example", function()
+	PAM.RegisterExtension(menu)
 end)
