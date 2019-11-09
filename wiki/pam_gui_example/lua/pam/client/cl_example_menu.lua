@@ -43,12 +43,21 @@ end
 
 -- called when the player enables this menu via the menu manager
 function menu.OnEnable()
-
+	if PAM.state == PAM.STATE_STARTED then
+		-- create panel
+		menu.OnVoteStarted()
+		-- add all existing voters
+		for steam_id, map_id in pairs(PAM.votes) do
+			menu.OnVoterAdded(player.GetBySteamID(steam_id), map_id)
+		end
+	end
 end
 
 -- called when the player disables this menu via the menu manager
 function menu.OnDisable()
-
+	if PAM.state == PAM.STATE_STARTED then
+		panel:Remove()
+	end
 end
 
 -- PAM_Register_Menus hook is used for registering this menu

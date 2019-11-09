@@ -14,7 +14,7 @@ net.Receive("PAM_Vote", function(len, ply)
 end)
 
 net.Receive("PAM_UnVote", function(len, ply)
-	if IsValid(ply) then
+	if PAM.state == PAM.STATE_STARTED and IsValid(ply) then
 		PAM.Votes[ply:SteamID()] = nil
 		net.Start("PAM_UnVote")
 		net.WriteEntity(ply)

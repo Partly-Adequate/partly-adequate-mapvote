@@ -3,9 +3,6 @@ function PAM.Start(vote_length, allow_all_maps)
 	vote_length = vote_length or PAM.config.vote_length
 	local all_maps = file.Find("maps/*.bsp", "GAME")
 
-	-- TODO parameter for updating recent_maps
-	PAM.UpdateRecentMaps()
-
 	PAM.maps = {}
 	PAM.votes = {}
 
@@ -93,15 +90,7 @@ function PAM.Start(vote_length, allow_all_maps)
 		net.WriteUInt(winning_map_index, 32)
 		net.Broadcast()
 
-		local current_map = game.GetMap():lower()
-
-		if not PAM.playcounts[current_map] then
-			PAM.playcounts[current_map] = 1
-		else
-			PAM.playcounts[current_map] = PAM.playcounts[current_map] + 1
-		end
-
-		file.Write("pam/playcounts.txt", util.TableToJSON(PAM.playcounts))
+		PAM.UpdateRecentMaps(PAM.maps[winning_map_index])
 
 		timer.Simple(4, function()
 			RunConsoleCommand("changelevel", PAM.maps[winning_map_index])
@@ -109,10 +98,17 @@ function PAM.Start(vote_length, allow_all_maps)
 	end)
 end
 
-function PAM.UpdateRecentMaps()
-	table.insert(PAM.recent_maps, game.GetMap():lower() .. ".bsp")
+function PAM.UpdateRecentMaps(new_map)
+	if not PAM.playcounts[new_map] then
+		PAM.playcounts[new_map] = 1
+	else
+		PAM.playcounts[new_map] = PAM.playcounts[new_map] + 1
+	end
+	file.Write("pam/playcounts.txt", util.TableToJSON(PAM.playcounts))
 
-	while #PAM.recent_maps > 3 do
+	table.insert(PAM.recent_maps, new_map .. ".bsp")
+
+	while #PAM.recent_maps > PAM.config.maps_before_revote do
 		table.remove(PAM.recent_maps, 1)
 	end
 

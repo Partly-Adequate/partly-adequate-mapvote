@@ -28,11 +28,18 @@ function menu.ToggleVisibility()
 end
 
 function menu.OnEnable()
-
+	if PAM.state == PAM.STATE_STARTED then
+		menu.OnVoteStarted()
+		for steam_id, map_id in pairs(PAM.votes) do
+			menu.OnVoterAdded(player.GetBySteamID(steam_id), map_id)
+		end
+	end
 end
 
 function menu.OnDisable()
-
+	if PAM.state == PAM.STATE_STARTED then
+		panel:Remove()
+	end
 end
 
 hook.Add("PAM_Register_Client_Extensions", "PAM_Register_Menus_Default", function()
