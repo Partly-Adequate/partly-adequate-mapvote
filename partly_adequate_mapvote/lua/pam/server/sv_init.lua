@@ -11,7 +11,11 @@ util.AddNetworkString("PAM_Vote")
 -- server->all
 util.AddNetworkString("PAM_UnVote")
 -- client->server
+-- server->all
 util.AddNetworkString("PAM_RTV")
+-- client->server
+-- server->all
+util.AddNetworkString("PAM_UnRTV")
 -- server->all
 util.AddNetworkString("PAM_Announce_Winner")
 

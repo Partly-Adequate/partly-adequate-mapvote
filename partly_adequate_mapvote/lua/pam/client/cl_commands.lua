@@ -6,19 +6,22 @@ concommand.Add("pam_toggle_menu", function(player, cmd, args, arg_str)
 end)
 
 -- toggle rtv participation
-concommand.Add("pam_rtv", function(player, cmd, args, arg_str)
+concommand.Add("pam_rtv", function(ply, cmd, args, arg_str)
 	if PAM.state == PAM.STATE_DISABLED then
-		net.Start("PAM_RTV")
-		net.SendToServer()
+		if PAM.WantsRTV(ply) then
+			PAM.UnRTV()
+		else
+			PAM.RTV()
+		end
 	end
 end)
 
 -- create a menu selection screen
-concommand.Add("pam_menu_selection", function(player, cmd, args, arg_str)
-	if IsValid(PAM.menu_manager) then
-		PAM.menu_manager:Remove()
+concommand.Add("pam_extension_manager", function(player, cmd, args, arg_str)
+	if IsValid(PAM.extension_manager) then
+		PAM.extension_manager:Remove()
 	else
-		PAM.menu_manager = vgui.Create("pam_menu_selection")
+		PAM.extension_manager = vgui.Create("pam_extension_manager")
 	end
 end)
 
@@ -33,6 +36,6 @@ hook.Add("Initialize", "PamBindings", function()
 	end, nil, "Partly Adequate Mapvote", "RTV", nil)
 
 	bind.Register("pam_menu_selection", function()
-		LocalPlayer():ConCommand("pam_menu_selection")
-	end, nil, "Partly Adequate Mapvote", "Menu Selection", nil)
+		LocalPlayer():ConCommand("pam_extension_manager")
+	end, nil, "Partly Adequate Mapvote", "Extension Manager", nil)
 end)

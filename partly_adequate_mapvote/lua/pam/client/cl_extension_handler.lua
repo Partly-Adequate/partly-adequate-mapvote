@@ -9,12 +9,16 @@ end
 
 function PAM.DisableExtension(id)
 	PAM.extensions[id].is_enabled = false
-	PAM.extensions[id].OnDisable()
+	if PAM.extensions[id].OnDisable then
+		PAM.extensions[id].OnDisable()
+	end
 end
 
 function PAM.EnableExtension(id)
 	PAM.extensions[id].is_enabled = true
-	PAM.extensions[id].OnEnable()
+	if PAM.extensions[id].OnEnable then
+		PAM.extensions[id].OnEnable()
+	end
 end
 
 function PAM.extension_handler.OnVoteStarted()
@@ -45,6 +49,22 @@ function PAM.extension_handler.OnVoterRemoved(ply)
 	for _, extension in pairs(PAM.extensions) do
 		if extension.is_enabled and extension.OnVoterRemoved  then
 			extension.OnVoterRemoved(ply)
+		end
+	end
+end
+
+function PAM.extension_handler.OnRTVVoterAdded(ply)
+	for _, extension in pairs(PAM.extensions) do
+		if extension.is_enabled and extension.OnRTVVoterAdded  then
+			extension.OnRTVVoterAdded(ply)
+		end
+	end
+end
+
+function PAM.extension_handler.OnRTVVoterRemoved(ply)
+	for _, extension in pairs(PAM.extensions) do
+		if extension.is_enabled and extension.OnRTVVoterAdded  then
+			extension.OnRTVVoterRemoved(ply)
 		end
 	end
 end

@@ -5,6 +5,7 @@ function PAM.Start(vote_length, allow_all_maps)
 
 	PAM.maps = {}
 	PAM.votes = {}
+	PAM.players_wanting_rtv = {}
 
 	local map_amount = 0
 
@@ -123,5 +124,16 @@ function PAM.Cancel()
 		net.Broadcast()
 
 		timer.Remove("PAM_Vote_Timer")
+	end
+end
+
+function PAM.CheckForRTV()
+	-- check if there are enough players
+	local current_count = #PAM.players_wanting_rtv
+	local needed_count = math.ceil(PAM.rtv_config.needed_player_percentage * player.GetCount())
+
+	if (current_count >= needed_count) then
+		-- start pam
+		PAM.Start(PAM.rtv_config.vote_length, PAM.rtv_config.allow_all_maps)
 	end
 end

@@ -95,4 +95,4 @@ function PANEL:Init()
 	self:SetKeyboardInputEnabled(false)
 end
 
-derma.DefineControl("pam_menu_selection", "", PANEL, "DFrame")
+derma.DefineControl("pam_extension_manager", "", PANEL, "DFrame")

@@ -1,5 +1,5 @@
 -- terrortown (regular ttt and ttt2)
-hook.Add("Initialize", "PAMAutoStart", function()
+hook.Add("Initialize", "PAM_TTT_AutoStart", function()
 	if GAMEMODE_NAME == "terrortown" then
 		function CheckForMapSwitch()
 			local rounds_left = math.max(0, GetGlobalInt("ttt_rounds_left", 6) - 1)
@@ -10,8 +10,9 @@ hook.Add("Initialize", "PAMAutoStart", function()
 
 			if rounds_left <= 0 or time_left <= 0 then
 				timer.Stop("end2prep")
-
-				PAM.Start(nil, false)
+				if PAM.state == PAM.STATE_DISABLED then
+					PAM.Start(nil, false)
+				end
 			end
 		end
 	end

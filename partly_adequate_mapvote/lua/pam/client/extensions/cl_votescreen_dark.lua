@@ -502,4 +502,4 @@ function PANEL:AnnounceWinner(id)
 	end)
 end
 
-derma.DefineControl("pam_votescreen_default", "", PANEL, "DFrame")
+derma.DefineControl("pam_votescreen_dark", "", PANEL, "DFrame")

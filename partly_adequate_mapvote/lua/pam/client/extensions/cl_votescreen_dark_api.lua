@@ -1,10 +1,10 @@
 local menu = {}
 local panel = nil
-menu.id = "Default"
+menu.id = "Dark Votescreen"
 menu.is_enabled = true
 
 function menu.OnVoteStarted()
-	panel = vgui.Create("pam_votescreen_default")
+	panel = vgui.Create("pam_votescreen_dark")
 end
 
 function menu.OnVoteCanceled()
@@ -42,6 +42,6 @@ function menu.OnDisable()
 	end
 end
 
-hook.Add("PAM_Register_Client_Extensions", "PAM_Register_Menus_Default", function()
+hook.Add("PAM_Register_Client_Extensions", "PAM_Register_Votescreen_Dark", function()
 	PAM.RegisterExtension(menu)
 end)

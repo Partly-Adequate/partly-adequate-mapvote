@@ -23,39 +23,25 @@ net.Receive("PAM_UnVote", function(len, ply)
 end)
 
 net.Receive("PAM_RTV", function(len, ply)
-	if PAM.rtv_config.is_enabled and PAM.state == PAM.STATE_DISABLED then
-		local rtv_reason = ""
-		if table.HasValue(PAM.players_wanting_rtv, ply:SteamID()) then
-			table.RemoveByValue(PAM.players_wanting_rtv, ply:SteamID());
-			rtv_reason = " no longer wants to rock the vote! "
-		else
-			table.insert(PAM.players_wanting_rtv, ply:SteamID())
-			rtv_reason = " wants to rock the vote! "
-		end
+	if PAM.rtv_config.is_enabled and PAM.state == PAM.STATE_DISABLED and IsValid(ply) and not table.HasValue(PAM.players_wanting_rtv, ply:SteamID())then
+		table.insert(PAM.players_wanting_rtv, ply:SteamID())
 
-		local current_count = #PAM.players_wanting_rtv
-		local needed_count = math.ceil(PAM.rtv_config.needed_player_percentage * player.GetCount())
+		PAM.CheckForRTV()
 
-		PrintMessage(3, "[PAM] " .. ply:GetName() .. rtv_reason .. "(" .. tostring(current_count) .. "/" .. tostring(needed_count) .. ")")
-
-		if (current_count >= needed_count) then
-			PAM.Start(PAM.rtv_config.vote_length, PAM.rtv_config.allow_all_maps)
-		end
+		net.Start("PAM_RTV")
+		net.WriteEntity(ply)
+		net.Broadcast()
 	end
 end)
 
-/* Untested but needed
-hook.Add( "PlayerDisconnected", "PAM_PlayerDisconnected", function(ply)
-	if PAM.State == PAM.STATE_STARTED and PAM.Votes[ply:SteamID()] then
-		net.Start("PAM_UnVote")
+net.Receive("PAM_UnRTV", function(len, ply)
+	if PAM.rtv_config.is_enabled and PAM.state == PAM.STATE_DISABLED and IsValid(ply) and table.HasValue(PAM.players_wanting_rtv, ply:SteamID())then
+		table.RemoveByValue(PAM.players_wanting_rtv, ply:SteamID())
+
+		PAM.CheckForRTV()
+
+		net.Start("PAM_UnRTV")
 		net.WriteEntity(ply)
-		net.Broadcast();
-	elseif PAM.RTV_Config.IsEnabled and PAM.State == PAM.STATE_DISABLED then
-		if table.HasValue(PAM.PlayersWantingRTV, ply:SteamID()) then
-			table.RemoveByValue(PAM.PlayersWantingRTV, ply:SteamID());
-		else
-			CheckForRTV()
-		end
+		net.Broadcast()
 	end
-end )
-*/
+end)
