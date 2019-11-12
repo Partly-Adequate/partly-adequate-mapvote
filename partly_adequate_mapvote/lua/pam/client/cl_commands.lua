@@ -27,15 +27,17 @@ end)
 
 -- registers commands for the ttt2 bind menu
 hook.Add("Initialize", "PamBindings", function()
-	bind.Register("pam_toggle_menu", function()
-		LocalPlayer():ConCommand("pam_toggle_menu")
-	end, nil, "Partly Adequate Mapvote", "Toggle menu visibility", nil)
+	if bind then
+		bind.Register("pam_toggle_menu", function()
+			LocalPlayer():ConCommand("pam_toggle_menu")
+		end, nil, "Partly Adequate Mapvote", "Toggle menu visibility", nil)
 
-	bind.Register("pam_rtv", function()
-		LocalPlayer():ConCommand("pam_rtv")
-	end, nil, "Partly Adequate Mapvote", "RTV", nil)
+		bind.Register("pam_rtv", function()
+			LocalPlayer():ConCommand("pam_rtv")
+		end, nil, "Partly Adequate Mapvote", "RTV", nil)
 
-	bind.Register("pam_menu_selection", function()
-		LocalPlayer():ConCommand("pam_extension_manager")
-	end, nil, "Partly Adequate Mapvote", "Extension Manager", nil)
+		bind.Register("pam_menu_selection", function()
+			LocalPlayer():ConCommand("pam_extension_manager")
+		end, nil, "Partly Adequate Mapvote", "Extension Manager", nil)
+	end
 end)
