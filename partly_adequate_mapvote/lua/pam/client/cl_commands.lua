@@ -27,7 +27,7 @@ end)
 
 -- registers commands for the ttt2 bind menu
 hook.Add("Initialize", "PamBindings", function()
-	if bind then
+	if TTT2 then
 		bind.Register("pam_toggle_menu", function()
 			LocalPlayer():ConCommand("pam_toggle_menu")
 		end, nil, "Partly Adequate Mapvote", "Toggle menu visibility", nil)

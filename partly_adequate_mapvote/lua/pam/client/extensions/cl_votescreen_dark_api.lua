@@ -19,8 +19,8 @@ function extension.OnVoterRemoved(ply)
 	panel:RemoveVoter(ply)
 end
 
-function extension.OnWinnerAnnounced(map_id)
-	panel:AnnounceWinner(map_id)
+function extension.OnWinnerAnnounced()
+	panel:AnnounceWinner()
 end
 
 function extension.ToggleVisibility()
@@ -28,16 +28,19 @@ function extension.ToggleVisibility()
 end
 
 function extension.OnEnable()
-	if PAM.state == PAM.STATE_STARTED then
+	if PAM.state != PAM.STATE_DISABLED then
 		extension.OnVoteStarted()
 		for steam_id, map_id in pairs(PAM.votes) do
 			extension.OnVoterAdded(player.GetBySteamID(steam_id), map_id)
 		end
 	end
+	if PAM.state == PAM.STATE_FINISHED then
+		extension.OnWinnerAnnounced()
+	end
 end
 
 function extension.OnDisable()
-	if PAM.state == PAM.STATE_STARTED then
+	if PAM.state != PAM.STATE_DISABLED then
 		panel:Remove()
 	end
 end

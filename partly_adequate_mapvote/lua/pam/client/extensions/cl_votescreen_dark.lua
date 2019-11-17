@@ -381,7 +381,7 @@ end
 function PANEL:RefreshMapList()
 	self.map_list:Clear()
 	for _, map_button in pairs(self.map_buttons) do
-		if (not self.winner_id and self:FitsSearchTerm(map_button) and (not self.show_favorites or PAM.IsFavorite(map_button.map.name)) and (not self.show_voted_on or map_button.voter_count > 0)) or self.winner_id == map_button.map.id then
+		if (not PAM.winning_map_id and self:FitsSearchTerm(map_button) and (not self.show_favorites or PAM.IsFavorite(map_button.map.name)) and (not self.show_voted_on or map_button.voter_count > 0)) or PAM.winning_map_id == map_button.map.id then
 			self.map_list:AddItem(map_button)
 			map_button:SetVisible(true)
 		else
@@ -491,15 +491,9 @@ function PANEL:GetMapButton(id)
 	return false
 end
 
-function PANEL:AnnounceWinner(id)
+function PANEL:AnnounceWinner()
 	self:SetVisible(true)
-
-	self.winner_id = id
 	self:RefreshMapList()
-
-	timer.Create("pam_notification", 0.4, 3, function()
-		surface.PlaySound("hl1/fvox/blip.wav")
-	end)
 end
 
 derma.DefineControl("pam_votescreen_dark", "", PANEL, "DFrame")
