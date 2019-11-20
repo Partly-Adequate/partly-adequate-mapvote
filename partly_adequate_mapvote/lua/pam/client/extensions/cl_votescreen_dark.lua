@@ -21,7 +21,8 @@ local ic_favorite = Material("vgui/pam/ic_favorite")
 local ic_not_favorite = Material("vgui/pam/ic_not_favorite")
 local ic_voted_on = Material("vgui/pam/ic_voted")
 local ic_not_voted_on = Material("vgui/pam/ic_not_voted")
-local img_missing_map = Material("vgui/pam/img_missing.png")
+
+local mat_missing_map = Material("vgui/pam/img_missing.png")
 
 surface.CreateFont("PAM_MapNameFont", {
 	font = "Trebuchet MS",
@@ -381,7 +382,7 @@ end
 function PANEL:RefreshMapList()
 	self.map_list:Clear()
 	for _, map_button in pairs(self.map_buttons) do
-		if (not self.winner_id and self:FitsSearchTerm(map_button) and (not self.show_favorites or PAM.IsFavorite(map_button.map.name)) and (not self.show_voted_on or map_button.voter_count > 0)) or self.winner_id == map_button.map.id then
+		if (not PAM.winning_map_id and self:FitsSearchTerm(map_button) and (not self.show_favorites or PAM.IsFavorite(map_button.map.name)) and (not self.show_voted_on or map_button.voter_count > 0)) or PAM.winning_map_id == map_button.map.id then
 			self.map_list:AddItem(map_button)
 			map_button:SetVisible(true)
 		else
@@ -404,11 +405,14 @@ function PANEL:InitMapButtons()
 
 		-- map thumbnail
 		local map_image = vgui.Create("DImage", map_button)
-		local map_image_mat = img_missing_map
-		if file.Exists("maps/thumb/" .. map_button.map.name .. ".png", "GAME") then
-			map_image_mat = Material("maps/thumb/" .. map_button.map.name .. ".png")
+		
+		local mat_map_icon = PAM.GetMapIconMat(map_button.map.name)
+		if mat_map_icon then
+			map_image:SetMaterial(mat_map_icon)
+		else
+			map_image:SetMaterial(mat_missing_map)
 		end
-		map_image:SetMaterial(map_image_mat)
+
 		map_image:SetSize(map_image_size, map_image_size)
 		map_image:SetPos(map_button_label_size, map_button_label_size)
 
@@ -491,15 +495,9 @@ function PANEL:GetMapButton(id)
 	return false
 end
 
-function PANEL:AnnounceWinner(id)
+function PANEL:AnnounceWinner()
 	self:SetVisible(true)
-
-	self.winner_id = id
 	self:RefreshMapList()
-
-	timer.Create("pam_notification", 0.4, 3, function()
-		surface.PlaySound("hl1/fvox/blip.wav")
-	end)
 end
 
 derma.DefineControl("pam_votescreen_dark", "", PANEL, "DFrame")

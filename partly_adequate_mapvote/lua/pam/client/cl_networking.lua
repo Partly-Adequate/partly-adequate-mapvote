@@ -3,6 +3,7 @@ net.Receive("PAM_Start", function()
 	PAM.votes = {}
 	PAM.players_wanting_rtv = {}
 	PAM.state = PAM.STATE_STARTED
+	PAM.winning_map_id = nil
 
 	local map_amount = net.ReadUInt(32)
 
@@ -51,9 +52,9 @@ net.Receive("PAM_UnRTV", function(len)
 end)
 
 net.Receive("PAM_Announce_Winner", function()
-	map_id = net.ReadUInt(32)
+	PAM.winning_map_id = net.ReadUInt(32)
 	PAM.state = PAM.STATE_FINISHED
-	PAM.extension_handler.OnWinnerAnnounced(map_id)
+	PAM.extension_handler.OnWinnerAnnounced()
 end)
 
 net.Receive("PAM_Cancel", function()

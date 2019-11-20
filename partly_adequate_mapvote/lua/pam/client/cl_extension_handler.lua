@@ -1,6 +1,16 @@
 PAM.extension_handler = {}
 PAM.extensions = {}
 
+function PAM.ReloadExtensions()
+	for _, extension in ipairs(PAM.extensions) do
+		PAM.DisableExtension(extension.id)
+	end
+	table.Empty(PAM.extensions)
+
+	print("[PAM] Registering extensions!")
+	hook.Run("PAM_Register_Client_Extensions")
+end
+
 function PAM.RegisterExtension(extension)
 	PAM.extensions[extension.id] = extension
 	print('[PAM] Registering extension "' .. extension.id .. '"!')
@@ -45,6 +55,19 @@ function PAM.extension_handler.OnVoterAdded(ply, map_id)
 	end
 end
 
+function PAM.extension_handler.GetMapIconMat(map_name)
+	local icon = nil
+	for _, extension in pairs(PAM.extensions) do
+		if extension.is_enabled and extension.GetMapIconMat  then
+			icon = extension.GetMapIconMat(map_name)
+			if icon then
+				return icon
+			end
+		end
+	end
+	return nil
+end
+
 function PAM.extension_handler.OnVoterRemoved(ply)
 	for _, extension in pairs(PAM.extensions) do
 		if extension.is_enabled and extension.OnVoterRemoved  then
@@ -69,10 +92,10 @@ function PAM.extension_handler.OnRTVVoterRemoved(ply)
 	end
 end
 
-function PAM.extension_handler.OnWinnerAnnounced(map_id)
+function PAM.extension_handler.OnWinnerAnnounced()
 	for _, extension in pairs(PAM.extensions) do
 		if extension.is_enabled and extension.OnWinnerAnnounced  then
-			extension.OnWinnerAnnounced(map_id)
+			extension.OnWinnerAnnounced()
 		end
 	end
 end
@@ -86,6 +109,5 @@ function PAM.extension_handler.ToggleVisibility()
 end
 
 hook.Add("Initialize", "PAM_GuiManager", function()
-	print("[PAM] Registering extensions!")
-	hook.Run("PAM_Register_Client_Extensions")
+	PAM.ReloadExtensions()
 end)

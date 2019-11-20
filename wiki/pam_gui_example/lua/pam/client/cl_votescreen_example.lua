@@ -114,21 +114,16 @@ function PANEL:UpdateVoters()
 end
 
 -- announces the winner
-function PANEL:AnnounceWinner(id)
+function PANEL:AnnounceWinner()
 	-- shows the panel
 	self:SetVisible(true)
 
 	-- deletes all buttons but the winner
 	for _, button in pairs(self.map_buttons) do
-		if(button.map.id != id) then
+		if(button.map.id != PAM.winning_map_id) then
 			button:Remove()
 		end
 	end
-
-	-- plays a sound
-	timer.Create("ttt_pam_notification", 0.4, 3, function()
-		surface.PlaySound("hl1/fvox/blip.wav")
-	end)
 end
 
 derma.DefineControl("pam_votescreen_example", "", PANEL, "DFrame")

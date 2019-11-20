@@ -1,47 +1,50 @@
-local menu = {}
+local extension = {}
 local panel = nil
-menu.id = "Dark Votescreen"
-menu.is_enabled = true
+extension.id = "Dark Votescreen"
+extension.is_enabled = true
 
-function menu.OnVoteStarted()
+function extension.OnVoteStarted()
 	panel = vgui.Create("pam_votescreen_dark")
 end
 
-function menu.OnVoteCanceled()
+function extension.OnVoteCanceled()
 	panel:Remove()
 end
 
-function menu.OnVoterAdded(ply, map_id)
+function extension.OnVoterAdded(ply, map_id)
 	panel:AddVoter(ply, map_id)
 end
 
-function menu.OnVoterRemoved(ply)
+function extension.OnVoterRemoved(ply)
 	panel:RemoveVoter(ply)
 end
 
-function menu.OnWinnerAnnounced(map_id)
-	panel:AnnounceWinner(map_id)
+function extension.OnWinnerAnnounced()
+	panel:AnnounceWinner()
 end
 
-function menu.ToggleVisibility()
+function extension.ToggleVisibility()
 	panel:SetVisible(not panel:IsVisible())
 end
 
-function menu.OnEnable()
-	if PAM.state == PAM.STATE_STARTED then
-		menu.OnVoteStarted()
+function extension.OnEnable()
+	if PAM.state != PAM.STATE_DISABLED then
+		extension.OnVoteStarted()
 		for steam_id, map_id in pairs(PAM.votes) do
-			menu.OnVoterAdded(player.GetBySteamID(steam_id), map_id)
+			extension.OnVoterAdded(player.GetBySteamID(steam_id), map_id)
 		end
+	end
+	if PAM.state == PAM.STATE_FINISHED then
+		extension.OnWinnerAnnounced()
 	end
 end
 
-function menu.OnDisable()
-	if PAM.state == PAM.STATE_STARTED then
+function extension.OnDisable()
+	if PAM.state != PAM.STATE_DISABLED then
 		panel:Remove()
 	end
 end
 
 hook.Add("PAM_Register_Client_Extensions", "PAM_Register_Votescreen_Dark", function()
-	PAM.RegisterExtension(menu)
+	PAM.RegisterExtension(extension)
 end)
