@@ -21,7 +21,8 @@ local ic_favorite = Material("vgui/pam/ic_favorite")
 local ic_not_favorite = Material("vgui/pam/ic_not_favorite")
 local ic_voted_on = Material("vgui/pam/ic_voted")
 local ic_not_voted_on = Material("vgui/pam/ic_not_voted")
-local img_missing_map = Material("vgui/pam/img_missing.png")
+
+local mat_missing_map = Material("vgui/pam/img_missing.png")
 
 surface.CreateFont("PAM_MapNameFont", {
 	font = "Trebuchet MS",
@@ -404,11 +405,14 @@ function PANEL:InitMapButtons()
 
 		-- map thumbnail
 		local map_image = vgui.Create("DImage", map_button)
-		local map_image_mat = img_missing_map
-		if file.Exists("maps/thumb/" .. map_button.map.name .. ".png", "GAME") then
-			map_image_mat = Material("maps/thumb/" .. map_button.map.name .. ".png")
+		
+		local mat_map_icon = PAM.GetMapIconMat(map_button.map.name)
+		if mat_map_icon then
+			map_image:SetMaterial(mat_map_icon)
+		else
+			map_image:SetMaterial(mat_missing_map)
 		end
-		map_image:SetMaterial(map_image_mat)
+
 		map_image:SetSize(map_image_size, map_image_size)
 		map_image:SetPos(map_button_label_size, map_button_label_size)
 

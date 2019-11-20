@@ -55,6 +55,19 @@ function PAM.extension_handler.OnVoterAdded(ply, map_id)
 	end
 end
 
+function PAM.extension_handler.GetMapIconMat(map_name)
+	local icon = nil
+	for _, extension in pairs(PAM.extensions) do
+		if extension.is_enabled and extension.GetMapIconMat  then
+			icon = extension.GetMapIconMat(map_name)
+			if icon then
+				return icon
+			end
+		end
+	end
+	return nil
+end
+
 function PAM.extension_handler.OnVoterRemoved(ply)
 	for _, extension in pairs(PAM.extensions) do
 		if extension.is_enabled and extension.OnVoterRemoved  then

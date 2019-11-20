@@ -44,3 +44,7 @@ function PAM.UnRTV()
 		net.SendToServer()
 	end
 end
+
+function PAM.GetMapIconMat(map_name)
+	return PAM.extension_handler.GetMapIconMat(map_name)
+end
