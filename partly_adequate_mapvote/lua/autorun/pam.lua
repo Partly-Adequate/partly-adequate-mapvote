@@ -39,7 +39,7 @@ if SERVER then
 	include("pam/server/sv_init.lua")
 	include("pam/server/sv_pam.lua")
 	include("pam/server/sv_networking.lua")
-	include("pam/server/sv_autovote")
+	include("pam/server/sv_autovote.lua")
 else
 	include("pam/client/cl_init.lua")
 	include("pam/client/cl_pam.lua")
