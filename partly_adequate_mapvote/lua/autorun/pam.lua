@@ -35,6 +35,7 @@ if SERVER then
 	AddCSLuaFile("pam/client/extensions/cl_votescreen_dark_api.lua")
 	AddCSLuaFile("pam/client/extensions/cl_rtv_chat_notifications.lua")
 	AddCSLuaFile("pam/client/extensions/cl_default_map_icons.lua")
+	AddCSLuaFile("pam/client/extensions/cl_rtv_chat_commands.lua")
 
 	include("pam/server/sv_init.lua")
 	include("pam/server/sv_pam.lua")
@@ -52,4 +53,5 @@ else
 	include("pam/client/extensions/cl_votescreen_dark_api.lua")
 	include("pam/client/extensions/cl_rtv_chat_notifications.lua")
 	include("pam/client/extensions/cl_default_map_icons.lua")
+	include("pam/client/extensions/cl_rtv_chat_commands.lua")
 end
