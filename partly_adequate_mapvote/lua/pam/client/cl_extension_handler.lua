@@ -14,20 +14,44 @@ end
 function PAM.RegisterExtension(extension)
 	PAM.extensions[extension.id] = extension
 	print('[PAM] Registering extension "' .. extension.id .. '"!')
-	-- TODO search for extension in db and enable/disable accordingly
+	--check extension in database
+	local data = sql.Query("SELECT is_enabled FROM pam_extensions WHERE id IS " .. sql.SQLStr(extension.id))
+	if data then
+		--enable/disable extension according to database
+		print(table.ToString(data, "coolio", false))
+		print(table.ToString(data[1], "coolio", false))
+		if data[1]["is_enabled"] == "1" then
+			extension.is_enabled = true;
+		else
+			extension.is_enabled = false;
+		end
+	else
+		--insert new extension into database
+		sql.Query( "INSERT OR REPLACE INTO pam_extensions VALUES( " .. sql.SQLStr(extension.id) .. ", " .. (extension.is_enabled and 1 or 0) .. ")")
+	end
+	--enable extension
+	if(extension.is_enabled) then
+		if extension.OnEnable then
+			extension.OnEnable()
+		end
+	end
 end
 
 function PAM.DisableExtension(id)
-	PAM.extensions[id].is_enabled = false
-	if PAM.extensions[id].OnDisable then
-		PAM.extensions[id].OnDisable()
+	local extension = PAM.extensions[id]
+	extension.is_enabled = false
+	sql.Query( "INSERT OR REPLACE INTO pam_extensions VALUES( " .. sql.SQLStr(extension.id) .. ", " .. 0 .. ")")
+	if extension.OnDisable then
+		extension.OnDisable()
 	end
 end
 
 function PAM.EnableExtension(id)
-	PAM.extensions[id].is_enabled = true
-	if PAM.extensions[id].OnEnable then
-		PAM.extensions[id].OnEnable()
+	local extension = PAM.extensions[id]
+	extension.is_enabled = true
+	sql.Query( "INSERT OR REPLACE INTO pam_extensions VALUES( " .. sql.SQLStr(extension.id) .. ", " .. 1 .. ")")
+	if extension.OnEnable then
+		extension.OnEnable()
 	end
 end
 
