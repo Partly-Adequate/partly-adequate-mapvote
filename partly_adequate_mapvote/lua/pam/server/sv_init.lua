@@ -85,13 +85,29 @@ resource.AddFile("materials/vgui/pam_ic_nofav.vmt")
 if not file.Exists("pam/config.txt", "DATA") then
 	file.Write("pam/config.txt", util.TableToJSON(PAM.CONFIG_DEFAULT))
 else
-	PAM.config = util.JSONToTable(file.Read("pam/config.txt", "DATA"))
+	local loadedConfig = util.JSONToTable(file.Read("pam/config.txt", "DATA"))
+	if(loadedConfig.vote_length and loadedConfig.map_prefixes and loadedConfig.maps_before_revote and loadedConfig.max_map_amount) then
+		PAM.config.vote_length = loadedConfig.vote_length
+		PAM.config.map_prefixes = loadedConfig.map_prefixes
+		PAM.config.maps_before_revote = loadedConfig.maps_before_revote
+		PAM.config.max_map_amount = loadedConfig.max_map_amount
+	else
+		file.Write("pam/config.txt", util.TableToJSON(PAM.CONFIG_DEFAULT))
+	end
 end
 
 if not file.Exists("pam/rtv_config.txt", "DATA") then
 	file.Write("pam/rtv_config.txt", util.TableToJSON(PAM.RTV_CONFIG_DEFAULT))
 else
-	PAM.rtv_config = util.JSONToTable(file.Read("pam/rtv_config.txt", "DATA"))
+	local loadedConfig = util.JSONToTable(file.Read("pam/rtv_config.txt", "DATA"))
+	if(loadedConfig.is_enabled and loadedConfig.needed_player_percentage and loadedConfig.vote_length and loadedConfig.allow_all_maps) then
+		PAM.rtv_config.is_enabled = loadedConfig.is_enabled
+		PAM.rtv_config.needed_player_percentage = loadedConfig.needed_player_percentage
+		PAM.rtv_config.vote_length = loadedConfig.vote_length
+		PAM.rtv_config.allow_all_maps = loadedConfig.allow_all_maps
+	else
+		file.Write("pam/rtv_config.txt", util.TableToJSON(PAM.RTV_CONFIG_DEFAULT))
+	end
 end
 
 --load map information
