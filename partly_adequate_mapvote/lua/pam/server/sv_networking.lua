@@ -13,6 +13,7 @@ net.Receive("PAM_Vote", function(len, ply)
 	end
 end)
 
+-- TODO test this
 net.Receive("PAM_UnVote", function(len, ply)
 	if PAM.state == PAM.STATE_STARTED and IsValid(ply) then
 		PAM.Votes[ply:SteamID()] = nil

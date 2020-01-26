@@ -1,22 +1,22 @@
--- toggle menu visibility
+--toggle menu visibility
 concommand.Add("pam_toggle_menu", function(player, cmd, args, arg_str)
 	if PAM.state == PAM.STATE_STARTED then
 		PAM.extension_handler.ToggleVisibility()
 	end
 end)
 
--- toggle rtv participation
+--toggle rtv participation
 concommand.Add("pam_rtv", function(ply, cmd, args, arg_str)
 	if PAM.state == PAM.STATE_DISABLED then
 		if PAM.WantsRTV(ply) then
-			PAM.UnRTV()
+			PAM.UnVoteRTV()
 		else
-			PAM.RTV()
+			PAM.VoteRTV()
 		end
 	end
 end)
 
--- create a menu selection screen
+--create a menu selection screen
 concommand.Add("pam_extension_manager", function(player, cmd, args, arg_str)
 	if IsValid(PAM.extension_manager) then
 		PAM.extension_manager:Remove()
@@ -25,7 +25,7 @@ concommand.Add("pam_extension_manager", function(player, cmd, args, arg_str)
 	end
 end)
 
--- registers commands for the ttt2 bind menu
+--registers commands for the ttt2 bind menu
 hook.Add("Initialize", "PamBindings", function()
 	if TTT2 then
 		bind.Register("pam_toggle_menu", function()

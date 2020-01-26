@@ -1,4 +1,5 @@
--- terrortown (regular ttt and ttt2)
+--terrortown (regular ttt, ttt2 and tot)
+--TODO use fancy hook once v0.6 of TTT2 is released
 hook.Add("Initialize", "PAM_TTT_AutoStart", function()
 	if GAMEMODE_NAME == "terrortown" then
 		function CheckForMapSwitch()

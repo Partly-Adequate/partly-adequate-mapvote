@@ -31,14 +31,14 @@ function PAM.WantsRTV(ply)
 	return table.HasValue(PAM.players_wanting_rtv, ply)
 end
 
-function PAM.RTV()
+function PAM.VoteRTV()
 	if PAM.state == PAM.STATE_DISABLED and not PAM.WantsRTV(LocalPlayer()) then
 		net.Start("PAM_RTV")
 		net.SendToServer()
 	end
 end
 
-function PAM.UnRTV()
+function PAM.UnVoteRTV()
 	if PAM.state == PAM.STATE_DISABLED and PAM.WantsRTV(LocalPlayer())then
 		net.Start("PAM_UnRTV")
 		net.SendToServer()

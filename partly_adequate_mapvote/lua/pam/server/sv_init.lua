@@ -54,25 +54,28 @@ PAM.RTV_CONFIG_DEFAULT = {
 PAM.config = PAM.CONFIG_DEFAULT
 PAM.rtv_config = PAM.RTV_CONFIG_DEFAULT
 
--- the recently played maps
+--the recently played maps
 PAM.recent_maps = {}
 
--- the play counts of each map
+--the play counts of each map
 PAM.playcounts = {}
 
--- the players wanting to rock the vote
+--the players wanting to rock the vote
 PAM.players_wanting_rtv = {}
 
--- set fallback metatable
+--set fallback metatable
 setmetatable(PAM.config, PAM.CONFIG_DEFAULT)
 setmetatable(PAM.rtv_config, PAM.RTV_CONFIG_DEFAULT)
 
+--add resources
 resource.AddFile("materials/vgui/pam_ic_missing.vmt")
 resource.AddFile("materials/vgui/pam_ic_menu.vmt")
 resource.AddFile("materials/vgui/pam_map_button.vmt")
 resource.AddFile("materials/vgui/pam_ic_fav.vmt")
 resource.AddFile("materials/vgui/pam_ic_nofav.vmt")
 
+--create default config / load config
+--TODO use convars instead
 if not file.Exists("pam/config.txt", "DATA") then
 	file.Write("pam/config.txt", util.TableToJSON(PAM.CONFIG_DEFAULT))
 else
@@ -85,6 +88,8 @@ else
 	PAM.rtv_config = util.JSONToTable(file.Read("pam/rtv_config.txt", "DATA"))
 end
 
+--load map information
+--TODO use database instead
 if file.Exists("pam/recentmaps.txt", "DATA") then
 	PAM.recent_maps = util.JSONToTable(file.Read("pam/recentmaps.txt", "DATA"))
 end
