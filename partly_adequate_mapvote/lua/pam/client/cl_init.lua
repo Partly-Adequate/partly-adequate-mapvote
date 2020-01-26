@@ -1,5 +1,4 @@
 PAM.vote_ends_at = 0
-PAM.vote_menu = nil
 PAM.menu_manager = nil
 PAM.winning_map_id = nil
 PAM.maps = {}
