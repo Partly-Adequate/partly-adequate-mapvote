@@ -28,7 +28,8 @@ function PAM.RegisterExtension(extension)
 		sql.Query( "INSERT OR REPLACE INTO pam_extensions VALUES( " .. sql.SQLStr(extension.id) .. ", " .. (extension.is_enabled and 1 or 0) .. ")")
 	end
 	--enable extension
-	if(extension.is_enabled) then
+	if extension.is_enabled then
+		print('[PAM] Enabling extension "' .. extension.id .. '"!')
 		if extension.OnEnable then
 			extension.OnEnable()
 		end
