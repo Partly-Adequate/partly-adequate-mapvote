@@ -18,8 +18,6 @@ function PAM.RegisterExtension(extension)
 	local data = sql.Query("SELECT is_enabled FROM pam_extensions WHERE id IS " .. sql.SQLStr(extension.id))
 	if data then
 		--enable/disable extension according to database
-		print(table.ToString(data, "coolio", false))
-		print(table.ToString(data[1], "coolio", false))
 		if data[1]["is_enabled"] == "1" then
 			extension.is_enabled = true;
 		else
