@@ -41,14 +41,14 @@ end
 
 function PAM.VoteRTV()
 	if PAM.state == PAM.STATE_DISABLED and not PAM.WantsRTV(LocalPlayer()) then
-		net.Start("PAM_RTV")
+		net.Start("PAM_VoteRTV")
 		net.SendToServer()
 	end
 end
 
 function PAM.UnVoteRTV()
 	if PAM.state == PAM.STATE_DISABLED and PAM.WantsRTV(LocalPlayer())then
-		net.Start("PAM_UnRTV")
+		net.Start("PAM_UnVoteRTV")
 		net.SendToServer()
 	end
 end

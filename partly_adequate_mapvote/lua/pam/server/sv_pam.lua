@@ -3,9 +3,9 @@ function PAM.Start(vote_length, allow_all_maps)
 	vote_length = vote_length or PAM.config.vote_length
 	local all_maps = file.Find("maps/*.bsp", "GAME")
 
-	PAM.maps = {}
-	PAM.votes = {}
-	PAM.players_wanting_rtv = {}
+	table.Empty(PAM.maps)
+	table.Empty(PAM.votes)
+	table.Empty(PAM.players_wanting_rtv)
 
 	local map_amount = 0
 

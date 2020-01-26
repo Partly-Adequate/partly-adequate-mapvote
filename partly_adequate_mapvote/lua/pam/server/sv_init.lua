@@ -12,10 +12,10 @@ util.AddNetworkString("PAM_Vote")
 util.AddNetworkString("PAM_UnVote")
 -- client->server
 -- server->all
-util.AddNetworkString("PAM_RTV")
+util.AddNetworkString("PAM_VoteRTV")
 -- client->server
 -- server->all
-util.AddNetworkString("PAM_UnRTV")
+util.AddNetworkString("PAM_UnVoteRTV")
 -- server->all
 util.AddNetworkString("PAM_Announce_Winner")
 
@@ -44,7 +44,7 @@ PAM.RTV_CONFIG_DEFAULT = {
 	needed_player_percentage = 0.6,
 
 	--length of rtv voting time in seconds
-	vote_length = 60,
+	vote_length = 30,
 
 	--allows the rtv vote to contain all maps
 	allow_all_maps = false;
@@ -56,6 +56,12 @@ PAM.rtv_config = PAM.RTV_CONFIG_DEFAULT
 
 --the recently played maps
 PAM.recent_maps = {}
+
+--the currently voteable maps
+PAM.maps = {}
+
+--the current votes
+PAM.votes = {}
 
 --the play counts of each map
 PAM.playcounts = {}

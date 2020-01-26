@@ -23,26 +23,26 @@ net.Receive("PAM_UnVote", function(len, ply)
 	end
 end)
 
-net.Receive("PAM_RTV", function(len, ply)
+net.Receive("PAM_VoteRTV", function(len, ply)
 	if PAM.rtv_config.is_enabled and PAM.state == PAM.STATE_DISABLED and IsValid(ply) and not table.HasValue(PAM.players_wanting_rtv, ply:SteamID())then
 		table.insert(PAM.players_wanting_rtv, ply:SteamID())
 
-		PAM.CheckForRTV()
-
-		net.Start("PAM_RTV")
+		net.Start("PAM_VoteRTV")
 		net.WriteEntity(ply)
 		net.Broadcast()
+
+		PAM.CheckForRTV()
 	end
 end)
 
-net.Receive("PAM_UnRTV", function(len, ply)
+net.Receive("PAM_UnVoteRTV", function(len, ply)
 	if PAM.rtv_config.is_enabled and PAM.state == PAM.STATE_DISABLED and IsValid(ply) and table.HasValue(PAM.players_wanting_rtv, ply:SteamID())then
 		table.RemoveByValue(PAM.players_wanting_rtv, ply:SteamID())
 
-		PAM.CheckForRTV()
-
-		net.Start("PAM_UnRTV")
+		net.Start("PAM_UnVoteRTV")
 		net.WriteEntity(ply)
 		net.Broadcast()
+		
+		PAM.CheckForRTV()
 	end
 end)

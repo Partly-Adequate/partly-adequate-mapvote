@@ -1,8 +1,8 @@
 net.Receive("PAM_Start", function()
-	PAM.maps = {}
-	PAM.votes = {}
-	PAM.players_wanting_rtv = {}
 	PAM.state = PAM.STATE_STARTED
+	table.Empty(PAM.maps)
+	table.Empty(PAM.votes)
+	table.Empty(PAM.players_wanting_rtv)
 	PAM.winning_map_id = nil
 
 	local map_amount = net.ReadUInt(32)
@@ -39,13 +39,13 @@ net.Receive("PAM_UnVote", function()
 	end
 end)
 
-net.Receive("PAM_RTV", function(len)
+net.Receive("PAM_VoteRTV", function(len)
 	local ply = net.ReadEntity()
 	table.insert(PAM.players_wanting_rtv, ply)
 	PAM.extension_handler.OnRTVVoterAdded(ply)
 end)
 
-net.Receive("PAM_UnRTV", function(len)
+net.Receive("PAM_UnVoteRTV", function(len)
 	local ply = net.ReadEntity()
 	table.RemoveByValue(PAM.players_wanting_rtv, ply);
 	PAM.extension_handler.OnRTVVoterRemoved(ply)
