@@ -1,19 +1,27 @@
 function PAM.AddToFavorites(mapname)
 	if PAM.IsFavorite(mapname) then return end
-
-	table.insert(PAM.favorite_maps, mapname)
-	file.Write("pam/favoritemaps.txt", util.TableToJSON(PAM.favorite_maps))
+	sql.Query( "INSERT OR REPLACE INTO pam_maps VALUES( " .. sql.SQLStr(mapname) .. ", " .. 1 .. ")")
 end
 
 function PAM.IsFavorite(mapname)
-	return table.HasValue(PAM.favorite_maps, mapname)
+	local data = sql.Query("SELECT is_favorite FROM pam_maps WHERE id IS " .. sql.SQLStr(mapname))
+	if data then
+		--favorise maps according to database
+		if data[1]["is_favorite"] == "1" then
+			return true;
+		else
+			return false;
+		end
+	else
+		--insert new map into database
+		sql.Query( "INSERT OR REPLACE INTO pam_maps VALUES( " .. sql.SQLStr(mapname) .. ", " .. 0 .. ")")
+	end
+	return false;
 end
 
 function PAM.RemoveFromFavorites(mapname)
 	if not PAM.IsFavorite(mapname) then return end
-
-	table.RemoveByValue(PAM.favorite_maps, mapname)
-	file.Write("pam/favoritemaps.txt", util.TableToJSON(PAM.favorite_maps))
+	sql.Query( "INSERT OR REPLACE INTO pam_maps VALUES( " .. sql.SQLStr(mapname) .. ", " .. 0 .. ")")
 end
 
 function PAM.Vote(map_id)
