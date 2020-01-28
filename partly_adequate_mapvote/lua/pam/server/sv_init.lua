@@ -74,11 +74,11 @@ setmetatable(PAM.config, PAM.CONFIG_DEFAULT)
 setmetatable(PAM.rtv_config, PAM.RTV_CONFIG_DEFAULT)
 
 --add resources
-resource.AddFile("materials/vgui/pam_ic_missing.vmt")
-resource.AddFile("materials/vgui/pam_ic_menu.vmt")
-resource.AddFile("materials/vgui/pam_map_button.vmt")
-resource.AddFile("materials/vgui/pam_ic_fav.vmt")
-resource.AddFile("materials/vgui/pam_ic_nofav.vmt")
+resource.AddFile("materials/vgui/pam/img_missing.vmt")
+resource.AddFile("materials/vgui/pam/ic_favorite.vmt")
+resource.AddFile("materials/vgui/pam/ic_not_favorite.vmt")
+resource.AddFile("materials/vgui/pam/ic_selected.vmt")
+resource.AddFile("materials/vgui/pam/ic_not_selected.vmt")
 
 --create default config / load config
 --TODO use convars instead

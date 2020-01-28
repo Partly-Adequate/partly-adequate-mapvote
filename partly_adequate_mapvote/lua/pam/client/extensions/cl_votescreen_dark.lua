@@ -19,10 +19,10 @@ local col_text = {r = 150, g = 150, b = 150, a = 255}
 -- images and icons
 local ic_favorite = Material("vgui/pam/ic_favorite")
 local ic_not_favorite = Material("vgui/pam/ic_not_favorite")
-local ic_voted_on = Material("vgui/pam/ic_voted")
-local ic_not_voted_on = Material("vgui/pam/ic_not_voted")
+local ic_voted_on = Material("vgui/pam/ic_selected")
+local ic_not_voted_on = Material("vgui/pam/ic_not_selected")
 
-local mat_missing_map = Material("vgui/pam/img_missing.png")
+local mat_missing_map = Material("vgui/pam/img_missing")
 
 surface.CreateFont("PAM_MapNameFont", {
 	font = "Trebuchet MS",
