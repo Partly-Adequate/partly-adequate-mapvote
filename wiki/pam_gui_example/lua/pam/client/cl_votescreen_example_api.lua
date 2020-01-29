@@ -2,8 +2,8 @@ local extension = {}
 -- locally stores the panel for easier access
 local panel = nil
 
--- unique identifier for this extension
-extension.id = "Example Votescreen"
+-- unique name for this extension
+extension.name = "Example Votescreen"
 -- default state
 extension.is_enabled = false
 
