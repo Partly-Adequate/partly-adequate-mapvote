@@ -1,7 +1,7 @@
 local extension = {}
 local panel = nil
 extension.name = "Big Dark Votescreen"
-extension.is_enabled = true
+extension.is_enabled = false
 
 function extension.OnVoteStarted()
 	panel = vgui.Create("pam_votescreen_big_dark")
