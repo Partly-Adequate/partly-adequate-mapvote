@@ -5,8 +5,8 @@ local button_width = 500
 local menu_bar_height = 25
 local scroll_bar_width = 14
 
-local ic_selected = Material("vgui/pam/ic_voted")
-local ic_not_selected = Material("vgui/pam/ic_not_voted")
+local ic_selected = Material("vgui/pam/ic_selected")
+local ic_not_selected = Material("vgui/pam/ic_not_selected")
 
 local col_base = {r = 40, g = 40, b = 40, a = 255}
 local col_base_darker = {r = 30, g = 30, b = 30, a = 255}
