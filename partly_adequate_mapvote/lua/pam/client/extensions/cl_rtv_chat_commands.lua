@@ -1,5 +1,5 @@
 local extension = {}
-extension.id = "RTV Chat Commands"
+extension.name = "RTV Chat Commands"
 extension.is_enabled = true
 
 -- TODO config for commands

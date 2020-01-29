@@ -1,6 +1,6 @@
 local extension = {}
 local panel = nil
-extension.id = "Dark Votescreen"
+extension.name = "Dark Votescreen"
 extension.is_enabled = true
 
 function extension.OnVoteStarted()

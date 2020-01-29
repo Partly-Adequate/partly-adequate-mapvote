@@ -12,10 +12,12 @@ function PAM.ReloadExtensions()
 end
 
 function PAM.RegisterExtension(extension)
-	PAM.extensions[extension.id] = extension
-	print('[PAM] Registering extension "' .. extension.id .. '"!')
+	local id = #PAM.extensions + 1
+	extension.id = id
+	PAM.extensions[id] = extension
+	print('[PAM] Registering extension "' .. extension.name .. '"!')
 	--check extension in database
-	local data = sql.Query("SELECT is_enabled FROM pam_extensions WHERE id IS " .. sql.SQLStr(extension.id))
+	local data = sql.Query("SELECT is_enabled FROM pam_extensions WHERE id IS " .. sql.SQLStr(extension.name))
 	if data then
 		--enable/disable extension according to database
 		if data[1]["is_enabled"] == "1" then
@@ -25,30 +27,28 @@ function PAM.RegisterExtension(extension)
 		end
 	else
 		--insert new extension into database
-		sql.Query( "INSERT OR REPLACE INTO pam_extensions VALUES( " .. sql.SQLStr(extension.id) .. ", " .. (extension.is_enabled and 1 or 0) .. ")")
+		sql.Query( "INSERT OR REPLACE INTO pam_extensions VALUES( " .. sql.SQLStr(extension.name) .. ", " .. (extension.is_enabled and 1 or 0) .. ")")
 	end
 	--enable extension
 	if extension.is_enabled then
-		print('[PAM] Enabling extension "' .. extension.id .. '"!')
+		print('[PAM] Enabling extension "' .. extension.name .. '"!')
 		if extension.OnEnable then
 			extension.OnEnable()
 		end
 	end
 end
 
-function PAM.DisableExtension(id)
-	local extension = PAM.extensions[id]
+function PAM.DisableExtension(extension)
 	extension.is_enabled = false
-	sql.Query( "INSERT OR REPLACE INTO pam_extensions VALUES( " .. sql.SQLStr(extension.id) .. ", " .. 0 .. ")")
+	sql.Query( "INSERT OR REPLACE INTO pam_extensions VALUES( " .. sql.SQLStr(extension.name) .. ", " .. 0 .. ")")
 	if extension.OnDisable then
 		extension.OnDisable()
 	end
 end
 
-function PAM.EnableExtension(id)
-	local extension = PAM.extensions[id]
+function PAM.EnableExtension(extension)
 	extension.is_enabled = true
-	sql.Query( "INSERT OR REPLACE INTO pam_extensions VALUES( " .. sql.SQLStr(extension.id) .. ", " .. 1 .. ")")
+	sql.Query( "INSERT OR REPLACE INTO pam_extensions VALUES( " .. sql.SQLStr(extension.name) .. ", " .. 1 .. ")")
 	if extension.OnEnable then
 		extension.OnEnable()
 	end

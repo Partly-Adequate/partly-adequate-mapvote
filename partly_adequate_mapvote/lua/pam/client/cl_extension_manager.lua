@@ -64,7 +64,7 @@ function PANEL:Init()
 			surface.DrawRect(2, 2, button_width - 4, button_height - 4)
 		end
 		btn_extension:SetTextColor(col_text)
-		btn_extension:SetText(extension.id)
+		btn_extension:SetText(extension.name)
 		btn_extension:SetContentAlignment(5)
 
 		btn_extension.extension = extension
@@ -82,10 +82,10 @@ function PANEL:Init()
 		btn_extension.DoClick = function()
 			local extension = btn_extension.extension
 			if extension.is_enabled then
-				PAM.DisableExtension(extension.id)
+				PAM.DisableExtension(extension)
 				ic_is_selected:SetMaterial(ic_not_selected)
 			else
-				PAM.EnableExtension(extension.id)
+				PAM.EnableExtension(extension)
 				ic_is_selected:SetMaterial(ic_selected)
 			end
 		end

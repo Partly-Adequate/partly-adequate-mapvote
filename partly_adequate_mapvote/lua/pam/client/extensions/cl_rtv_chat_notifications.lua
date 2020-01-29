@@ -1,5 +1,5 @@
 local extension = {}
-extension.id = "RTV Chat Notifications"
+extension.name = "RTV Chat Notifications"
 extension.is_enabled = true
 
 local col_prefix = Color(255, 50, 255, 255)
