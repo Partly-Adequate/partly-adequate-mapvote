@@ -24,22 +24,22 @@ local ic_not_voted_on = Material("vgui/pam/ic_not_selected")
 
 local mat_missing_map = Material("vgui/pam/img_missing")
 
-surface.CreateFont("PAM_MapNameFont", {
+surface.CreateFont("PAM_NameFont", {
 	font = "Trebuchet MS",
 	size = map_button_label_size * 0.75
 })
 
-surface.CreateFont("PAM_PlayCountFont", {
+surface.CreateFont("PAM_PlaycountFont", {
 	font = "Trebuchet MS",
 	size = map_button_label_size * 0.5
 })
 
-surface.CreateFont("PAM_VoteFontCountdown", {
+surface.CreateFont("PAM_CountdownFont", {
 	font = "Trebuchet MS",
 	size = settings_height - 1
 })
 
-surface.CreateFont("PAM_Settings", {
+surface.CreateFont("PAM_SettingsFont", {
 	font = "Trebuchet MS",
 	size = settings_height * 0.66
 })
@@ -95,7 +95,7 @@ end
 
 function PANEL:InitCountDown(parent, pos_x, pos_y, width, height)
 	local lbl_countdown = vgui.Create("DLabel", parent)
-	lbl_countdown:SetFont("PAM_VoteFontCountdown")
+	lbl_countdown:SetFont("PAM_CountdownFont")
 	lbl_countdown:SetTextColor(col_text)
 	lbl_countdown:SetContentAlignment(5)
 	lbl_countdown:SetSize(width, height)
@@ -125,7 +125,7 @@ function PANEL:InitSearchArea(parent, pos_x, pos_y, width, height)
 
 	local txt_search = vgui.Create("DTextEntry", pnl_container)
 	txt_search:SetPlaceholderText("Search for maps...")
-	txt_search:SetFont("PAM_Settings")
+	txt_search:SetFont("PAM_SettingsFont")
 	txt_search.OnChange = function()
 		self.search_term = txt_search:GetValue()
 		self:RefreshMapList()
@@ -172,7 +172,7 @@ function PANEL:InitSortBox(parent, pos_x, pos_y, width, height)
 		surface.DrawRect(2, 2, w - 4, h - 4)
 	end
 	cb_sort_by:SetTextColor(col_text)
-	cb_sort_by:SetFont("PAM_Settings")
+	cb_sort_by:SetFont("PAM_SettingsFont")
 
 	cb_sort_by:AddChoice("Name [a-z]", function(map_button_1, map_button_2)
 		return CompareStrings(map_button_1.map.name, map_button_2.map.name)
@@ -205,7 +205,7 @@ function PANEL:InitFavorites(parent, pos_x, pos_y, width, height)
 	btn_toggle_favorites:SetSize(width, height)
 	btn_toggle_favorites:SetPos(pos_x, pos_y)
 	btn_toggle_favorites:SetTextColor(col_text)
-	btn_toggle_favorites:SetFont("PAM_Settings")
+	btn_toggle_favorites:SetFont("PAM_SettingsFont")
 	btn_toggle_favorites.Paint = function(s, w, h)
 		surface.SetDrawColor(col_base_darkest)
 		surface.DrawRect(0, 0, w, h)
@@ -235,7 +235,7 @@ function PANEL:InitVotedOn(parent, pos_x, pos_y, width, height)
 	btn_toggle_voted_on:SetSize(width, height)
 	btn_toggle_voted_on:SetPos(pos_x, pos_y)
 	btn_toggle_voted_on:SetTextColor(col_text)
-	btn_toggle_voted_on:SetFont("PAM_Settings")
+	btn_toggle_voted_on:SetFont("PAM_SettingsFont")
 	btn_toggle_voted_on.Paint = function(s, w, h)
 		surface.SetDrawColor(col_base_darkest)
 		surface.DrawRect(0, 0, w, h)
@@ -430,7 +430,7 @@ function PANEL:InitMapButtons()
 		lbl_map_name:SetContentAlignment(5)
 		lbl_map_name:SetText(mapinfo.name)
 		lbl_map_name:SetTextColor(col_text)
-		lbl_map_name:SetFont("PAM_MapNameFont")
+		lbl_map_name:SetFont("PAM_NameFont")
 
 		-- playcount label
 		local lbl_playcount = vgui.Create("DLabel", map_button)
@@ -438,7 +438,7 @@ function PANEL:InitMapButtons()
 		lbl_playcount:SetSize(map_button_size, map_button_label_size)
 		lbl_playcount:SetContentAlignment(5)
 		lbl_playcount:SetTextColor(col_text)
-		lbl_playcount:SetFont("PAM_PlayCountFont")
+		lbl_playcount:SetFont("PAM_PlaycountFont")
 		if mapinfo.playcount == 0 then
 			lbl_playcount:SetText("Not played yet")
 		elseif mapinfo.playcount == 1 then
