@@ -41,12 +41,16 @@ end)
 
 net.Receive("PAM_VoteRTV", function(len)
 	local ply = net.ReadEntity()
+	--TODO change this once proper configuration is implemented
+	PAM.rtv_players_needed = net.ReadUInt(32)
 	table.insert(PAM.players_wanting_rtv, ply)
 	PAM.extension_handler.OnRTVVoterAdded(ply)
 end)
 
 net.Receive("PAM_UnVoteRTV", function(len)
 	local ply = net.ReadEntity()
+	--TODO change this once proper configuration is implemented
+	PAM.rtv_players_needed = net.ReadUInt(32)
 	table.RemoveByValue(PAM.players_wanting_rtv, ply);
 	PAM.extension_handler.OnRTVVoterRemoved(ply)
 end)
