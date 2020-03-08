@@ -11,6 +11,8 @@ if SERVER then
 
 	AddCSLuaFile("pam/client/extensions/cl_votescreen_dark.lua")
 	AddCSLuaFile("pam/client/extensions/cl_votescreen_dark_api.lua")
+	AddCSLuaFile("pam/client/extensions/cl_votescreen_medium_dark.lua")
+	AddCSLuaFile("pam/client/extensions/cl_votescreen_medium_dark_api.lua")
 	AddCSLuaFile("pam/client/extensions/cl_votescreen_big_dark.lua")
 	AddCSLuaFile("pam/client/extensions/cl_votescreen_big_dark_api.lua")
 	AddCSLuaFile("pam/client/extensions/cl_rtv_chat_notifications.lua")
@@ -34,6 +36,8 @@ else
 
 	include("pam/client/extensions/cl_votescreen_dark.lua")
 	include("pam/client/extensions/cl_votescreen_dark_api.lua")
+	include("pam/client/extensions/cl_votescreen_medium_dark.lua")
+	include("pam/client/extensions/cl_votescreen_medium_dark_api.lua")
 	include("pam/client/extensions/cl_votescreen_big_dark.lua")
 	include("pam/client/extensions/cl_votescreen_big_dark_api.lua")
 	include("pam/client/extensions/cl_rtv_chat_notifications.lua")
