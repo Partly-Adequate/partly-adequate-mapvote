@@ -46,7 +46,7 @@ function PAM.Start(vote_length, allow_all_maps)
 	end
 
 	if map_amount <= 0 then
-		AddMap(game.GetMap():lower())
+		AddMap(game.GetMap() .. ".bsp")
 	end
 
 	-- send start info to all clients
