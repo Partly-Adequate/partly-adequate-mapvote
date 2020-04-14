@@ -1,4 +1,6 @@
 function PAM.Start()
+	if PAM.state ~= PAM.STATE_DISABLED then return end
+
 	local all_maps = file.Find("maps/*.bsp", "GAME")
 
 	table.Empty(PAM.maps)

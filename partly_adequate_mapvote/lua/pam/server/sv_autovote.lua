@@ -24,6 +24,12 @@ hook.Add("Initialize", "PAM_Autostart", function()
 				end
 			end
 		end
+		-- The end of the round is a fitting moment for rtv to be checked
+		hook.Add("TTTEndRound", "PAM_Autostart_RTV_TTT", function()
+			if GetConVar("pam_rtv_delayed"):GetBool() then
+				PAM.CheckForRTV();
+			end
+		end)
 		return
 	end
 	-- other gamemodes go here

@@ -60,8 +60,9 @@ CreateConVar("pam_map_blacklist", "", {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_
 CreateConVar("pam_map_whitelist", "", {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY}, "When a map is listed here it will be voteable even if the prefixes don't match.")
 CreateConVar("pam_map_cooldown", 3, {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY}, "Set the amount of rounds needed for a map to be voteable again.", 0)
 CreateConVar("pam_max_maps", 15, {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY}, "Set the maximum number of maps. Set this to 0 to allow all maps.", 0)
-CreateConVar("pam_rtv_enabled", "0", {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY}, 'Set this to 1 to enable rtv or to 0 to disable rtv.')
+CreateConVar("pam_rtv_enabled", 0, {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY}, "Set this to 1 to enable rtv or to 0 to disable rtv.")
 CreateConVar("pam_rtv_percentage", 0.6, {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY}, "The percentage of players needed for rtv to start.", 0, 1)
+CreateConVar("pam_rtv_delayed", 0, {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY}, "Set this to 1 to delay the votescreen to a more fitting moment. This is not supported by most gamemodes.")
 
 -- global variables
 SetGlobalInt("pam_vote_length", GetConVar("pam_vote_length"):GetInt());

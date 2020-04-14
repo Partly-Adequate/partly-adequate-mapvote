@@ -31,7 +31,9 @@ net.Receive("PAM_VoteRTV", function(len, ply)
 		net.WriteEntity(ply)
 		net.Broadcast()
 
-		PAM.CheckForRTV()
+		if not GetConVar("pam_rtv_delayed"):GetBool() then
+			PAM.CheckForRTV()
+		end
 	end
 end)
 
