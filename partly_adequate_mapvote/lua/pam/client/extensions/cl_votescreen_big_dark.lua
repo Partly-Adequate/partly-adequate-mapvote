@@ -405,7 +405,7 @@ function PANEL:InitMapButtons()
 
 		-- map thumbnail
 		local map_image = vgui.Create("DImage", map_button)
-		
+
 		local mat_map_icon = PAM.GetMapIconMat(map_button.map.name)
 		if mat_map_icon then
 			map_image:SetMaterial(mat_map_icon)

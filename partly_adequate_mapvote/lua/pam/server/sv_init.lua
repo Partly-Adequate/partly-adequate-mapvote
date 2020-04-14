@@ -19,97 +19,64 @@ util.AddNetworkString("PAM_UnVoteRTV")
 -- server->all
 util.AddNetworkString("PAM_Announce_Winner")
 
---the default configuration
-PAM.CONFIG_DEFAULT = {
-
-	--length of voting time in seconds
-	vote_length = 30,
-
-	--prefixes for searching maps
-	map_prefixes = {"ttt_"},
-
-	--the amount of rounds needed for a map to appear again
-	maps_before_revote = 3,
-
-	--the amount of maps to select from
-	max_map_amount = 15
-}
-
---the default RTV configuration
-PAM.RTV_CONFIG_DEFAULT = {
-	--is rtv used
-	is_enabled = false,
-
-	--1 for all players, 0 for 1 player
-	needed_player_percentage = 0.6,
-
-	--length of rtv voting time in seconds
-	vote_length = 30,
-
-	--allows the rtv vote to contain all maps
-	allow_all_maps = false;
-}
-
---the current configuration
-PAM.config = PAM.CONFIG_DEFAULT
-PAM.rtv_config = PAM.RTV_CONFIG_DEFAULT
-
---the recently played maps
-PAM.recent_maps = {}
-
---the currently voteable maps
+-- variables
+-- stores the current voteable maps
 PAM.maps = {}
 
---the current votes
+-- stores the current votes
 PAM.votes = {}
 
---the play counts of each map
-PAM.playcounts = {}
-
---the players wanting to rock the vote
+-- stores the players wanting to rock the vote
 PAM.players_wanting_rtv = {}
 
---set fallback metatable
-setmetatable(PAM.config, PAM.CONFIG_DEFAULT)
-setmetatable(PAM.rtv_config, PAM.RTV_CONFIG_DEFAULT)
-
---add resources
+-- add resources
 resource.AddFile("materials/vgui/pam/img_missing.vmt")
 resource.AddFile("materials/vgui/pam/ic_favorite.vmt")
 resource.AddFile("materials/vgui/pam/ic_not_favorite.vmt")
 resource.AddFile("materials/vgui/pam/ic_selected.vmt")
 resource.AddFile("materials/vgui/pam/ic_not_selected.vmt")
 
---create default config / load config
---TODO use convars instead
-if not file.Exists("pam/config.txt", "DATA") then
-	file.Write("pam/config.txt", util.TableToJSON(PAM.CONFIG_DEFAULT))
-else
-	local loadedConfig = util.JSONToTable(file.Read("pam/config.txt", "DATA"))
-	PAM.config.vote_length = loadedConfig["vote_length"] or PAM.CONFIG_DEFAULT.vote_length
-	PAM.config.map_prefixes = loadedConfig["map_prefixes"] or PAM.CONFIG_DEFAULT.map_prefixes
-	PAM.config.maps_before_revote = loadedConfig["maps_before_revote"] or PAM.CONFIG_DEFAULT.maps_before_revote
-	PAM.config.max_map_amount = loadedConfig["max_map_amount"] or PAM.CONFIG_DEFAULT.max_map_amount
-	file.Write("pam/config.txt", util.TableToJSON(PAM.config))
+-- map information
+if not sql.TableExists("pam_maps") then
+	sql.Query("CREATE TABLE pam_maps(id TEXT NOT NULL PRIMARY KEY, playcount INTEGER NOT NULL)")
 end
 
-if not file.Exists("pam/rtv_config.txt", "DATA") then
-	file.Write("pam/rtv_config.txt", util.TableToJSON(PAM.RTV_CONFIG_DEFAULT))
-else
-	local loadedConfig = util.JSONToTable(file.Read("pam/rtv_config.txt", "DATA"))
-	PAM.rtv_config.is_enabled = loadedConfig["is_enabled"] or PAM.RTV_CONFIG_DEFAULT.is_enabled
-	PAM.rtv_config.needed_player_percentage = loadedConfig["needed_player_percentage"] or PAM.RTV_CONFIG_DEFAULT.needed_player_percentage
-	PAM.rtv_config.vote_length = loadedConfig["vote_length"] or PAM.RTV_CONFIG_DEFAULT.vote_length
-	PAM.rtv_config.allow_all_maps = loadedConfig["allow_all_maps"] or PAM.RTV_CONFIG_DEFAULT.allow_all_maps
-	file.Write("pam/rtv_config.txt", util.TableToJSON(PAM.rtv_config))
+if not sql.TableExists("pam_map_blacklist") then
+	sql.Query("CREATE TABLE pam_map_blacklist(id TEXT NOT NULL PRIMARY KEY)")
 end
 
---load map information
---TODO use database instead
-if file.Exists("pam/recentmaps.txt", "DATA") then
-	PAM.recent_maps = util.JSONToTable(file.Read("pam/recentmaps.txt", "DATA"))
+if not sql.TableExists("pam_map_whitelist") then
+	sql.Query("CREATE TABLE pam_map_whitelist(id TEXT NOT NULL PRIMARY KEY)")
 end
 
-if file.Exists("pam/playcounts.txt", "DATA") then
-	PAM.playcounts = util.JSONToTable(file.Read("pam/playcounts.txt", "DATA"))
+if not sql.TableExists("pam_map_cooldowns") then
+	sql.Query("CREATE TABLE pam_map_cooldowns(id TEXT NOT NULL PRIMARY KEY, heat INTEGER NOT NULL)")
 end
+
+-- convars
+CreateConVar("pam_vote_length", 30, {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY}, "Set the length of the voting time in seconds.", 0)
+CreateConVar("pam_map_prefixes", "", {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY}, "When a map has at least one of the prefixes it is voteable.")
+CreateConVar("pam_map_blacklist", "", {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY}, "When a map is listed here it won't be voteable.")
+CreateConVar("pam_map_whitelist", "", {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY}, "When a map is listed here it will be voteable even if the prefixes don't match.")
+CreateConVar("pam_map_cooldown", 3, {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY}, "Set the amount of rounds needed for a map to be voteable again.", 0)
+CreateConVar("pam_max_maps", 15, {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY}, "Set the maximum number of maps. Set this to 0 to allow all maps.", 0)
+CreateConVar("pam_rtv_enabled", 0, {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY}, "Set this to 1 to enable rtv or to 0 to disable rtv.")
+CreateConVar("pam_rtv_percentage", 0.6, {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY}, "The percentage of players needed for rtv to start.", 0, 1)
+CreateConVar("pam_rtv_delayed", 0, {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY}, "Set this to 1 to delay the votescreen to a more fitting moment. This is not supported by most gamemodes.")
+
+-- global variables
+SetGlobalInt("pam_vote_length", GetConVar("pam_vote_length"):GetInt());
+SetGlobalBool("pam_rtv_enabled", GetConVar("pam_rtv_enabled"):GetBool());
+SetGlobalFloat("pam_rtv_percentage", GetConVar("pam_rtv_percentage"):GetFloat());
+
+cvars.AddChangeCallback("pam_vote_length", function(convar, old_val, new_val)
+	SetGlobalInt("pam_vote_length", tonumber(new_val));
+end)
+
+cvars.AddChangeCallback("pam_rtv_enabled", function(convar, old_val, new_val)
+	SetGlobalInt("pam_rtv_enabled", tobool(new_val));
+end)
+
+cvars.AddChangeCallback("pam_rtv_percentage", function(convar, old_val, new_val)
+	SetGlobalInt("pam_rtv_percentage", tonumber(new_val));
+end)
