@@ -4,7 +4,7 @@ hook.Add("Initialize", "PAM_Autostart", function()
 		if TTT2 then
 			-- TTT2 support
 			hook.Add("TTT2LoadNextMap", "PAM_Autostart_TTT2", function(nextmap, rounds_left, time_left)
-				PAM.Start(nil, false)
+				PAM.Start()
 				return true
 			end)
 		else
@@ -19,7 +19,7 @@ hook.Add("Initialize", "PAM_Autostart", function()
 				if rounds_left <= 0 or time_left <= 0 then
 					timer.Stop("end2prep")
 					if PAM.state == PAM.STATE_DISABLED then
-						PAM.Start(nil, false)
+						PAM.Start()
 					end
 				end
 			end

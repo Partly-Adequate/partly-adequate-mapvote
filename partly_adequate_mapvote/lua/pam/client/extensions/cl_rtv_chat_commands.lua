@@ -6,12 +6,12 @@ extension.is_enabled = true
 local rtv_commands = {["rtv"] = true, ["!rtv"] = true}
 
 hook.Add( "OnPlayerChat", "PAM_RTV_Chat_Commands", function( ply, text, bTeam, bDead )
-    if ply != LocalPlayer() then return end
     if !extension.is_enabled then return end
+	if not GetGlobalBool("pam_rtv_enabled") then return end
 	if PAM.state != PAM.STATE_DISABLED then return end
-	-- TODO Check if RTV is enabled
+    if ply != LocalPlayer() then return end
 
-	if rtv_commands[string.lower(text)] then 
+	if rtv_commands[string.lower(text)] then
 		PAM.VoteRTV();
 		return true;
 	end

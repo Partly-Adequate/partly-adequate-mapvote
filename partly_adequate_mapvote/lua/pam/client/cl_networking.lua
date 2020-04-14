@@ -15,8 +15,8 @@ net.Receive("PAM_Start", function()
 		PAM.maps[index] = mapinfo
 	end
 
-	--the point in time at which the mapvote will end
-	PAM.ends_at = CurTime() + net.ReadUInt(32)
+	-- the point in time at which the mapvote will end
+	PAM.ends_at = CurTime() + GetGlobalInt("pam_vote_length")
 
 	PAM.extension_handler.OnVoteStarted()
 end)
@@ -41,16 +41,12 @@ end)
 
 net.Receive("PAM_VoteRTV", function(len)
 	local ply = net.ReadEntity()
-	--TODO change this once proper configuration is implemented
-	PAM.rtv_players_needed = net.ReadUInt(32)
 	table.insert(PAM.players_wanting_rtv, ply)
 	PAM.extension_handler.OnRTVVoterAdded(ply)
 end)
 
 net.Receive("PAM_UnVoteRTV", function(len)
 	local ply = net.ReadEntity()
-	--TODO change this once proper configuration is implemented
-	PAM.rtv_players_needed = net.ReadUInt(32)
 	table.RemoveByValue(PAM.players_wanting_rtv, ply);
 	PAM.extension_handler.OnRTVVoterRemoved(ply)
 end)

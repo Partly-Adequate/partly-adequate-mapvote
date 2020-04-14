@@ -16,8 +16,3 @@ PAM.maps = {}
 
 --the votes
 PAM.votes = {}
-
---create config directory
-if not file.Exists("pam", "DATA") then
-	file.CreateDir("pam")
-end

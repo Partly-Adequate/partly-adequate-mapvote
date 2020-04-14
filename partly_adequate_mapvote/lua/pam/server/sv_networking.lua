@@ -24,13 +24,11 @@ net.Receive("PAM_UnVote", function(len, ply)
 end)
 
 net.Receive("PAM_VoteRTV", function(len, ply)
-	if PAM.rtv_config.is_enabled and PAM.state == PAM.STATE_DISABLED and IsValid(ply) and not table.HasValue(PAM.players_wanting_rtv, ply:SteamID())then
+	if GetConVar("pam_rtv_enabled"):GetBool() and PAM.state == PAM.STATE_DISABLED and IsValid(ply) and not table.HasValue(PAM.players_wanting_rtv, ply:SteamID()) then
 		table.insert(PAM.players_wanting_rtv, ply:SteamID())
 
-		local rtv_players_needed = math.ceil(PAM.rtv_config.needed_player_percentage * player.GetCount())
 		net.Start("PAM_VoteRTV")
 		net.WriteEntity(ply)
-		net.WriteUInt(rtv_players_needed, 32)
 		net.Broadcast()
 
 		PAM.CheckForRTV()
@@ -38,15 +36,11 @@ net.Receive("PAM_VoteRTV", function(len, ply)
 end)
 
 net.Receive("PAM_UnVoteRTV", function(len, ply)
-	if PAM.rtv_config.is_enabled and PAM.state == PAM.STATE_DISABLED and IsValid(ply) and table.HasValue(PAM.players_wanting_rtv, ply:SteamID())then
+	if GetConVar("pam_rtv_enabled"):GetBool() and PAM.state == PAM.STATE_DISABLED and IsValid(ply) and table.HasValue(PAM.players_wanting_rtv, ply:SteamID()) then
 		table.RemoveByValue(PAM.players_wanting_rtv, ply:SteamID())
 
-		local rtv_players_needed = math.ceil(PAM.rtv_config.needed_player_percentage * player.GetCount())
 		net.Start("PAM_UnVoteRTV")
 		net.WriteEntity(ply)
-		net.WriteUInt(rtv_players_needed, 32)
 		net.Broadcast()
-		
-		PAM.CheckForRTV()
 	end
 end)
