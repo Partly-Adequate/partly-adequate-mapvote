@@ -103,10 +103,11 @@ function PAM.Start()
 
 		-- update the maps which are currently on cooldown
 		local data = sql.Query("SELECT * FROM pam_map_cooldowns")
-		PrintTable(data)
-		for _, heat_info in ipairs(data) do
-			local mapname = heat_info["id"]
-			PAM.SetMapCooldown(mapname, PAM.GetMapCooldown(mapname) - 1)
+		if data then
+			for _, heat_info in ipairs(data) do
+				local mapname = heat_info["id"]
+				PAM.SetMapCooldown(mapname, PAM.GetMapCooldown(mapname) - 1)
+			end
 		end
 
 		-- set/reset the cooldown of the winning map
