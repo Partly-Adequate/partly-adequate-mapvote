@@ -26,7 +26,7 @@ concommand.Add("pam_extension_manager", function(player, cmd, args, arg_str)
 end)
 
 --registers commands for the ttt2 bind menu
-hook.Add("Initialize", "PamBindings", function()
+hook.Add("Initialize", "PAM_Bindings", function()
 	if TTT2 then
 		bind.Register("pam_toggle_menu", function()
 			LocalPlayer():ConCommand("pam_toggle_menu")
