@@ -130,6 +130,13 @@ function PAM.Cancel()
 	end
 end
 
+function PAM.CheckForDelayedRTV()
+	if GetConVar("pam_rtv_delayed"):GetBool() then
+		return PAM.CheckForRTV()
+	end
+	return false
+end
+
 function PAM.CheckForRTV()
 	-- check if there are enough players
 	local current_count = #PAM.players_wanting_rtv
@@ -138,7 +145,9 @@ function PAM.CheckForRTV()
 	if (current_count >= needed_count) then
 		-- start pam
 		PAM.Start()
+		return true
 	end
+	return false
 end
 
 -- cooldown utility functions

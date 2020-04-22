@@ -2,13 +2,13 @@ hook.Add("Initialize", "PAM_Autostart", function()
 	-- terrortown support
 	if GAMEMODE_NAME == "terrortown" then
 		if TTT2 then
-			-- TTT2 support
+			-- TTT2
 			hook.Add("TTT2LoadNextMap", "PAM_Autostart_TTT2", function(nextmap, rounds_left, time_left)
 				PAM.Start()
 				return true
 			end)
 		else
-			-- TTT and TOT support
+			-- TTT and TOT
 			function CheckForMapSwitch()
 				local rounds_left = math.max(0, GetGlobalInt("ttt_rounds_left", 6) - 1)
 
@@ -25,10 +25,8 @@ hook.Add("Initialize", "PAM_Autostart", function()
 			end
 		end
 		-- The end of the round is a fitting moment for rtv to be checked
-		hook.Add("TTTEndRound", "PAM_Autostart_RTV_TTT", function()
-			if GetConVar("pam_rtv_delayed"):GetBool() then
-				PAM.CheckForRTV();
-			end
+		hook.Add("TTTEndRound", "PAM_Autostart_Delayed_RTV_TTT", function()
+			PAM.CheckForDelayedRTV()
 		end)
 		return
 	end
