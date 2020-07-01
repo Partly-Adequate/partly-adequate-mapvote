@@ -94,5 +94,18 @@ hook.Add("Initialize", "PAM_Autostart", function()
 		end)
 		return
 	end
+	
+	-- hideandseek support
+	if GAMEMODE_NAME == "hideandseek" then
+		hook.Add("HASVotemapStart", "PAM_Autostart_HNS", function()
+			PAM.Start()
+			return true
+		end)
+		
+		-- Check for delayed RTV when the round ends
+		hook.Add("HASRoundEnded", "PAM_Autostart_Delayed_RTV_HNS", function()
+			PAM.CheckForDelayedRTV()
+		end)
+	end
 	-- other gamemodes go here
 end)
