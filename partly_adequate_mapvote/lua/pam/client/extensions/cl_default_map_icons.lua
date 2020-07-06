@@ -1,6 +1,8 @@
 local extension = {}
 extension.name = "Default Map Icons"
-extension.is_enabled = true
+extension.settings = {
+	is_enabled = true
+}
 
 function extension.GetMapIconMat(map_name)
     if file.Exists("maps/thumb/" .. map_name .. ".png", "GAME") then
@@ -11,6 +13,6 @@ function extension.GetMapIconMat(map_name)
     return nil
 end
 
-hook.Add("PAM_Register_Client_Extensions", "PAM_Register_Default_Map_Icons", function()
+hook.Add("PAM_Register_Extensions", "PAM_Register_Default_Map_Icons", function()
 	PAM.RegisterExtension(extension)
 end)

@@ -1,7 +1,10 @@
 local extension = {}
 local panel = nil
 extension.name = "Dark Votescreen"
-extension.is_enabled = true
+extension.settings = {
+	is_enabled = true,
+	scale = 1.0
+}
 
 function extension.OnVoteStarted()
 	panel = vgui.Create("pam_votescreen_dark")
@@ -45,6 +48,6 @@ function extension.OnDisable()
 	end
 end
 
-hook.Add("PAM_Register_Client_Extensions", "PAM_Register_Votescreen_Dark", function()
+hook.Add("PAM_Register_Extensions", "PAM_Register_Votescreen_Dark", function()
 	PAM.RegisterExtension(extension)
 end)

@@ -392,7 +392,8 @@ function PANEL:RefreshMapList()
 end
 
 function PANEL:InitMapButtons()
-	for k, mapinfo in pairs(PAM.maps) do
+	for i = 1, #PAM.maps do
+		local mapinfo = PAM.maps[i]
 		local map_button = vgui.Create("DButton")
 		map_button:SetSize(map_button_size, map_button_size)
 		map_button:SetText("")
