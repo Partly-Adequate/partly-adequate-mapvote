@@ -1,8 +1,6 @@
 local extension = {}
 extension.name = "RTV Chat Notifications"
-extension.settings = {
-	is_enabled = true
-}
+extension.enabled = true
 
 local col_prefix = Color(255, 50, 255, 255)
 local col_bright = Color(255, 255, 255, 255)

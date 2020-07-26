@@ -1,8 +1,6 @@
 local extension = {}
 extension.name = "Default Map Icons"
-extension.settings = {
-	is_enabled = true
-}
+extension.enabled = true
 
 function extension.GetMapIconMat(map_name)
     if file.Exists("maps/thumb/" .. map_name .. ".png", "GAME") then

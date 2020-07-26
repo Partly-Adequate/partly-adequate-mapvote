@@ -501,4 +501,4 @@ function PANEL:AnnounceWinner()
 	self:RefreshMapList()
 end
 
-derma.DefineControl("pam_votescreen_dark", "", PANEL, "DFrame")
+derma.DefineControl("pam_default_votescreen", "", PANEL, "DFrame")
