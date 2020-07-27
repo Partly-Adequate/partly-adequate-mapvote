@@ -1,9 +1,9 @@
 local extension = {}
 local panel = nil
-extension.name = "Default Votescreen"
+extension.name = "default_votescreen"
 extension.enabled = true
 extension.settings = {
-	votescreen_scale = 1.0
+	votescreen_scale = 100
 }
 
 function extension.OnVoteStarted()

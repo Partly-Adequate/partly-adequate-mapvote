@@ -20,9 +20,23 @@ function PAM.RegisterExtension(extension)
 		extension.enabled = false
 	end
 
+	local enable_cvar_name = "pam_enable_" .. extension.name
+	-- TODO create Language System and use it for the helptext
+	CreateConVar(enable_cvar_name, extension.enabled and 1 or 0, {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY}, "Enables/Disabled the " .. extension.name .. "pam extension")
+
+	extension.enabled = GetConVar(enable_cvar_name):GetBool()
+
+	cvars.AddChangeCallback(enable_cvar_name, function(cvar, old_val, new_val)
+		if tobool(new_val) and not extension.enabled then
+			PAM.EnableExtension(extension)
+		elseif not tobool(new_val) and extension.enabled then
+			PAM.DisableExtension(extension)
+		end
+	end)
+
 	-- generate cvars for all settings
 	for k,v in pairs(extension.settings) do
-		-- TODO Integrate helptext into Language System
+		-- TODO create Language System and use it for the helptext
 		local cvar_name = "pam_" .. k
 		local cvar_type = type(v)
 		if cvar_type == "number" then
@@ -32,7 +46,7 @@ function PAM.RegisterExtension(extension)
 				extension.settings[k] = tonumber(new_val)
 			end)
 		elseif cvar_type == "boolean" then
-			CreateConVar(cvar_name, tostring(v), {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY}, "This convar was automatically generated.")
+			CreateConVar(cvar_name, v and 1 or 0, {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY}, "This convar was automatically generated.")
 			extension.settings[k] = GetConVar(cvar_name):GetBool()
 			cvars.AddChangeCallback(cvar_name, function(cvar, old_val, new_val)
 				extension.settings[k] = tobool(new_val)

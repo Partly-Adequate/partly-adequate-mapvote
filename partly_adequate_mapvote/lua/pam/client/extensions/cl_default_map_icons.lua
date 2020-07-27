@@ -1,5 +1,5 @@
 local extension = {}
-extension.name = "Default Map Icons"
+extension.name = "default_map_icons"
 extension.enabled = true
 
 function extension.GetMapIconMat(map_name)

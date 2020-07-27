@@ -1,5 +1,5 @@
 local extension = {}
-extension.name = "RTV Chat Commands"
+extension.name = "rtv_chat_commands"
 extension.enabled = true
 extension.settings = {
 	rtv_commands = "!rtv,rtv"
