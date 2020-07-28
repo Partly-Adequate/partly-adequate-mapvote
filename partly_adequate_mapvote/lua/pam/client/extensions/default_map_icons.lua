@@ -11,6 +11,4 @@ function extension.GetMapIconMat(map_name)
     return nil
 end
 
-hook.Add("PAM_Register_Extensions", "PAM_Register_Default_Map_Icons", function()
-	PAM.RegisterExtension(extension)
-end)
+PAM.RegisterExtension(extension)

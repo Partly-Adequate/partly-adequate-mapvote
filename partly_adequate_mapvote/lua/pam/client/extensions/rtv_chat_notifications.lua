@@ -16,6 +16,4 @@ function extension.OnRTVVoterRemoved(ply)
 	chat.AddText(col_prefix, "[PAM] ", col_bright, ply:GetName(), col_darker, " no longer wants to rock the vote! (", col_bright, tostring(#PAM.players_wanting_rtv or "0"), col_darker , "/", col_bright , tostring(players_needed), col_darker, ")")
 end
 
-hook.Add("PAM_Register_Extensions", "PAM_Register_RTV_Chat_Notifications", function()
-	PAM.RegisterExtension(extension)
-end)
+PAM.RegisterExtension(extension)

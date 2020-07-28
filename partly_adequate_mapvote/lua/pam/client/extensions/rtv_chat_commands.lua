@@ -21,6 +21,4 @@ hook.Add( "OnPlayerChat", "PAM_RTV_Chat_Commands", function( ply, text, bTeam, b
 	end
 end)
 
-hook.Add("PAM_Register_Extensions", "PAM_Register_RTV_Chat_Commands", function()
-	PAM.RegisterExtension(extension)
-end)
+PAM.RegisterExtension(extension)

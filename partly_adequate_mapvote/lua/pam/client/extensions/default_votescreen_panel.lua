@@ -1,12 +1,19 @@
 local PANEL = {}
 
+local scale = 1
+
+local cv_scale = GetConVar("pam_votescreen_scale")
+if cv_scale then
+	scale = cv_scale:GetInt() / 100
+end
+
 -- alignment helping values
-local map_button_size = 150
-local map_image_size = map_button_size - 50
-local map_button_label_size = (map_button_size - map_image_size) / 2
+local map_button_size = math.floor(150 * scale)
+local map_image_size = math.floor(100 * scale)
+local map_button_label_size = math.floor(25 * scale)
 local avatar_size = map_button_label_size - 6
 local scroll_bar_size = 14
-local settings_height = 25
+local settings_height = math.floor(25 * scale)
 local avatars_per_row = math.floor(map_image_size / map_button_label_size)
 local avatar_space = map_image_size / avatars_per_row
 
@@ -26,22 +33,22 @@ local mat_missing_map = Material("vgui/pam/img_missing")
 
 surface.CreateFont("PAM_NameFont", {
 	font = "Trebuchet MS",
-	size = map_button_label_size * 0.75
+	size = map_button_label_size - 6
 })
 
 surface.CreateFont("PAM_PlaycountFont", {
 	font = "Trebuchet MS",
-	size = map_button_label_size * 0.5
+	size = map_button_label_size - 10
 })
 
 surface.CreateFont("PAM_CountdownFont", {
 	font = "Trebuchet MS",
-	size = settings_height - 1
+	size = settings_height - 2
 })
 
 surface.CreateFont("PAM_SettingsFont", {
 	font = "Trebuchet MS",
-	size = settings_height * 0.66
+	size = settings_height - 8
 })
 
 function PANEL:Init()

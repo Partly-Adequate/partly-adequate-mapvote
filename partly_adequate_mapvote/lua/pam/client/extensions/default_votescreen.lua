@@ -48,6 +48,14 @@ function extension.OnDisable()
 	end
 end
 
-hook.Add("PAM_Register_Extensions", "PAM_Register_Votescreen_Dark", function()
-	PAM.RegisterExtension(extension)
+PAM.RegisterExtension(extension)
+
+include("pam/client/extensions/default_votescreen_panel.lua")
+
+cvars.AddChangeCallback("pam_votescreen_scale", function(cvar, old_val, new_val)
+	include("pam/client/extensions/default_votescreen_panel.lua")
+	if extension.enabled then
+		extension.OnDisable()
+		extension.OnEnable()
+	end
 end)

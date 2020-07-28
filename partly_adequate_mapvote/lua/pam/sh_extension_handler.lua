@@ -1,9 +1,18 @@
 PAM.extension_handler = {}
 PAM.extensions = {}
 
-function PAM.RegisterExtensions()
-	print("[PAM] Registering extensions!")
-	hook.Run("PAM_Register_Extensions")
+function PAM.DisableExtension(extension)
+	extension.enabled = false
+	if extension.OnDisable then
+		extension.OnDisable()
+	end
+end
+
+function PAM.EnableExtension(extension)
+	extension.enabled = true
+	if extension.OnEnable then
+		extension.OnEnable()
+	end
 end
 
 function PAM.RegisterExtension(extension)
@@ -60,27 +69,35 @@ function PAM.RegisterExtension(extension)
 		end
 		print(cvar_name .. " = " .. tostring(extension.settings[k]) .. " (" .. cvar_type .. ")")
 	end
+end
 
-	--enable extension
-	if extension.enabled then
-		PAM.EnableExtension(extension)
+if SERVER then
+	local sv_extensions, _ = file.Find("pam/server/extensions/*.lua", "LUA")
+	local cl_extensions, _ = file.Find("pam/client/extensions/*.lua", "LUA")
+	for i = 1, #sv_extensions do
+		local sv_extension = sv_extensions[i]
+		include("pam/server/extensions/" .. sv_extension)
+	end
+
+	for i = 1, #cl_extensions do
+		local cl_extension = cl_extensions[i]
+		AddCSLuaFile("pam/client/extensions/" .. cl_extension)
+	end
+else
+	local cl_extensions, _ = file.Find("pam/client/extensions/*.lua", "LUA")
+	for i = 1, #cl_extensions do
+		local cl_extension = cl_extensions[i]
+		include("pam/client/extensions/" .. cl_extension)
 	end
 end
 
-function PAM.DisableExtension(extension)
-	extension.enabled = false
-	if extension.OnDisable then
-		extension.OnDisable()
+function PAM.extension_handler.OnInitialize()
+	for i = 1,#PAM.extensions do
+		local extension = PAM.extensions[i]
+		if extension.enabled and extension.OnInitialize  then
+			extension.OnInitialize()
+		end
 	end
 end
 
-function PAM.EnableExtension(extension)
-	extension.enabled = true
-	if extension.OnEnable then
-		extension.OnEnable()
-	end
-end
-
-hook.Add("Initialize", "PAM_Register_Extensions", function()
-	PAM.RegisterExtensions()
-end)
+hook.Add("Initialize", "PAM_Initialize_Extensions", PAM.extension_handler.OnInitialize)
