@@ -63,3 +63,7 @@ net.Receive("PAM_Cancel", function()
 		PAM.extension_handler.OnVoteCanceled()
 	end
 end)
+
+net.Receive("PAM_Gamemode_Changed", function()
+	hook.Run("PAM_OnGamemodeChanged", net.ReadString())
+end)

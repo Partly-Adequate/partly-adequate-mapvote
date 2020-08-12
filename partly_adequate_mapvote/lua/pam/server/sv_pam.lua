@@ -115,9 +115,23 @@ function PAM.Start()
 
 		-- change the map after 4 seconds
 		timer.Simple(4, function()
-			RunConsoleCommand("changelevel", winning_map)
+			PAM.ChangeMap(winning_map)
 		end)
 	end)
+end
+
+function PAM.ChangeGamemode(gamemode_name)
+	RunConsoleCommand("gamemode", gamemode_name)
+
+	net.Start("PAM_Gamemode_Changed")
+	net.WriteString(gamemode_name)
+	net.Broadcast()
+
+	hook.Run("PAM_OnGamemodeChanged", gamemode_name)
+end
+
+function PAM.ChangeMap(map_name)
+	RunConsoleCommand("changelevel", map_name)
 end
 
 function PAM.Cancel()

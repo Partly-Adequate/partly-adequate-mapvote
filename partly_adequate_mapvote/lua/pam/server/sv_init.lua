@@ -18,6 +18,8 @@ util.AddNetworkString("PAM_VoteRTV")
 util.AddNetworkString("PAM_UnVoteRTV")
 -- server->all
 util.AddNetworkString("PAM_Announce_Winner")
+-- server->all
+util.AddNetworkString("PAM_Gamemode_Changed")
 
 -- variables
 -- stores the current voteable maps
