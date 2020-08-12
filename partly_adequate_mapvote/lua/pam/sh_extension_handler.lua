@@ -25,13 +25,9 @@ function PAM.RegisterExtension(extension)
 		extension.settings = {}
 	end
 
-	if not extension.enabled then
-		extension.enabled = false
-	end
-
 	local enable_cvar_name = "pam_enable_" .. extension.name
-	-- TODO create Language System and use it for the helptext
-	CreateConVar(enable_cvar_name, extension.enabled and 1 or 0, {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY}, "Enables/Disabled the " .. extension.name .. "pam extension")
+
+	CreateConVar(enable_cvar_name, extension.enabled and 1 or 0, {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY}, "Enables/Disables the pam extension \"" .. extension.name .. "\"")
 
 	extension.enabled = GetConVar(enable_cvar_name):GetBool()
 
