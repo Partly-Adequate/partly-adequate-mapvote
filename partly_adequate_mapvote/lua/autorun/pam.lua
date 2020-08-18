@@ -15,6 +15,13 @@ if SERVER then
 	include("pam/sh_extension_handler.lua")
 	include("pam/server/sv_extension_handler.lua")
 	include("pam/server/sv_networking.lua")
+
+	-- add resources
+	resource.AddFile("materials/vgui/pam/img_missing.vmt")
+	resource.AddFile("materials/vgui/pam/ic_favorite.vmt")
+	resource.AddFile("materials/vgui/pam/ic_not_favorite.vmt")
+	resource.AddFile("materials/vgui/pam/ic_selected.vmt")
+	resource.AddFile("materials/vgui/pam/ic_not_selected.vmt")
 else
 	include("pam/sh_init.lua")
 

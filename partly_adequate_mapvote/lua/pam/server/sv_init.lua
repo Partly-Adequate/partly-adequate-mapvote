@@ -25,10 +25,3 @@ util.AddNetworkString("PAM_Gamemode_Changed")
 if not sql.TableExists("pam_pickcounts") then
 	sql.Query("CREATE TABLE pam_pickcounts(id TEXT NOT NULL PRIMARY KEY, pickcount INTEGER NOT NULL)")
 end
-
--- add resources
-resource.AddFile("materials/vgui/pam/img_missing.vmt")
-resource.AddFile("materials/vgui/pam/ic_favorite.vmt")
-resource.AddFile("materials/vgui/pam/ic_not_favorite.vmt")
-resource.AddFile("materials/vgui/pam/ic_selected.vmt")
-resource.AddFile("materials/vgui/pam/ic_not_selected.vmt")
