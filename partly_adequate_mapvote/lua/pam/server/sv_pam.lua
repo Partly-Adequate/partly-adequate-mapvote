@@ -51,10 +51,7 @@ function PAM.Start(vote_type, vote_length, winner_callback)
 		local winning_option
 
 		-- select winning map
-		if #vote_results ~= 0 then
-			winning_option = PAM.options[PAM.extension_handler.GetWinningKey(vote_results)]
-		end
-		winning_option = winning_option or PAM.options[PAM.special_option_count + math.random(#PAM.options - PAM.special_option_count)]
+		winning_option = PAM.options[PAM.extension_handler.GetWinningKey(vote_results)] or PAM.options[PAM.special_option_count + math.random(#PAM.options - PAM.special_option_count)]
 
 		PAM.MakeOptionWin(winning_option)
 	end)

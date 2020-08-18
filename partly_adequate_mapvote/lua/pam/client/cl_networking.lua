@@ -22,8 +22,6 @@ net.Receive("PAM_Start", function()
 		PAM.options[index] = option
 	end
 
-	PrintTable(PAM.options)
-
 	PAM.extension_handler.OnVoteStarted()
 end)
 
