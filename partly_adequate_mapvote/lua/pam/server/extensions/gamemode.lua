@@ -9,7 +9,7 @@ extension.settings = {
 function extension.RegisterSpecialOptions()
 	if PAM.vote_type ~= "map" then return end
 
-	PAM.RegisterOption("change_gamemode_option", function()
+	PAM.RegisterOption("change_gamemode", function()
 		PAM.Cancel()
 		PAM.Start("gamemode", extension.settings.vote_length, function(option)
 			PAM.ChangeGamemode(option)
