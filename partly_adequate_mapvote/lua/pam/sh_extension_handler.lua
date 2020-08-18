@@ -26,7 +26,7 @@ local function UpdateSetting(extension, setting, current_gm)
 		end
 	end
 
-	local setting_type = type(value)
+	local setting_type = type(extension.settings[setting])
 
 	if setting_type == "number" then
 		extension.settings[setting] = GetConVar(active_cvar_name):GetInt()
@@ -46,7 +46,7 @@ local function UpdateSettings(extension, current_gm)
 end
 
 local function CreateCorrectlyTypedSettingCvar(cvar_name, value)
-	if type(value) == "bool" then
+	if type(value) == "boolean" then
 		CreateConVar(cvar_name, value and 1 or 0, {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY}, "This convar was automatically generated.")
 	else
 		CreateConVar(cvar_name, value, {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY}, "This convar was automatically generated.")
@@ -85,11 +85,11 @@ local function GenerateConVarSettings(extension)
 
 		if extension.gamemode_dependent then
 			for i = 1, #gamemodes do
-				cvar_name = cvar_name .. "_" .. gamemodes[i].name
+				dependent_cvar_name = cvar_name .. "_" .. gamemodes[i].name
 
-				CreateCorrectlyTypedSettingCvar(cvar_name, value)
+				CreateCorrectlyTypedSettingCvar(dependent_cvar_name, value)
 
-				cvars.AddChangeCallback(cvar_name, function()
+				cvars.AddChangeCallback(dependent_cvar_name, function(cvar, old_val, new_val)
 					UpdateSetting(extension, setting)
 				end)
 			end
