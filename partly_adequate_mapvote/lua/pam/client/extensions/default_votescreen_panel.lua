@@ -8,14 +8,14 @@ if cv_scale then
 end
 
 -- alignment helping values
-local map_button_size = math.floor(150 * scale)
-local map_image_size = math.floor(100 * scale)
-local map_button_label_size = math.floor(25 * scale)
-local avatar_size = map_button_label_size - 6
+local option_button_size = math.floor(150 * scale)
+local option_image_size = math.floor(100 * scale)
+local option_button_label_size = math.floor(25 * scale)
+local avatar_size = option_button_label_size - 6
 local scroll_bar_size = 14
 local settings_height = math.floor(25 * scale)
-local avatars_per_row = math.floor(map_image_size / map_button_label_size)
-local avatar_space = map_image_size / avatars_per_row
+local avatars_per_row = math.floor(option_image_size / option_button_label_size)
+local avatar_space = option_image_size / avatars_per_row
 
 -- colors
 local col_base = {r = 40, g = 40, b = 40, a = 255}
@@ -29,16 +29,16 @@ local ic_not_favorite = Material("vgui/pam/ic_not_favorite")
 local ic_voted_on = Material("vgui/pam/ic_selected")
 local ic_not_voted_on = Material("vgui/pam/ic_not_selected")
 
-local mat_missing_map = Material("vgui/pam/img_missing")
+local mat_missing_option = Material("vgui/pam/img_missing")
 
 surface.CreateFont("PAM_NameFont", {
 	font = "Trebuchet MS",
-	size = map_button_label_size - 6
+	size = option_button_label_size - 6
 })
 
-surface.CreateFont("PAM_PlaycountFont", {
+surface.CreateFont("PAM_PickCountFont", {
 	font = "Trebuchet MS",
-	size = map_button_label_size - 10
+	size = option_button_label_size - 10
 })
 
 surface.CreateFont("PAM_CountdownFont", {
@@ -55,7 +55,7 @@ function PANEL:Init()
 	local width = ScrW() * 0.5
 	local height = ScrH() * 0.75
 	-- adjust width to button width + scrollbar
-	width = width + (map_button_size - (width % map_button_size)) + scroll_bar_size;
+	width = width + (option_button_size - (width % option_button_size)) + scroll_bar_size;
 	self:SetSize(width, height)
 	self:SetPos((ScrW() - width) * 0.5, (ScrH() - height) * 0.5)
 	self:SetZPos(-100)
@@ -73,7 +73,7 @@ function PANEL:Init()
 	self.show_favorites = false
 	self.show_voted_on = false
 	self.voters = {}
-	self.map_buttons = {}
+	self.option_buttons = {}
 
 	local container = vgui.Create("DPanel", self)
 	container:SetSize(width, height - 25)
@@ -81,7 +81,7 @@ function PANEL:Init()
 	container.Paint = function(s, w, h) end
 
 	self:InitSettings(container, 0, 0, width, settings_height * 3)
-	self:InitMapList(container, 0, settings_height * 3, width, height - 25 - settings_height * 3)
+	self:InitOptionList(container, 0, settings_height * 3, width, height - 25 - settings_height * 3)
 
 	self:MakePopup()
 	self:SetKeyboardInputEnabled(false)
@@ -131,11 +131,11 @@ function PANEL:InitSearchArea(parent, pos_x, pos_y, width, height)
 	end
 
 	local txt_search = vgui.Create("DTextEntry", pnl_container)
-	txt_search:SetPlaceholderText("Search for maps...")
+	txt_search:SetPlaceholderText("Search for options...")
 	txt_search:SetFont("PAM_SettingsFont")
 	txt_search.OnChange = function()
 		self.search_term = txt_search:GetValue()
-		self:RefreshMapList()
+		self:RefreshOptionList()
 	end
 	txt_search.OnGetFocus = function()
 		self:SetKeyboardInputEnabled(true)
@@ -181,28 +181,28 @@ function PANEL:InitSortBox(parent, pos_x, pos_y, width, height)
 	cb_sort_by:SetTextColor(col_text)
 	cb_sort_by:SetFont("PAM_SettingsFont")
 
-	cb_sort_by:AddChoice("Name [a-z]", function(map_button_1, map_button_2)
-		return CompareStrings(map_button_1.map.name, map_button_2.map.name)
+	cb_sort_by:AddChoice("Name [a-z]", function(option_button_1, option_button_2)
+		return CompareStrings(option_button_1.option.name, option_button_2.option.name)
 	end)
-	cb_sort_by:AddChoice("Name [z-a]", function(map_button_1, map_button_2)
-		return not CompareStrings(map_button_1.map.name, map_button_2.map.name)
+	cb_sort_by:AddChoice("Name [z-a]", function(option_button_1, option_button_2)
+		return not CompareStrings(option_button_1.option.name, option_button_2.option.name)
 	end)
-	cb_sort_by:AddChoice("Least played", function(map_button_1, map_button_2)
-		if not map_button_1 or not map_button_2 then
+	cb_sort_by:AddChoice("Least picked", function(option_button_1, option_button_2)
+		if not option_button_1 or not option_button_2 then
 			return true
 		end
-		return map_button_1.map.playcount < map_button_2.map.playcount
+		return option_button_1.option.pick_count < option_button_2.option.pick_count
 	end)
-	cb_sort_by:AddChoice("Most played", function(map_button_1, map_button_2)
-		if not map_button_1 or not map_button_2 then
+	cb_sort_by:AddChoice("Most picked", function(option_button_1, option_button_2)
+		if not option_button_1 or not option_button_2 then
 			return true
 		end
-		return map_button_1.map.playcount > map_button_2.map.playcount
+		return option_button_1.option.pick_count > option_button_2.option.pick_count
 	end)
 
 	cb_sort_by.OnSelect = function(cb, index, text)
 		local _, comparator = cb:GetSelected()
-		self:SortMapList(comparator)
+		self:SortOptionList(comparator)
 	end
 end
 
@@ -232,13 +232,13 @@ function PANEL:InitFavorites(parent, pos_x, pos_y, width, height)
 		else
 			icon:SetMaterial(ic_not_favorite)
 		end
-		self:RefreshMapList()
+		self:RefreshOptionList()
 	end
 end
 
 function PANEL:InitVotedOn(parent, pos_x, pos_y, width, height)
 	local btn_toggle_voted_on = vgui.Create("DButton", parent)
-	btn_toggle_voted_on:SetText("Show maps being voted on")
+	btn_toggle_voted_on:SetText("Show options being voted on")
 	btn_toggle_voted_on:SetSize(width, height)
 	btn_toggle_voted_on:SetPos(pos_x, pos_y)
 	btn_toggle_voted_on:SetTextColor(col_text)
@@ -262,11 +262,11 @@ function PANEL:InitVotedOn(parent, pos_x, pos_y, width, height)
 		else
 			icon:SetMaterial(ic_not_voted_on)
 		end
-		self:RefreshMapList()
+		self:RefreshOptionList()
 	end
 end
 
-function PANEL:InitMapList(parent, pos_x, pos_y, width, height)
+function PANEL:InitOptionList(parent, pos_x, pos_y, width, height)
 	local pnl_container = vgui.Create("DPanel", parent)
 	pnl_container:SetSize(width, height)
 	pnl_container:SetPos(pos_x, pos_y)
@@ -278,16 +278,16 @@ function PANEL:InitMapList(parent, pos_x, pos_y, width, height)
 		surface.DrawRect(w - scroll_bar_size, 0, scroll_bar_size, h)
 	end
 
-	self.map_list = vgui.Create("DPanelList", pnl_container)
-	self.map_list:SetSize(width, height)
-	self.map_list:SetPos(0, 0)
-	self.map_list:EnableHorizontal(true)
-	self.map_list:EnableVerticalScrollbar()
-	self:InitMapButtons()
-	self:RefreshMapList()
+	self.option_list = vgui.Create("DPanelList", pnl_container)
+	self.option_list:SetSize(width, height)
+	self.option_list:SetPos(0, 0)
+	self.option_list:EnableHorizontal(true)
+	self.option_list:EnableVerticalScrollbar()
+	self:InitOptionButtons()
+	self:RefreshOptionList()
 end
 
-function PANEL:AddVoter(ply, map_id)
+function PANEL:AddVoter(ply, option_id)
 	for _, voter in pairs(self.voters) do
 		if voter.player == ply then
 			self:UpdateVoters()
@@ -297,11 +297,11 @@ function PANEL:AddVoter(ply, map_id)
 
 	local new_voter = vgui.Create("DPanel")
 	new_voter.player = ply
-	new_voter:SetSize(map_button_label_size, map_button_label_size)
+	new_voter:SetSize(option_button_label_size, option_button_label_size)
 	new_voter:SetTooltip(ply:Name())
 	new_voter.Paint = function(s, w, h)
 		surface.SetDrawColor(col_base_darkest)
-		surface.DrawRect(1, 1, map_button_label_size - 2, map_button_label_size - 2)
+		surface.DrawRect(1, 1, option_button_label_size - 2, option_button_label_size - 2)
 	end
 
 	local icon = vgui.Create("AvatarImage", new_voter)
@@ -326,8 +326,8 @@ function PANEL:RemoveVoter(ply)
 end
 
 function PANEL:UpdateVoters()
-	for _, map_button in pairs(self.map_buttons) do
-		map_button.voter_count = 0
+	for _, option_button in pairs(self.option_buttons) do
+		option_button.voter_count = 0
 	end
 
 	for _, voter in pairs(self.voters) do
@@ -337,40 +337,40 @@ function PANEL:UpdateVoters()
 			if not PAM.votes[voter.player:SteamID()] then
 				voter:Remove()
 			else
-				local map_button = self:GetMapButton(PAM.votes[voter.player:SteamID()])
+				local option_button = self:GetOptionButton(PAM.votes[voter.player:SteamID()])
 
-				if IsValid(map_button) then
-					voter:SetParent(map_button)
-					local row = math.floor(map_button.voter_count / avatars_per_row)
+				if IsValid(option_button) then
+					voter:SetParent(option_button)
+					local row = math.floor(option_button.voter_count / avatars_per_row)
 					local newY = 0
 					local newX = 0
 
 					if row < 2 then
-						newY = map_button_label_size + avatar_space * (map_button.voter_count % avatars_per_row)
-						newX = (map_image_size + avatar_space) * row
+						newY = option_button_label_size + avatar_space * (option_button.voter_count % avatars_per_row)
+						newX = (option_image_size + avatar_space) * row
 					else
-						newX = map_button_label_size + avatar_space * (map_button.voter_count % avatars_per_row)
-						newY = map_button_label_size + avatar_space * (row - 2)
+						newX = option_button_label_size + avatar_space * (option_button.voter_count % avatars_per_row)
+						newY = option_button_label_size + avatar_space * (row - 2)
 					end
 
 					voter:SetPos(newX, newY)
-					map_button.voter_count = map_button.voter_count + 1
+					option_button.voter_count = option_button.voter_count + 1
 				end
 			end
 		end
 	end
-	self:RefreshMapList()
+	self:RefreshOptionList()
 end
 
 function PANEL:FitsSearchTerm(button)
 	local search_term = self.search_term
 
 	if not search_term or search_term == "" then return true end
-	if #search_term > #button.map.name then return false end
+	if #search_term > #button.option.name then return false end
 
 	local i = 1
-	for j = 1, #button.map.name do
-		if button.map.name:sub(j, j):lower() == search_term:sub(i, i):lower() then
+	for j = 1, #button.option.name do
+		if button.option.name:sub(j, j):lower() == search_term:sub(i, i):lower() then
 			if i >= #search_term then
 				return true
 			end
@@ -381,122 +381,122 @@ function PANEL:FitsSearchTerm(button)
 	return false
 end
 
-function PANEL:SortMapList(comparator)
-	table.sort(self.map_buttons, comparator)
-	self:RefreshMapList()
+function PANEL:SortOptionList(comparator)
+	table.sort(self.option_buttons, comparator)
+	self:RefreshOptionList()
 end
 
-function PANEL:RefreshMapList()
-	self.map_list:Clear()
-	for _, map_button in pairs(self.map_buttons) do
-		if (not PAM.winning_map_id and self:FitsSearchTerm(map_button) and (not self.show_favorites or PAM.IsFavorite(map_button.map.name)) and (not self.show_voted_on or map_button.voter_count > 0)) or PAM.winning_map_id == map_button.map.id then
-			self.map_list:AddItem(map_button)
-			map_button:SetVisible(true)
+function PANEL:RefreshOptionList()
+	self.option_list:Clear()
+	for _, option_button in pairs(self.option_buttons) do
+		if (not PAM.winning_option_id and self:FitsSearchTerm(option_button) and (not self.show_favorites or PAM.IsFavorite(option_button.option.name)) and (not self.show_voted_on or option_button.voter_count > 0)) or PAM.winning_option_id == option_button.option.id then
+			self.option_list:AddItem(option_button)
+			option_button:SetVisible(true)
 		else
-			map_button:SetVisible(false)
+			option_button:SetVisible(false)
 		end
 	end
 end
 
-function PANEL:InitMapButtons()
-	for i = 1, #PAM.maps do
-		local mapinfo = PAM.maps[i]
-		local map_button = vgui.Create("DButton")
-		map_button:SetSize(map_button_size, map_button_size)
-		map_button:SetText("")
-		map_button:SetPaintBackground(false)
-		map_button.voter_count = 0
-		map_button.map = mapinfo
-		map_button.DoClick = function()
-			PAM.Vote(map_button.map.id)
+function PANEL:InitOptionButtons()
+	for i = 1, #PAM.options do
+		local optioninfo = PAM.options[i]
+		local option_button = vgui.Create("DButton")
+		option_button:SetSize(option_button_size, option_button_size)
+		option_button:SetText("")
+		option_button:SetPaintBackground(false)
+		option_button.voter_count = 0
+		option_button.option = optioninfo
+		option_button.DoClick = function()
+			PAM.Vote(option_button.option.id)
 		end
 
-		-- map thumbnail
-		local map_image = vgui.Create("DImage", map_button)
+		-- option thumbnail
+		local option_image = vgui.Create("DImage", option_button)
 
-		local mat_map_icon = PAM.GetMapIconMat(map_button.map.name)
-		if mat_map_icon then
-			map_image:SetMaterial(mat_map_icon)
+		local mat_option_icon = PAM.extension_handler.GetIconMaterial(option_button.option)
+		if mat_option_icon then
+			option_image:SetMaterial(mat_option_icon)
 		else
-			map_image:SetMaterial(mat_missing_map)
+			option_image:SetMaterial(mat_missing_option)
 		end
 
-		map_image:SetSize(map_image_size, map_image_size)
-		map_image:SetPos(map_button_label_size, map_button_label_size)
+		option_image:SetSize(option_image_size, option_image_size)
+		option_image:SetPos(option_button_label_size, option_button_label_size)
 
-		local image_border = vgui.Create("DPanel", map_image)
-		image_border:SetSize(map_image_size, map_image_size)
+		local image_border = vgui.Create("DPanel", option_image)
+		image_border:SetSize(option_image_size, option_image_size)
 		image_border.Paint = function(s, w, h)
 			surface.SetDrawColor(col_base_darkest)
-			surface.DrawOutlinedRect(0, 0, map_image_size, map_image_size)
+			surface.DrawOutlinedRect(0, 0, option_image_size, option_image_size)
 		end
 
-		-- mapname label
-		local lbl_map_name = vgui.Create("DLabel", map_button)
-		lbl_map_name:SetPos(0, 0)
-		lbl_map_name:SetSize(map_button_size, map_button_label_size)
-		lbl_map_name:SetContentAlignment(5)
-		lbl_map_name:SetText(mapinfo.name)
-		lbl_map_name:SetTextColor(col_text)
-		lbl_map_name:SetFont("PAM_NameFont")
+		-- option-name label
+		local lbl_option_name = vgui.Create("DLabel", option_button)
+		lbl_option_name:SetPos(0, 0)
+		lbl_option_name:SetSize(option_button_size, option_button_label_size)
+		lbl_option_name:SetContentAlignment(5)
+		lbl_option_name:SetText(optioninfo.name)
+		lbl_option_name:SetTextColor(col_text)
+		lbl_option_name:SetFont("PAM_NameFont")
 
-		-- playcount label
-		local lbl_playcount = vgui.Create("DLabel", map_button)
-		lbl_playcount:SetPos(0, map_button_size - map_button_label_size)
-		lbl_playcount:SetSize(map_button_size, map_button_label_size)
-		lbl_playcount:SetContentAlignment(5)
-		lbl_playcount:SetTextColor(col_text)
-		lbl_playcount:SetFont("PAM_PlaycountFont")
-		if mapinfo.playcount == 0 then
-			lbl_playcount:SetText("Not played yet")
-		elseif mapinfo.playcount == 1 then
-			lbl_playcount:SetText("Played once")
+		-- pick-count label
+		local lbl_pick_count = vgui.Create("DLabel", option_button)
+		lbl_pick_count:SetPos(0, option_button_size - option_button_label_size)
+		lbl_pick_count:SetSize(option_button_size, option_button_label_size)
+		lbl_pick_count:SetContentAlignment(5)
+		lbl_pick_count:SetTextColor(col_text)
+		lbl_pick_count:SetFont("PAM_PickCountFont")
+		if optioninfo.pick_count == 0 then
+			lbl_pick_count:SetText("Not picked yet")
+		elseif optioninfo.pick_count == 1 then
+			lbl_pick_count:SetText("Picked once")
 		else
-			lbl_playcount:SetText("Played " .. mapinfo.playcount .. " times")
+			lbl_pick_count:SetText("Picked " .. optioninfo.pick_count .. " times")
 		end
 
 		-- heart for favorites
-		local ibtn_favorite = vgui.Create("DImageButton", map_button)
-		if PAM.IsFavorite(map_button.map.name) then
+		local ibtn_favorite = vgui.Create("DImageButton", option_button)
+		if PAM.IsFavorite(option_button.option.name) then
 			ibtn_favorite:SetMaterial(ic_favorite)
-			map_button.is_favorite = true
+			option_button.is_favorite = true
 		else
 			ibtn_favorite:SetMaterial(ic_not_favorite)
-			map_button.is_favorite = false
+			option_button.is_favorite = false
 		end
-		ibtn_favorite:SetSize(map_button_label_size, map_button_label_size)
-		ibtn_favorite:SetPos(map_button_size - map_button_label_size, map_button_size - map_button_label_size)
+		ibtn_favorite:SetSize(option_button_label_size, option_button_label_size)
+		ibtn_favorite:SetPos(option_button_size - option_button_label_size, option_button_size - option_button_label_size)
 		ibtn_favorite.DoClick = function()
-			if PAM.IsFavorite(map_button.map.name) then
-				PAM.RemoveFromFavorites(map_button.map.name)
+			if PAM.IsFavorite(option_button.option.name) then
+				PAM.RemoveFromFavorites(option_button.option.name)
 				ibtn_favorite:SetMaterial(ic_not_favorite)
 			else
-				PAM.AddToFavorites(map_button.map.name)
+				PAM.AddToFavorites(option_button.option.name)
 				ibtn_favorite:SetMaterial(ic_favorite)
 			end
-			self:RefreshMapList()
+			self:RefreshOptionList()
 		end
 
 		-- override default texture
-		map_button.Paint = function(s, w, h)
+		option_button.Paint = function(s, w, h)
 			surface.SetDrawColor(col_base)
-			surface.DrawRect(0, 0, map_button_size, map_button_size);
+			surface.DrawRect(0, 0, option_button_size, option_button_size);
 			surface.SetDrawColor(col_base_darkest)
-			surface.DrawRect(0, 0, map_button_size, map_button_label_size);
+			surface.DrawRect(0, 0, option_button_size, option_button_label_size);
 
-			surface.DrawOutlinedRect(0, 0, map_button_size, map_button_size);
-			surface.DrawOutlinedRect(map_button_label_size - 1, map_button_label_size - 1, map_image_size + 2, map_image_size + 2)
-			surface.DrawLine(0, map_button_label_size, map_button_size, map_button_label_size);
-			surface.DrawLine(0, map_button_label_size - 1, map_button_size, map_button_label_size - 1);
+			surface.DrawOutlinedRect(0, 0, option_button_size, option_button_size);
+			surface.DrawOutlinedRect(option_button_label_size - 1, option_button_label_size - 1, option_image_size + 2, option_image_size + 2)
+			surface.DrawLine(0, option_button_label_size, option_button_size, option_button_label_size);
+			surface.DrawLine(0, option_button_label_size - 1, option_button_size, option_button_label_size - 1);
 		end
 
-		table.insert(self.map_buttons, map_button)
+		table.insert(self.option_buttons, option_button)
 	end
 end
 
-function PANEL:GetMapButton(id)
-	for _, button in pairs(self.map_buttons) do
-		if button.map.id == id then
+function PANEL:GetOptionButton(id)
+	for _, button in pairs(self.option_buttons) do
+		if button.option.id == id then
 			return button
 		end
 	end
@@ -505,7 +505,7 @@ end
 
 function PANEL:AnnounceWinner()
 	self:SetVisible(true)
-	self:RefreshMapList()
+	self:RefreshOptionList()
 end
 
 derma.DefineControl("pam_default_votescreen", "", PANEL, "DFrame")

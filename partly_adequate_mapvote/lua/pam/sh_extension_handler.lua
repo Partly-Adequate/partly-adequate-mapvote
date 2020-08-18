@@ -18,10 +18,10 @@ end
 local function UpdateSetting(extension, setting, current_gm)
 	current_gm = current_gm or engine.ActiveGamemode()
 
-	local active_cvar_name = "pam_" .. setting
+	local active_cvar_name = "pam_" .. extension.name .. "_" .. setting
 
 	if extension.gamemode_dependent then
-		if GetConVar("pam_" .. extension.name .. "_use_custom_" .. current_gm .. "_settings"):GetBool() then
+		if GetConVar("pam_" .. extension.name .. "_for_" .. current_gm):GetBool() then
 			active_cvar_name = active_cvar_name .. "_" .. current_gm
 		end
 	end
@@ -62,7 +62,7 @@ local function GenerateConVarSettings(extension)
 		for i = 1, #gamemodes do
 			local gamemode_name = gamemodes[i].name
 
-			local cv_use_custom_settings = CreateConVar("pam_" .. extension.name .. "_use_custom_" .. gamemode_name .. "_settings", 0, {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY}, "Set the pam extension \"" .. extension.name .. "\" to use custom settings for " .. gamemode_name)
+			local cv_use_custom_settings = CreateConVar("pam_" .. extension.name .. "_for_" .. gamemode_name, 0, {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY}, "Set the pam extension \"" .. extension.name .. "\" to use custom settings for " .. gamemode_name)
 
 			cvars.AddChangeCallback(cv_use_custom_settings:GetName(), function()
 				UpdateSettings(extension)
@@ -75,7 +75,7 @@ local function GenerateConVarSettings(extension)
 	end
 
 	for setting, value in pairs(extension.settings) do
-		local cvar_name = "pam_" .. setting
+		local cvar_name = "pam_" .. extension.name .. "_" .. setting
 
 		CreateCorrectlyTypedSettingCvar(cvar_name, value)
 
@@ -109,7 +109,7 @@ function PAM.RegisterExtension(extension)
 		extension.settings = {}
 	end
 
-	local enable_cvar_name = "pam_enable_" .. extension.name
+	local enable_cvar_name = "pam_" .. extension.name .. "_enabled"
 
 	CreateConVar(enable_cvar_name, extension.enabled and 1 or 0, {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY}, "Enables/Disables the pam extension \"" .. extension.name .. "\"")
 

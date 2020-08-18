@@ -1,13 +1,13 @@
 net.Receive("PAM_Vote", function(len, ply)
 	if PAM.state == PAM.STATE_STARTED and IsValid(ply) then
-		local map_id = net.ReadUInt(32)
+		local id = net.ReadUInt(32)
 
-		if PAM.maps[map_id] then
-			PAM.votes[ply:SteamID()] = map_id
+		if PAM.options[id] then
+			PAM.votes[ply:SteamID()] = id
 
 			net.Start("PAM_Vote")
 			net.WriteEntity(ply)
-			net.WriteUInt(map_id, 32)
+			net.WriteUInt(id, 32)
 			net.Broadcast()
 		end
 	end

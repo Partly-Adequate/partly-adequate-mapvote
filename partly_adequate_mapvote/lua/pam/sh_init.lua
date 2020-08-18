@@ -12,10 +12,13 @@ PAM.STATE_FINISHED = 2
 PAM.state = PAM.STATE_DISABLED
 
 --the voteable maps
-PAM.maps = {}
+PAM.options = {}
 
 --the votes
 PAM.votes = {}
+
+-- stores the players wanting to rock the vote
+PAM.players_wanting_rtv = {}
 
 -- convars
 CreateConVar("pam_vote_length", 30, {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED}, "Set the length of the voting time in seconds.", 0)

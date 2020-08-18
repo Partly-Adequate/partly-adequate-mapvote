@@ -1,33 +1,39 @@
 net.Receive("PAM_Start", function()
 	PAM.state = PAM.STATE_STARTED
-	table.Empty(PAM.maps)
+	table.Empty(PAM.options)
 	table.Empty(PAM.votes)
 	table.Empty(PAM.players_wanting_rtv)
-	PAM.winning_map_id = nil
+	PAM.winning_option_id = nil
 
-	local map_amount = net.ReadUInt(32)
+	-- the type of the current vote
+	PAM.vote_type = net.ReadString()
+	-- the point in time at which the mapvote will end
+	PAM.ends_at = CurTime() + net.ReadUInt(32)
 
-	for index = 1, map_amount do
-		local mapinfo = {};
-		mapinfo.id = index
-		mapinfo.name = net.ReadString()
-		mapinfo.playcount = net.ReadUInt(32)
-		PAM.maps[index] = mapinfo
+	local special_option_count = net.ReadUInt(32)
+	local option_count = net.ReadUInt(32)
+
+	for index = 1, option_count do
+		local option = {}
+		option.id = index
+		option.is_special = index <= special_option_count
+		option.name = net.ReadString()
+		option.pick_count = net.ReadUInt(32)
+		PAM.options[index] = option
 	end
 
-	-- the point in time at which the mapvote will end
-	PAM.ends_at = CurTime() + GetGlobalInt("pam_vote_length")
+	PrintTable(PAM.options)
 
 	PAM.extension_handler.OnVoteStarted()
 end)
 
 net.Receive("PAM_Vote", function()
 	local ply = net.ReadEntity()
-	local map_id = net.ReadUInt(32)
+	local option_id = net.ReadUInt(32)
 
 	if IsValid(ply) then
-		PAM.votes[ply:SteamID()] = map_id
-		PAM.extension_handler.OnVoterAdded(ply, map_id)
+		PAM.votes[ply:SteamID()] = option_id
+		PAM.extension_handler.OnVoterAdded(ply, option_id)
 	end
 end)
 
@@ -52,7 +58,7 @@ net.Receive("PAM_UnVoteRTV", function(len)
 end)
 
 net.Receive("PAM_Announce_Winner", function()
-	PAM.winning_map_id = net.ReadUInt(32)
+	PAM.winning_option_id = net.ReadUInt(32)
 	PAM.state = PAM.STATE_FINISHED
 	PAM.extension_handler.OnWinnerAnnounced()
 end)

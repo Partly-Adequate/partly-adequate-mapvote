@@ -16,21 +16,21 @@ function PAM.extension_handler.OnVoteCanceled()
 	end
 end
 
-function PAM.extension_handler.OnVoterAdded(ply, map_id)
+function PAM.extension_handler.OnVoterAdded(ply, option_id)
 	for i = 1,#PAM.extensions do
 		local extension = PAM.extensions[i]
 		if extension.enabled and extension.OnVoterAdded  then
-			extension.OnVoterAdded(ply, map_id)
+			extension.OnVoterAdded(ply, option_id)
 		end
 	end
 end
 
-function PAM.extension_handler.GetMapIconMat(map_name)
+function PAM.extension_handler.GetIconMaterial(option_name)
 	local icon = nil
 	for i = 1,#PAM.extensions do
 		local extension = PAM.extensions[i]
-		if extension.enabled and extension.GetMapIconMat  then
-			icon = extension.GetMapIconMat(map_name)
+		if extension.enabled and extension.GetIconMaterial then
+			icon = extension.GetIconMaterial(option_name)
 			if icon then
 				return icon
 			end

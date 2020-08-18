@@ -3,7 +3,7 @@ local panel = nil
 extension.name = "default_votescreen"
 extension.enabled = true
 extension.settings = {
-	votescreen_scale = 100
+	scale = 100
 }
 
 function extension.OnVoteStarted()
@@ -33,8 +33,8 @@ end
 function extension.OnEnable()
 	if PAM.state != PAM.STATE_DISABLED then
 		extension.OnVoteStarted()
-		for steam_id, map_id in pairs(PAM.votes) do
-			extension.OnVoterAdded(player.GetBySteamID(steam_id), map_id)
+		for steam_id, option_id in pairs(PAM.votes) do
+			extension.OnVoterAdded(player.GetBySteamID(steam_id), option_id)
 		end
 	end
 	if PAM.state == PAM.STATE_FINISHED then
