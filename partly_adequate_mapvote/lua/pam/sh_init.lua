@@ -16,3 +16,9 @@ PAM.maps = {}
 
 --the votes
 PAM.votes = {}
+
+-- convars
+CreateConVar("pam_vote_length", 30, {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED}, "Set the length of the voting time in seconds.", 0)
+CreateConVar("pam_rtv_enabled", 0, {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED}, "Set this to 1 to enable rtv or to 0 to disable rtv.")
+CreateConVar("pam_rtv_percentage", 0.6, {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED}, "The percentage of players needed for rtv to start.", 0, 1)
+CreateConVar("pam_rtv_delayed", 0, {FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED}, "Set this to 1 to delay the votescreen to a more fitting moment. This is not supported by most gamemodes.")
