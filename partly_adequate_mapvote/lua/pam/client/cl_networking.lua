@@ -58,7 +58,7 @@ net.Receive("PAM_Announce_Winner", function()
 end)
 
 net.Receive("PAM_Cancel", function()
-	if PAM.state == PAM.STATE_STARTED then
+	if PAM.state ~= PAM.STATE_DISABLED then
 		PAM.state = PAM.STATE_DISABLED
 		PAM.extension_handler.OnVoteCanceled()
 	end

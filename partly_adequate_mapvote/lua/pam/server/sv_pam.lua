@@ -135,7 +135,7 @@ function PAM.ChangeMap(map_name)
 end
 
 function PAM.Cancel()
-	if PAM.state == PAM.STATE_STARTED then
+	if PAM.state ~= PAM.STATE_DISABLED then
 		PAM.state = PAM.STATE_DISABLED
 		timer.Remove("PAM_Vote_Timer")
 
