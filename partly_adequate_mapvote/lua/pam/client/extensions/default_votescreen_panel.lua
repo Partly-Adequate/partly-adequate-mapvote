@@ -2,7 +2,7 @@ local PANEL = {}
 
 local scale = 1
 
-local cv_scale = GetConVar("pam_votescreen_scale")
+local cv_scale = GetConVar("pam_default_votescreen_scale")
 if cv_scale then
 	scale = cv_scale:GetInt() / 100
 end

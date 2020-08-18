@@ -50,7 +50,7 @@ end
 
 PAM.RegisterExtension(extension)
 
-cvars.AddChangeCallback("pam_votescreen_scale", function(cvar, old_val, new_val)
+cvars.AddChangeCallback("pam_default_votescreen_scale", function(cvar, old_val, new_val)
 	include("pam/client/extensions/default_votescreen_panel.lua")
 	if extension.enabled then
 		extension.OnDisable()
