@@ -481,6 +481,8 @@ function PANEL:InitOptionButtons()
 		option_button.Paint = function(s, w, h)
 			surface.SetDrawColor(col_base)
 			surface.DrawRect(0, 0, option_button_size, option_button_size);
+			surface.SetDrawColor(col_base_darker)
+			surface.DrawRect(option_button_label_size, option_button_label_size, option_image_size, option_image_size);
 			surface.SetDrawColor(col_base_darkest)
 			surface.DrawRect(0, 0, option_button_size, option_button_label_size);
 
