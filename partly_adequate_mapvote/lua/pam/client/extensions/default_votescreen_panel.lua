@@ -414,7 +414,7 @@ function PANEL:InitOptionButtons()
 		-- option thumbnail
 		local option_image = vgui.Create("DImage", option_button)
 
-		local mat_option_icon = PAM.extension_handler.GetIconMaterial(option_button.option)
+		local mat_option_icon = PAM.GetIconMaterial(option_button.option)
 		if mat_option_icon then
 			option_image:SetMaterial(mat_option_icon)
 		else

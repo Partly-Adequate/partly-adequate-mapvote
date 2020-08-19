@@ -1,4 +1,3 @@
--- TODO: Maybe change this to just ask for the extensions to call a global AddOption function instead of returning all their options
 function PAM.extension_handler.RegisterOptions()
 	for i = 1, #PAM.extensions do
 		local extension = PAM.extensions[i]
@@ -38,4 +37,94 @@ function PAM.extension_handler.GetVotePower(steam_id)
 	end
 
 	return vote_power
+end
+
+function PAM.extension_handler.OnOptionRegistered(option_id)
+	for i = 1, #PAM.extensions do
+		local extension = PAM.extensions[i]
+
+		if extension.enabled and extension.OnOptionRegistered then
+			extension.OnOptionRegistered(option_id)
+		end
+	end
+end
+
+function PAM.extension_handler.OnGamemodeChanged(gamemode_name)
+	for i = 1, #PAM.extensions do
+		local extension = PAM.extensions[i]
+
+		if extension.enabled and extension.OnGamemodeChanged then
+			extension.OnGamemodeChanged(gamemode_name)
+		end
+	end
+end
+
+function PAM.extension_handler.PreMapChanged(map_name)
+	for i = 1, #PAM.extensions do
+		local extension = PAM.extensions[i]
+
+		if extension.enabled and extension.PreMapChanged then
+			extension.PreMapChanged(map_name)
+		end
+	end
+end
+
+function PAM.extension_handler.OnVoteCanceled()
+	for i = 1, #PAM.extensions do
+		local extension = PAM.extensions[i]
+
+		if extension.enabled and extension.OnVoteCanceled then
+			extension.OnVoteCanceled()
+		end
+	end
+end
+
+function PAM.extension_handler.OnVoterAdded(ply, option_id)
+	for i = 1, #PAM.extensions do
+		local extension = PAM.extensions[i]
+
+		if extension.enabled and extension.OnVoterAdded then
+			extension.OnVoterAdded(ply,option_id)
+		end
+	end
+end
+
+function PAM.extension_handler.OnVoterRemoved(ply)
+	for i = 1, #PAM.extensions do
+		local extension = PAM.extensions[i]
+
+		if extension.enabled and extension.OnVoterRemoved then
+			extension.OnVoterRemoved(ply)
+		end
+	end
+end
+
+function PAM.extension_handler.OnRTVVoterAdded(ply)
+	for i = 1, #PAM.extensions do
+		local extension = PAM.extensions[i]
+
+		if extension.enabled and extension.OnRTVVoterAdded then
+			extension.OnRTVVoterAdded(ply)
+		end
+	end
+end
+
+function PAM.extension_handler.OnRTVVoterRemoved(ply)
+	for i = 1, #PAM.extensions do
+		local extension = PAM.extensions[i]
+
+		if extension.enabled and extension.OnRTVVoterRemoved then
+			extension.OnRTVVoterRemoved(ply)
+		end
+	end
+end
+
+function PAM.extension_handler.OnOptionWon(option)
+	for i = 1, #PAM.extensions do
+		local extension = PAM.extensions[i]
+
+		if extension.enabled and extension.OnOptionWon then
+			extension.OnOptionWon(option)
+		end
+	end
 end

@@ -1,48 +1,35 @@
 net.Receive("PAM_Vote", function(len, ply)
-	if PAM.state == PAM.STATE_STARTED and IsValid(ply) then
-		local id = net.ReadUInt(32)
+	local option_id = net.ReadUInt(32)
 
-		if PAM.options[id] then
-			PAM.votes[ply:SteamID()] = id
+	if PAM.state ~= PAM.STATE_STARTED then return end
+	if not IsValid(ply) then return end
+	if not PAM.options[option_id] then return end
 
-			net.Start("PAM_Vote")
-			net.WriteEntity(ply)
-			net.WriteUInt(id, 32)
-			net.Broadcast()
-		end
-	end
+	PAM.AddVoter(ply, option_id)
 end)
 
--- TODO test this
 net.Receive("PAM_UnVote", function(len, ply)
-	if PAM.state == PAM.STATE_STARTED and IsValid(ply) then
-		PAM.Votes[ply:SteamID()] = nil
-		net.Start("PAM_UnVote")
-		net.WriteEntity(ply)
-		net.Broadcast()
-	end
+	if PAM.state ~= PAM.STATE_STARTED then return end
+	if not PAM.votes[ply:SteamID()] then return end
+	if not IsValid(ply) then return end
+
+	PAM.RemoveVoter(ply)
 end)
 
 net.Receive("PAM_VoteRTV", function(len, ply)
-	if GetConVar("pam_rtv_enabled"):GetBool() and PAM.state == PAM.STATE_DISABLED and IsValid(ply) and not table.HasValue(PAM.players_wanting_rtv, ply:SteamID()) then
-		table.insert(PAM.players_wanting_rtv, ply:SteamID())
+	if not GetConVar("pam_rtv_enabled"):GetBool() then return end
+	if PAM.state ~= PAM.STATE_DISABLED then return end
+	if not IsValid(ply) then return end
+	if PAM.rtv_voters[ply:SteamID()] then return end
 
-		net.Start("PAM_VoteRTV")
-		net.WriteEntity(ply)
-		net.Broadcast()
-
-		if not GetConVar("pam_rtv_delayed"):GetBool() then
-			PAM.CheckForRTV()
-		end
-	end
+	PAM.AddRTVVoter(ply)
 end)
 
 net.Receive("PAM_UnVoteRTV", function(len, ply)
-	if GetConVar("pam_rtv_enabled"):GetBool() and PAM.state == PAM.STATE_DISABLED and IsValid(ply) and table.HasValue(PAM.players_wanting_rtv, ply:SteamID()) then
-		table.RemoveByValue(PAM.players_wanting_rtv, ply:SteamID())
+	if not GetConVar("pam_rtv_enabled"):GetBool() then return end
+	if PAM.state ~= PAM.STATE_DISABLED then return end
+	if not IsValid(ply) then return end
+	if not PAM.rtv_voters[ply:SteamID()] then return end
 
-		net.Start("PAM_UnVoteRTV")
-		net.WriteEntity(ply)
-		net.Broadcast()
-	end
+	PAM.RemoveRTVVoter(ply)
 end)

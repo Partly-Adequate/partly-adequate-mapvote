@@ -11,12 +11,12 @@ local col_darker = Color(200, 200, 200, 255)
 
 function extension.OnRTVVoterAdded(ply)
 	local players_needed = math.ceil((GetConVar("pam_rtv_percentage"):GetFloat() or 0) * player.GetCount())
-	chat.AddText(col_prefix, "[PAM] ", col_bright, ply:GetName(), col_darker, " wants to rock the vote! (", col_bright, tostring(#PAM.players_wanting_rtv or "0"), col_darker, "/", col_bright , tostring(players_needed), col_darker, ")")
+	chat.AddText(col_prefix, "[PAM] ", col_bright, ply:GetName(), col_darker, " wants to rock the vote! (", col_bright, tostring(PAM.rtv_voter_count or "0"), col_darker, "/", col_bright , tostring(players_needed), col_darker, ")")
 end
 
 function extension.OnRTVVoterRemoved(ply)
 	local players_needed = math.ceil((GetConVar("pam_rtv_percentage"):GetFloat() or 0) * player.GetCount())
-	chat.AddText(col_prefix, "[PAM] ", col_bright, ply:GetName(), col_darker, " no longer wants to rock the vote! (", col_bright, tostring(#PAM.players_wanting_rtv or "0"), col_darker , "/", col_bright , tostring(players_needed), col_darker, ")")
+	chat.AddText(col_prefix, "[PAM] ", col_bright, ply:GetName(), col_darker, " no longer wants to rock the vote! (", col_bright, tostring(PAM.rtv_voter_count or "0"), col_darker , "/", col_bright , tostring(players_needed), col_darker, ")")
 end
 
 hook.Add( "OnPlayerChat", "PAM_RTV_Chat_Commands", function( ply, text, bTeam, bDead )

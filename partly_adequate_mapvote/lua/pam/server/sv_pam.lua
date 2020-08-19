@@ -7,10 +7,11 @@ function PAM.Start(vote_type, vote_length, winner_callback)
 
 	table.Empty(PAM.options)
 	table.Empty(PAM.votes)
-	table.Empty(PAM.players_wanting_rtv)
+	table.Empty(PAM.rtv_voters)
 
-	PAM.special_option_count = 0
 	PAM.option_count = 0
+	PAM.special_option_count = 0
+	PAM.rtv_voter_count = 0
 
 	PAM.extension_handler.RegisterOptions()
 
@@ -74,6 +75,8 @@ function PAM.RegisterOption(option_name, option_win_callback)
 	end
 
 	PAM.options[PAM.option_count] = option
+
+	PAM.extension_handler.OnOptionRegistered(PAM.option_count)
 end
 
 function PAM.MakeOptionWin(option)
@@ -92,6 +95,8 @@ function PAM.MakeOptionWin(option)
 			PAM.winner_callback(option)
 		end
 	end)
+
+	PAM.extension_handler.OnOptionWon(option)
 end
 
 function PAM.ChangeGamemode(option)
@@ -104,20 +109,73 @@ function PAM.ChangeGamemode(option)
 	net.Broadcast()
 
 	hook.Run("PAM_OnGamemodeChanged", gamemode_name)
+
+	PAM.extension_handler.OnGamemodeChanged(gamemode_name)
 end
 
 function PAM.ChangeMap(option)
+	PAM.extension_handler.PreMapChanged(option.name)
+
 	RunConsoleCommand("changelevel", option.name)
 end
 
 function PAM.Cancel()
-	if PAM.state ~= PAM.STATE_DISABLED then
-		PAM.state = PAM.STATE_DISABLED
-		timer.Remove("PAM_Vote_Timer")
+	if PAM.state == PAM.STATE_DISABLED then return end
 
-		net.Start("PAM_Cancel")
-		net.Broadcast()
+	PAM.state = PAM.STATE_DISABLED
+	timer.Remove("PAM_Vote_Timer")
+
+	net.Start("PAM_Cancel")
+	net.Broadcast()
+
+	PAM.extension_handler.OnVoteCanceled()
+end
+
+function PAM.AddVoter(ply, option_id)
+	PAM.votes[ply:SteamID()] = option_id
+
+	net.Start("PAM_Vote")
+	net.WriteEntity(ply)
+	net.WriteUInt(option_id, 32)
+	net.Broadcast()
+
+	PAM.extension_handler.OnVoterAdded(ply, option_id)
+end
+
+function PAM.RemoveVoter(ply)
+	PAM.Votes[ply:SteamID()] = nil
+
+	net.Start("PAM_UnVote")
+	net.WriteEntity(ply)
+	net.Broadcast()
+
+	PAM.extension_handler.OnVoterRemoved(ply, option_id)
+end
+
+function PAM.AddRTVVoter(ply)
+	PAM.rtv_voters[ply:SteamID()] = true
+	PAM.rtv_voter_count = PAM.rtv_voter_count + 1
+
+	net.Start("PAM_VoteRTV")
+	net.WriteEntity(ply)
+	net.Broadcast()
+
+	if not GetConVar("pam_rtv_delayed"):GetBool() then
+		PAM.CheckForRTV()
 	end
+
+	PAM.extension_handler.OnRTVVoterAdded(ply)
+end
+
+function PAM.RemoveRTVVoter(ply)
+	PAM.rtv_voters[ply:SteamID()] = false
+	PAM.rtv_voter_count = PAM.rtv_voter_count - 1
+
+	net.Start("PAM_UnVoteRTV")
+	net.WriteEntity(ply)
+	net.Broadcast()
+
+	PAM.extension_handler.OnRTVVoterRemoved(ply)
 end
 
 function PAM.CheckForDelayedRTV()
@@ -129,10 +187,9 @@ end
 
 function PAM.CheckForRTV()
 	-- check if there are enough players
-	local current_count = #PAM.players_wanting_rtv
 	local needed_count = math.ceil(GetConVar("pam_rtv_percentage"):GetFloat() * player.GetCount())
 
-	if (current_count >= needed_count) then
+	if (PAM.rtv_voter_count >= needed_count) then
 		-- start pam
 		PAM.Start()
 		return true
