@@ -382,7 +382,13 @@ function PANEL:FitsSearchTerm(button)
 end
 
 function PANEL:SortOptionList(comparator)
-	table.sort(self.option_buttons, comparator)
+	table.sort(self.option_buttons, function(button_1, button_2)
+		if button_1.option.is_special == button_2.option.is_special then
+			return comparator(button_1, button_2)
+		end
+		return button_1.option.is_special
+	end)
+
 	self:RefreshOptionList()
 end
 
