@@ -45,13 +45,23 @@ local function UpdateSetting(extension, setting, current_gm)
 
 	local setting_type = type(extension.settings[setting])
 
+	local new_val
+
 	if setting_type == "number" then
-		extension.settings[setting] = GetConVar(active_cvar_name):GetInt()
+		new_val = GetConVar(active_cvar_name):GetInt()
 	elseif setting_type == "bool" then
-		extension.settings[setting] = GetConVar(active_cvar_name):GetBool()
+		new_val = GetConVar(active_cvar_name):GetBool()
 	else
-		extension.settings[setting] = GetConVar(active_cvar_name):GetString()
+		new_val = GetConVar(active_cvar_name):GetString()
 	end
+
+	if extension.settings[setting] == new_val then return end
+
+	extension.settings[setting] = new_val
+
+	if not extension.enabled or not extension.OnSettingChanged then return end
+
+	extension.OnSettingChanged(setting)
 end
 
 local function UpdateSettings(extension, current_gm)
