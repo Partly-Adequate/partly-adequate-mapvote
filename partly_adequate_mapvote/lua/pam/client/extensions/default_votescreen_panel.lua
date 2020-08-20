@@ -1,11 +1,12 @@
 local PANEL = {}
 
-local scale = 1
+local scale = PAM.extension_handler.GetSetting("default_votescreen", "scale")
 
-local cv_scale = GetConVar("pam_default_votescreen_scale")
-if cv_scale then
-	scale = cv_scale:GetInt() / 100
+if not scale then
+	scale = 100
 end
+
+scale = scale / 100
 
 -- alignment helping values
 local option_button_size = math.floor(150 * scale)
