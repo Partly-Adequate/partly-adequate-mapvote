@@ -57,4 +57,7 @@ function extension.OnSettingChanged(setting)
 		extension.OnEnable()
 	end
 end
+
 PAM.extension_handler.RegisterExtension(extension)
+
+include("pam/client/extensions/default_votescreen_panel.lua")
