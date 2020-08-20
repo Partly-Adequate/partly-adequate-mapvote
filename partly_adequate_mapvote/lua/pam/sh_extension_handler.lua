@@ -2,13 +2,14 @@ PAM.extension_handler = {}
 PAM.extensions = {}
 
 function PAM.DisableExtension(extension)
+function PAM.extension_handler.DisableExtension(extension)
 	extension.enabled = false
 	if extension.OnDisable then
 		extension.OnDisable()
 	end
 end
 
-function PAM.EnableExtension(extension)
+function PAM.extension_handler.EnableExtension(extension)
 	extension.enabled = true
 	if extension.OnEnable then
 		extension.OnEnable()
@@ -117,9 +118,9 @@ function PAM.extension_handler.RegisterExtension(extension)
 
 	cvars.AddChangeCallback(enable_cvar_name, function(cvar, old_val, new_val)
 		if tobool(new_val) and not extension.enabled then
-			PAM.EnableExtension(extension)
+			PAM.extension_handler.EnableExtension(extension)
 		elseif not tobool(new_val) and extension.enabled then
-			PAM.DisableExtension(extension)
+			PAM.extension_handler.DisableExtension(extension)
 		end
 	end)
 
