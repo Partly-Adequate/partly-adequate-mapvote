@@ -1,7 +1,8 @@
 PAM.extension_handler = {}
 PAM.extensions = {}
 
-function PAM.DisableExtension(extension)
+local extension_map = {}
+
 function PAM.extension_handler.DisableExtension(extension)
 	extension.enabled = false
 	if extension.OnDisable then
@@ -101,10 +102,13 @@ local function GenerateConVarSettings(extension)
 end
 
 function PAM.extension_handler.RegisterExtension(extension)
-	local id = #PAM.extensions + 1
-	extension.id = id
-	PAM.extensions[id] = extension
 	print('[PAM] Registering extension "' .. extension.name .. '"!')
+
+	local id = extension_map[extension.name] or #PAM.extensions + 1
+	extension.id = id
+
+	PAM.extensions[id] = extension
+	extension_map[extension.name] = id
 
 	if not extension.settings then
 		extension.settings = {}
