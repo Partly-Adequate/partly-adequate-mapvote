@@ -6,7 +6,7 @@ extension.settings = {
 
 function extension.RegisterSpecialOptions()
 	PAM.RegisterOption("random_option", function()
-		if not extension.settings.random_specials then
+		if not extension.settings.allow_specials then
 			PAM.MakeOptionWin(PAM.options[PAM.special_option_count + math.random(#PAM.options - PAM.special_option_count)])
 		else
 			PAM.MakeOptionWin(PAM.options[math.random(#PAM.options)])
