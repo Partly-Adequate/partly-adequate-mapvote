@@ -15,6 +15,21 @@ function PAM.extension_handler.EnableExtension(extension)
 	if extension.OnEnable then
 		extension.OnEnable()
 	end
+
+function PAM.extension_handler.GetSetting(extension_name, setting_name)
+	if not extension_name then return end
+	if not setting_name then return end
+
+	local id = extension_map[extension_name]
+
+	if not id then return end
+
+	local extension = PAM.extensions[id]
+
+	if not extension then return end
+	if not extension.settings then return end
+
+	return extension.settings[setting_name]
 end
 
 local function UpdateSetting(extension, setting, current_gm)
