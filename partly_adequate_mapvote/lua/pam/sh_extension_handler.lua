@@ -5,16 +5,19 @@ local extension_map = {}
 
 function PAM.extension_handler.DisableExtension(extension)
 	extension.enabled = false
-	if extension.OnDisable then
-		extension.OnDisable()
-	end
+
+	if not extension.OnDisable then return end
+
+	extension.OnDisable()
 end
 
 function PAM.extension_handler.EnableExtension(extension)
 	extension.enabled = true
-	if extension.OnEnable then
-		extension.OnEnable()
-	end
+
+	if not extension.OnEnable then return end
+
+	extension.OnEnable()
+end
 
 function PAM.extension_handler.GetSetting(extension_name, setting_name)
 	if not extension_name then return end
