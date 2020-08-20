@@ -1,8 +1,7 @@
 local extension = {}
 extension.name = "gamemode"
-extension.enabled = false
 extension.settings = {
-	vote_length = 15,
+	vote_length = 20,
 	blacklist = "base"
 }
 

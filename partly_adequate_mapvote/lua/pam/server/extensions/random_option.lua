@@ -1,6 +1,5 @@
 local extension = {}
 extension.name = "random_option"
-extension.enabled = false
 extension.settings = {
 	allow_specials = false
 }

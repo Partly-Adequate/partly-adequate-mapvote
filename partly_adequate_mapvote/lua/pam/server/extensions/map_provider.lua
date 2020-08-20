@@ -7,7 +7,7 @@ extension.settings = {
 	blacklist = "",
 	whitelist = "",
 	limit = 20,
-	cooldown = 3
+	cooldown = 0
 }
 
 function extension.RegisterOptions()
