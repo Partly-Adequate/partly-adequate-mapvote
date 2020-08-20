@@ -99,7 +99,7 @@ local function GenerateConVarSettings(extension)
 	UpdateSettings(extension)
 end
 
-function PAM.RegisterExtension(extension)
+function PAM.extension_handler.RegisterExtension(extension)
 	local id = #PAM.extensions + 1
 	extension.id = id
 	PAM.extensions[id] = extension

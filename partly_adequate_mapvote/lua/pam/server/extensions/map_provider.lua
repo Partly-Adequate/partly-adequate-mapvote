@@ -78,7 +78,7 @@ function extension.OnWinnerAnnounced(vote_type, option)
 	PAM.SetMapCooldown(winning_map, GetConVar("pam_map_cooldown"):GetInt())
 end
 
-PAM.RegisterExtension(extension)
+PAM.extension_handler.RegisterExtension(extension)
 
 -- cooldown stuff
 if not sql.TableExists("pam_map_cooldowns") then

@@ -57,3 +57,4 @@ cvars.AddChangeCallback("pam_default_votescreen_scale", function(cvar, old_val, 
 		extension.OnEnable()
 	end
 end)
+PAM.extension_handler.RegisterExtension(extension)

@@ -13,4 +13,4 @@ function extension.GetIconMaterial(option)
 	end
 end
 
-PAM.RegisterExtension(extension)
+PAM.extension_handler.RegisterExtension(extension)
