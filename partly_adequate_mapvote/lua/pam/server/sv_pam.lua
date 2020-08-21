@@ -80,6 +80,8 @@ function PAM.RegisterOption(option_name, option_win_callback)
 end
 
 function PAM.MakeOptionWin(option)
+	PAM.winning_option_id = option.id
+
 	-- notify clients
 	net.Start("PAM_Announce_Winner")
 	net.WriteUInt(option.id, 32)
