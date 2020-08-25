@@ -29,8 +29,12 @@ hook.Add( "OnPlayerChat", "PAM_RTV_Chat_Commands", function( ply, text, bTeam, b
 
 	for i = 1, #commands do
 		if text == commands[i] then
-			PAM.VoteRTV();
-			return true;
+			if PAM.WantsRTV(ply) then
+				PAM.UnVoteRTV()
+			else
+				PAM.VoteRTV()
+			end
+			return true
 		end
 	end
 end)
