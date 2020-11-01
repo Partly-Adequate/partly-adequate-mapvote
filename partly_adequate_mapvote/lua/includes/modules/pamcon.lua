@@ -1,6 +1,10 @@
 module("pamcon", package.seeall)
 pamcon = {}
 
+if not sql.TableExists("pamcon") then
+	sql.Query("CREATE TABLE pamcon(id TEXT NOT NULL PRIMARY KEY, value TEXT NOT NULL)")
+end
+
 local root = "root"
 
 local settings = {}
@@ -64,12 +68,21 @@ function AddSetting(path, name, type, value)
 		parent.n_children[#parent.n_children + 1] = segment
 	end
 
+	local id = sub_path .. "/" .. name
+
+	local data = sql.QueryValue("SELECT value FROM pamcon WHERE id IS " .. sql.SQLStr(id))
+	if not data then
+		sql.Query("INSERT INTO pamcon VALUES(".. sql.SQLStr(id) ..", ".. sql.SQLStr(t.t_to_string(value)) .. ")")
+	else
+		value = t.t_from_string(data)
+	end
+
 	-- create setting
-	settings[sub_path .. "/" .. name] = {
+	settings[id] = {
 		s_name = name,
 		s_namespace = sub_path,
 		s_type = type,
-		s_value = t.t_to_string(value)
+		s_value = value
 	}
 
 	-- register setting in namespace
@@ -84,9 +97,7 @@ function GetSetting(path, name)
 	local setting = settings[setting_id]
 	if not setting then return end
 
-	local t = types[setting.s_type]
-
-	return t.t_from_string(setting.s_value)
+	return setting.s_value
 end
 
 function ChangeSetting(path, name, value)
@@ -95,7 +106,10 @@ function ChangeSetting(path, name, value)
 	if not setting then return end
 
 	local t = types[setting.s_type]
-	setting.s_value = t.t_to_string(value)
+	local serialized_value = t.t_to_string(value)
+	setting.s_value = value
+
+	sql.Query("INSERT OR REPLACE INTO pamcon VALUES(".. sql.SQLStr(setting_id) ..", ".. sql.SQLStr(serialized_value) .. ")")
 
 	return true
 end
