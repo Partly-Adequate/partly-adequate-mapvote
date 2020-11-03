@@ -85,6 +85,9 @@ function AddSetting(path, name, type, value)
 		s_value = value
 	}
 
+	-- initialize callback table
+	callbacks[id] = {}
+
 	-- register setting in namespace
 	local namespace = namespaces[sub_path]
 	namespace.n_settings[#namespace.n_settings + 1] = name
@@ -105,9 +108,16 @@ function ChangeSetting(path, name, value)
 	local setting = settings[setting_id]
 	if not setting then return end
 
+	local old_value = setting.s_value
+
 	local t = types[setting.s_type]
 	local serialized_value = t.t_to_string(value)
 	setting.s_value = value
+
+	local callbacks = callbacks[setting_id]
+	for i = 1, #callbacks do
+		callbacks[i](old_value, value)
+	end
 
 	sql.Query("INSERT OR REPLACE INTO pamcon VALUES(".. sql.SQLStr(setting_id) ..", ".. sql.SQLStr(serialized_value) .. ")")
 
@@ -152,6 +162,11 @@ function GetNamespaceChildren(name)
 	end
 
 	return children
+end
+
+function AddCallback(path, name, callback)
+	local callbacks = callbacks[GetSettingID(path, name)]
+	callbacks[#callbacks + 1] = callback
 end
 
 function PrintAll()
