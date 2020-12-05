@@ -1,181 +1,379 @@
 module("pamcon", package.seeall)
 pamcon = {}
 
-if not sql.TableExists("pamcon") then
-	sql.Query("CREATE TABLE pamcon(id TEXT NOT NULL PRIMARY KEY, value TEXT NOT NULL)")
+-- converts the arguments to a string
+local function GetStorageID(root, path, id)
+	-- TODO
+	return "whateverthisis"
 end
 
-local root = "root"
+-- returns a stored value
+local function GetStoredValue(storage_id)
+	-- TODO
+	return nil
+end
 
-local settings = {}
-local namespaces = {}
-namespaces[root] = {
-	n_name = root,
-	n_settings = {},
-	n_children = {},
-}
+-- stores a value
+local function StoreValue(storage_id, value)
+	-- TODO
+end
 
-local callbacks = {}
-local types = {}
+-- Namespace class
+local Namespace = {}
+Namespace.__index = Namespace
 
-local function GetNamespaceID(path)
-	local id = root
+-- creates a new Namespace
+function Namespace:Create(id)
+	-- create new Namespace
+	local namespace = {}
+	setmetatable(namespace, Namespace)
+
+	-- set attributes
+	namespace.id = id
+	namespace.children = {}
+	namespace.children_indices = {}
+	namespace.settings = {}
+	namespace.setting_indices = {}
+
+	-- return new namespace
+	return namespace
+end
+
+-- adds the child Namespace
+function Namespace:AddChild(child)
+	-- calculate index
+	local index = #self.children + 1
+
+	-- add child Namespace
+	self.children[index] = child
+	self.children_indices[child:GetID()] = index
+end
+
+-- adds the Setting
+-- it creates Namespaces if necessary
+function Namespace:AddSetting(setting)
+	-- calculate index
+	local index = #self.settings + 1
+
+	-- add Setting
+	self.settings[index] = setting
+	self.setting_indices[setting:GetID()] = index
+end
+
+-- returns the id of the Namespace
+function Namespace:GetID()
+	-- return id of found Namespace
+	return self.id
+end
+
+function Namespace:GetChild(child_id)
+	-- get index
+	local index = self.children_indices[child_id]
+
+	-- return nil when child doesn't exist
+	if not index then return end
+
+	-- return child
+	return self.children[index]
+end
+
+-- returns this Namespace's children
+function Namespace:GetChildren()
+	-- return children
+	return self.children
+end
+
+-- returns the child Namespace at the given path
+-- it returns nil when the path can't be followed
+function Namespace:GetChildAtPath(path)
+	-- follows the path and creates namespaces if necessary
+	local current = self
 	for i = 1, #path do
-		id = id .. "/" .. path[i]
-	end
-	return id
-end
+		local id = path[i]
+		-- tries to get the next Namespace
+		local next = current:GetChild(id)
 
-local function GetSettingID(path, name)
-	return GetNamespaceID(path) .. "/" .. name
-end
+		if not next then return end
 
-function AddType(name, to_string, from_string)
-	if types[name] then return end
-
-	types[name] = {
-		t_to_string = to_string,
-		t_from_string = from_string
-	}
-	return true
-end
-
-function AddSetting(path, name, type, value)
-	-- check if type is known
-	local t = types[type]
-	if not t then
-		return
+		-- advances to the next namespace
+		current = next
 	end
 
-	-- make sure the path exists
-	local sub_path = root
+	-- return child
+	return current
+end
+
+-- returns the child at the given path
+-- it creates missing namespaces when necessary
+function Namespace:AddChildrenAlongPath(path)
+	-- follows the path and creates namespaces if necessary
+	local current = self
 	for i = 1, #path do
-		local segment = path[i]
-		local parent = namespaces[sub_path]
-		sub_path = sub_path .. "/" .. segment
+		local id = path[i]
+		-- tries to get the next Namespace
+		local next = current:GetChild(id)
 
-		-- check if path exists
-		if namespaces[sub_path] then continue end
+		if not next then
+			-- creates a new Namespace to be used as the next one
+			next = Namespace:Create(id)
+			current:AddChild(next)
+		end
 
-		-- create path
-		namespaces[sub_path] = {
-			n_name = segment,
-			n_children = {},
-			n_settings = {}
-		}
-
-		-- register path
-		parent.n_children[#parent.n_children + 1] = segment
+		-- advances to the next namespace
+		current = next
 	end
 
-	local id = sub_path .. "/" .. name
+	-- return child
+	return current
+end
 
-	local data = sql.QueryValue("SELECT value FROM pamcon WHERE id IS " .. sql.SQLStr(id))
-	if not data then
-		sql.Query("INSERT INTO pamcon VALUES(".. sql.SQLStr(id) ..", ".. sql.SQLStr(t.t_to_string(value)) .. ")")
-	else
-		value = t.t_from_string(data)
+-- returns this Namespace's Setting with the given id at the given path
+function Namespace:GetSetting(setting_id)
+	-- get index
+	local index = self.setting_indices[setting_id]
+
+	-- return nil when setting doesn't exist
+	if not index then return end
+
+	-- return setting
+	return self.settings[index]
+end
+
+-- returns this Namespace's Settings at the given path
+function Namespace:GetSettings()
+	-- return Settings of found Namespace
+	return self.settings
+end
+
+-- Setting class
+local Setting = {}
+Setting.__index = Setting
+
+-- creates a new Setting
+function Setting:Create(id, value)
+	-- create new Setting
+	local setting = {}
+	setmetatable(setting, Setting)
+
+	-- set attributes
+	setting.id = id
+	setting.value = value
+	setting.callbacks = {}
+
+	-- return setting
+	return setting
+end
+
+-- returns this Setting's id
+function Setting:GetID()
+	return self.id
+end
+
+-- returns this Setting's value
+function Setting:GetValue()
+	return self.value
+end
+
+-- adds a callback to this Setting
+function Setting:AddCallback(callback)
+	-- calculate index
+	local index = #self.callbacks + 1
+
+	-- register callback
+	self.callbacks[index] = callback
+end
+
+-- changes the value of this Setting and calls all callbacks with the new value as a parameter
+function Setting:SetValue(new_value)
+	-- update value
+	self.value = new_value
+	-- call callbacks
+	for i = 1, #self.callbacks do
+		callbacks[i](new_value)
+	end
+end
+
+if SERVER then
+	-- root namespace for all server settings
+	server_settings = Namespace:Create("server_settings")
+	-- root namespace for all client overriding Setting
+	client_overrides = Namespace:Create("client_overrides")
+
+	-- creates a new Setting and adds it to the server's settings
+	function AddSetting(path, id, value)
+		-- get id for storage
+		storage_id = GetStorageID(client_settings, path, id)
+
+		-- get stored value if possible
+		value = GetStoredValue(storage_id) or value
+
+		-- create Setting
+		local setting = Setting:Create(id, value)
+
+		-- add Setting to server_settings
+		server_settings:AddChildrenAlongPath(path):AddSetting(setting)
+
+		-- store value whenever it's changed
+		setting:AddCallback(function(new_value)
+			StoreValue(storage_id, new_value)
+		end)
 	end
 
-	-- create setting
-	settings[id] = {
-		s_name = name,
-		s_namespace = sub_path,
-		s_type = type,
-		s_value = value
-	}
+	-- returns the value of previously added Setting
+	-- returns nil when no setting with the given id exists in the given path
+	function GetSetting(path, id)
+		-- gets Namespace
+		local namespace = server_settings:GetChildAtPath(path)
 
-	-- initialize callback table
-	callbacks[id] = {}
+		-- returns nil when the Namespace isn't found
+		if not namespace then return end
 
-	-- register setting in namespace
-	local namespace = namespaces[sub_path]
-	namespace.n_settings[#namespace.n_settings + 1] = name
+		-- gets the Setting
+		local setting = namespace:GetSetting(id)
 
-	return true
-end
+		-- returns nil when the Setting isn't found
+		if not setting then return end
 
-function GetSetting(path, name)
-	local setting_id = GetSettingID(path, name)
-	local setting = settings[setting_id]
-	if not setting then return end
-
-	return setting.s_value
-end
-
-function ChangeSetting(path, name, value)
-	local setting_id = GetSettingID(path, name)
-	local setting = settings[setting_id]
-	if not setting then return end
-
-	local old_value = setting.s_value
-
-	local t = types[setting.s_type]
-	local serialized_value = t.t_to_string(value)
-	setting.s_value = value
-
-	local callbacks = callbacks[setting_id]
-	for i = 1, #callbacks do
-		callbacks[i](old_value, value)
+		-- returns the Setting's value
+		return setting:GetValue()
 	end
 
-	sql.Query("INSERT OR REPLACE INTO pamcon VALUES(".. sql.SQLStr(setting_id) ..", ".. sql.SQLStr(serialized_value) .. ")")
+	-- adds the given callback to the setting with the given id at the given path
+	function AddCallback(path, id, callback)
+		-- gets Namespace
+		local namespace = server_settings:GetChildAtPath(path)
 
-	return true
-end
+		-- returns nil when the Namespace isn't found
+		if not namespace then return end
 
-function GetSettingType(path, name)
-	local setting_id = GetSettingID(path, name)
-	local setting = settings[setting_id]
-	if not setting then return end
+		-- gets the Setting
+		local setting = namespace:GetSetting(id)
 
-	return setting.s_type
-end
+		-- returns nil when the Setting isn't found
+		if not setting then return end
 
-function GetSettings(path)
-	local namespace_id = GetNamespaceID(path)
-	local namespace = namespaces[namespace_id]
-	if not namespace then
-		return {}
+		-- adds a callback to the Setting
+		setting:AddCallback(callback)
+	end
+else
+	-- root namespace for all client settings
+	client_settings = Namespace:Create("client_settings")
+	-- root namespace for a copy of all server settings
+	server_settings = Namespace:Create("server_settings")
+	-- root namespace for a copy of all client overrides
+	client_overrides = Namespace:Create("client_overrides")
+
+	-- creates a new Setting and adds it to the client's settings
+	function AddSetting(path, id, value)
+		-- get id for storage
+		storage_id = GetStorageID(client_settings, path, id)
+
+		-- get stored value if possible
+		value = GetStoredValue(storage_id) or value
+
+		-- create Setting
+		local setting = Setting:Create(id, value)
+
+		-- add Setting to client_settings
+		client_settings:AddChildrenAlongPath(path):AddSetting(setting)
+
+		-- store value whenever it's changed
+		setting:AddCallback(function(new_value)
+			StoreValue(storage_id, new_value)
+		end)
 	end
 
-	local settings = {}
+	-- returns the value of the client setting with the given id at the given path
+	-- when an override exists it will return the value of the override
+	-- returns nil when no setting with the given id exists in the given path
+	function GetSetting(path, id)
+		-- tries to get the namespace the override setting would be stored under
+		local override_namespace = client_overrides:GetChildAtPath(path)
 
-	for i = 1, #namespace.n_settings do
-		settings[i] = namespace.n_settings[i]
+		-- checks if override value can exist
+		if override_namespace then
+			-- tries to get the override setting in the override namespace
+			local override_setting = override_namespace:GetSetting(id)
+			-- checks if override value exists
+			if override_setting then
+				-- returns override value when it exists
+				return override_setting:GetValue()
+			end
+		end
+
+		-- gets the Namespace
+		local namespace = client_overrides:GetChildAtPath(path)
+
+		-- returns nil when namespace can't be found
+		if not namespace then return end
+
+		-- gets the setting
+		local namespace = namespace:GetSetting(id)
+
+		-- returns nil when the Setting isn't found
+		if not setting then return end
+
+		-- returns the Setting's value
+		return setting:GetValue()
 	end
 
-	return settings
-end
+	-- adds the given callback to the client setting with the given id at the given path
+	-- the callback will only be called when no override for the setting exists or when the override's value changes
+	function AddSettingCallback(path, id, callback)
+		-- tries to get the Namespace at path
+		local namespace = client_settings:GetChildAtPath(path)
 
-function GetNamespaceChildren(name)
-	local namespace_id = GetNamespaceID(path)
-	local namespace = namespaces[namespace_id]
-	if not namespace then
-		return {}
+		-- returns nil when the Namespace isn't found
+		if not namespace then return end
+
+		-- tries to get the Setting
+		local setting = namespace:GetSetting(id)
+
+		-- returns nil when the Setting isn't found
+		if not setting then return end
+
+		-- TODO overridable callbacks
+		-- Callbacks should only be called when no override exists
+		-- overrides should be able to call these callbacks
+
+		-- adds a callback to the Setting
+		setting:AddCallback(callback)
 	end
 
-	local children = {}
+	-- returns the value of the server setting with the given id at the given path
+	-- returns nil when no setting with the given id exists in the given path
+	function GetServerSetting(path, id)
+		-- tries to get the Namespace at path
+		local namespace = server_settings:GetChildAtPath(path)
 
-	for i = 1, #namespace.n_children do
-		children[i] = namespace.n_children[i]
+		-- returns nil when the Namespace isn't found
+		if not namespace then return end
+
+		-- tries to get the Setting
+		local setting = namespace:GetSetting(id)
+
+		-- returns nil when the Setting isn't found
+		if not setting then return end
+
+		-- returns the Setting's value
+		return setting:GetValue()
 	end
 
-	return children
-end
+	-- adds the given callback to the server setting with the given id at the given path
+	function AddServerSettingCallback(path, id, callback)
+		-- tries to get the Namespace at path
+		local namespace = server_settings:GetChildAtPath(path)
 
-function AddCallback(path, name, callback)
-	local callbacks = callbacks[GetSettingID(path, name)]
-	callbacks[#callbacks + 1] = callback
-end
+		-- returns nil when the Namespace isn't found
+		if not namespace then return end
 
-function PrintAll()
-	print("Settings:")
-	PrintTable(settings)
-	print("Namespaces:")
-	PrintTable(namespaces)
-end
+		-- tries to get the Setting
+		local setting = namespace:GetSetting(id)
 
-AddType("number", tostring, tonumber)
-AddType("string", tostring, tostring)
-AddType("bool", tostring, tobool)
+		-- returns nil when the Setting isn't found
+		if not setting then return end
+
+		-- returns the Setting's value
+		setting:AddCallback(callback)
+	end
+end
