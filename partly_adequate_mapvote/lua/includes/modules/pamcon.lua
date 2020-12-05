@@ -1,10 +1,24 @@
 module("pamcon", package.seeall)
 pamcon = {}
 
--- converts the arguments to a string
-local function GetStorageID(root, path, id)
-	-- TODO
-	return "whateverthisis"
+local path_separator = "/"
+
+local function ValidateString(str)
+	return string.Replace(str, path_separator, path_separator .. path_separator)
+end
+
+-- converts a path to a setting to a unique string
+local function PathToID(root, path, setting_id)
+	-- add root
+	local path_id = ValidateString(root:GetID()) .. path_separator
+
+	-- add segments of path
+	for i = 1, #path do
+		path_id = path_id .. ValidateString(path[i]) .. path_separator
+	end
+
+	-- add setting id and return
+	return path_id .. ValidateString(setting_id)
 end
 
 -- returns a stored value
@@ -189,8 +203,40 @@ function Setting:SetValue(new_value)
 	self.value = new_value
 	-- call callbacks
 	for i = 1, #self.callbacks do
-		callbacks[i](new_value)
+		self.callbacks[i](self)
 	end
+end
+
+-- special callbacks
+local external_callbacks = {}
+
+-- calls all external callbacks that were registered under the callback_id and provides the setting as a parameter for these
+local function CallExternalCallbacks(callback_id, setting)
+	-- tries to find callbacks
+	local cbs = external_callbacks[callback_id]
+
+	-- returns nil when no callbacks were found
+	if not cbs then return end
+
+	-- calls callbacks
+	for i = 1, #cbs do
+		cbs[i](setting)
+	end
+end
+-- adds an external callback to the callbacks at the callback_id
+local function AddExternalCallback(callback_id, callback)
+	-- tries to find callbacks
+	local cbs = external_callbacks[callback_id]
+
+	-- adds callbacks table if necessary
+	if not cbs then
+		cbs = {}
+		external_callbacks[callback_id] = cbs
+	end
+
+	-- adds callback to callbacks table
+	local index = #cbs + 1
+	cbs[index] = callback
 end
 
 if SERVER then
@@ -202,10 +248,10 @@ if SERVER then
 	-- creates a new Setting and adds it to the server's settings
 	function AddSetting(path, id, value)
 		-- get id for storage
-		storage_id = GetStorageID(client_settings, path, id)
+		local path_id = PathToID(server_settings, path, id)
 
 		-- get stored value if possible
-		value = GetStoredValue(storage_id) or value
+		value = GetStoredValue(path_id) or value
 
 		-- create Setting
 		local setting = Setting:Create(id, value)
@@ -214,8 +260,13 @@ if SERVER then
 		server_settings:AddChildrenAlongPath(path):AddSetting(setting)
 
 		-- store value whenever it's changed
-		setting:AddCallback(function(new_value)
-			StoreValue(storage_id, new_value)
+		setting:AddCallback(function(setting)
+			StoreValue(path_id, setting:GetValue())
+		end)
+
+		-- call special callbacks whenever it's changed
+		setting:AddCallback(function(setting)
+			CallExternalCallbacks(path_id, setting)
 		end)
 	end
 
@@ -240,20 +291,13 @@ if SERVER then
 
 	-- adds the given callback to the setting with the given id at the given path
 	function AddCallback(path, id, callback)
-		-- gets Namespace
-		local namespace = server_settings:GetChildAtPath(path)
+		-- gets the Setting's unique id
+		local path_id = PathToID(server_settings, path, id)
 
-		-- returns nil when the Namespace isn't found
-		if not namespace then return end
-
-		-- gets the Setting
-		local setting = namespace:GetSetting(id)
-
-		-- returns nil when the Setting isn't found
-		if not setting then return end
-
-		-- adds a callback to the Setting
-		setting:AddCallback(callback)
+		-- adds an external callback for this setting
+		AddExternalCallback(path_id, function(setting)
+			callback(setting:GetValue())
+		end)
 	end
 else
 	-- root namespace for all client settings
@@ -266,10 +310,10 @@ else
 	-- creates a new Setting and adds it to the client's settings
 	function AddSetting(path, id, value)
 		-- get id for storage
-		storage_id = GetStorageID(client_settings, path, id)
+		path_id = PathToID(client_settings, path, id)
 
 		-- get stored value if possible
-		value = GetStoredValue(storage_id) or value
+		value = GetStoredValue(path_id) or value
 
 		-- create Setting
 		local setting = Setting:Create(id, value)
@@ -279,7 +323,16 @@ else
 
 		-- store value whenever it's changed
 		setting:AddCallback(function(new_value)
-			StoreValue(storage_id, new_value)
+			StoreValue(path_id, new_value)
+		end)
+
+		-- call special callbacks whenever it's changed and no override exists
+		setting:AddCallback(function(setting)
+			local override_namespace = client_overrides:GetChildAtPath(path)
+
+			if override_namespace and override_namespace:GetSetting(id) then return end
+
+			CallExternalCallbacks(path_id, setting)
 		end)
 	end
 
@@ -320,24 +373,10 @@ else
 	-- adds the given callback to the client setting with the given id at the given path
 	-- the callback will only be called when no override for the setting exists or when the override's value changes
 	function AddSettingCallback(path, id, callback)
-		-- tries to get the Namespace at path
-		local namespace = client_settings:GetChildAtPath(path)
-
-		-- returns nil when the Namespace isn't found
-		if not namespace then return end
-
-		-- tries to get the Setting
-		local setting = namespace:GetSetting(id)
-
-		-- returns nil when the Setting isn't found
-		if not setting then return end
-
-		-- TODO overridable callbacks
-		-- Callbacks should only be called when no override exists
-		-- overrides should be able to call these callbacks
-
 		-- adds a callback to the Setting
-		setting:AddCallback(callback)
+		AddExternalCallback(PathToID(client_settings, path, id), function(setting)
+			callback(setting:GetValue())
+		end)
 	end
 
 	-- returns the value of the server setting with the given id at the given path
@@ -361,19 +400,9 @@ else
 
 	-- adds the given callback to the server setting with the given id at the given path
 	function AddServerSettingCallback(path, id, callback)
-		-- tries to get the Namespace at path
-		local namespace = server_settings:GetChildAtPath(path)
-
-		-- returns nil when the Namespace isn't found
-		if not namespace then return end
-
-		-- tries to get the Setting
-		local setting = namespace:GetSetting(id)
-
-		-- returns nil when the Setting isn't found
-		if not setting then return end
-
-		-- returns the Setting's value
-		setting:AddCallback(callback)
+		-- adds a callback to the Setting
+		AddExternalCallback(server_settings, path, id, function(setting)
+			callback(setting:GetValue())
+		end)
 	end
 end
