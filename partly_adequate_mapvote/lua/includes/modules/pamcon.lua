@@ -32,7 +32,7 @@ local function Serialize(value)
 end
 
 local function Deserialize(str)
-	deserialized = util.JSONToTable(str)
+	local deserialized = util.JSONToTable(str)
 	return deserialized.value
 end
 
