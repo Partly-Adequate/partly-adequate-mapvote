@@ -81,7 +81,7 @@ end
 -- adds the child Namespace
 function Namespace:AddChild(child)
 	-- calculate index
-	local index = #self.children + 1
+	local index = self.children_indices[child:GetID()] or #self.children + 1
 
 	-- add child Namespace
 	self.children[index] = child
@@ -92,7 +92,7 @@ end
 -- it creates Namespaces if necessary
 function Namespace:AddSetting(setting)
 	-- calculate index
-	local index = #self.settings + 1
+	local index = self.setting_indices[setting:GetID()] or #self.settings + 1
 
 	-- add Setting
 	self.settings[index] = setting
