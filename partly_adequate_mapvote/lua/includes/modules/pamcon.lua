@@ -524,6 +524,7 @@ else
 	end
 
 
+	-- reads a Namespace from a received netmessage and calles add_func for all transmitted Settings
 	local function ReceiveSettings(add_func, path)
 		if path then
 			path[#path + 1] = net.ReadString()
