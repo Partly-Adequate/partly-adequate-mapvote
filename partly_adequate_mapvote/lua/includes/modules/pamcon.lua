@@ -1,6 +1,10 @@
 module("pamcon", package.seeall)
 pamcon = {}
 
+if not sql.TableExists("pamcon_values") then
+	sql.Query("CREATE TABLE pamcon_values(id TEXT NOT NULL PRIMARY KEY, value TEXT NOT NULL)")
+end
+
 local path_separator = "/"
 
 local function ValidateString(str)
@@ -34,13 +38,23 @@ end
 
 -- returns a stored value
 local function GetStoredValue(storage_id)
-	-- TODO
-	return nil
+	-- get data
+	local data = sql.Query("SELECT value FROM pamcon_values WHERE id IS " .. SQLStr(storage_id))
+
+	-- return nil when no data was found
+	if not data then return end
+
+	-- return deserialized value
+	return Deserialize(data[1]["value"])
 end
 
 -- stores a value
 local function StoreValue(storage_id, value)
-	-- TODO
+	-- serialize
+	local serialized = Serialize(value)
+
+	-- insert or replace value into database
+	sql.Query("INSERT OR REPLACE INTO pamcon_values VALUES( " .. SQLStr(storage_id) .. ", " .. SQLStr(serialized) .. ")")
 end
 
 -- Namespace class
