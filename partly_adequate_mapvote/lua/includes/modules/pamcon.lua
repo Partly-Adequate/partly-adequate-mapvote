@@ -265,6 +265,8 @@ local function AddExternalCallback(callback_id, callback)
 end
 
 if SERVER then
+	util.AddNetworkString("PAMCON_RequestServerSettings")
+
 	-- root namespace for all server settings
 	server_settings = Namespace:Create("server_settings")
 	-- root namespace for all client overriding Setting
@@ -344,6 +346,42 @@ if SERVER then
 			StoreValue(path_id, setting:GetValue())
 		end)
 	end
+
+	-- writes a Setting to the current netmessage
+	local function SendSetting(setting)
+		net.WriteString(setting:GetID())
+		net.WriteString(Serialize(setting:GetValue()))
+	end
+
+	-- writes a Namespace to the current netmessage
+	local function SendNamespace(namespace)
+		net.WriteString(namespace:GetID())
+
+		local children = namespace:GetChildren()
+		local child_count = #children
+		net.WriteUInt(child_count, 32)
+
+		for i = 1, child_count do
+			SendNamespace(children[i])
+		end
+
+		local settings = namespace:GetSettings()
+		local setting_count = #settings
+
+		net.WriteUInt(setting_count, 32)
+		for i = 1, setting_count do
+			SendSetting(settings[i])
+		end
+	end
+
+	net.Receive("PAMCON_RequestServerSettings",function(len, ply)
+		net.Start("PAMCON_RequestServerSettings")
+
+		SendNamespace(server_settings)
+		SendNamespace(client_overrides)
+
+		net.Send(ply)
+	end)
 else
 	-- root namespace for all client settings
 	client_settings = Namespace:Create("client_settings")
@@ -433,7 +471,7 @@ else
 		local setting = Setting:Create(id, value)
 
 		-- add Setting to client_settings
-		client_settings:AddChildrenAlongPath(path):AddSetting(setting)
+		server_settings:AddChildrenAlongPath(path):AddSetting(setting)
 
 		-- call special callbacks whenever it's changed and no override exists
 		setting:AddCallback(function(setting)
@@ -484,4 +522,40 @@ else
 			CallExternalCallbacks(path_id, setting)
 		end)
 	end
+
+
+	local function ReceiveSettings(add_func, path)
+		if path then
+			path[#path + 1] = net.ReadString()
+		else
+			net.ReadString()
+			path = {}
+		end
+
+		local child_count = net.ReadUInt(32)
+
+		for i = 1, child_count do
+			ReceiveSettings(add_func, path)
+		end
+
+		local setting_count = net.ReadUInt(32)
+
+		for i = 1, setting_count do
+			local id = net.ReadString()
+			local value = Deserialize(net.ReadString())
+			add_func(path, id, value)
+		end
+
+		path[#path] = nil
+	end
+
+	net.Receive("PAMCON_RequestServerSettings", function(len)
+		ReceiveSettings(AddServerSetting, nil)
+		ReceiveSettings(AddClientOverride, nil)
+	end)
+
+	hook.Add("InitPostEntity", "pamcon_request_server_settings", function()
+		net.Start("PAMCON_RequestServerSettings")
+		net.SendToServer()
+	end)
 end
