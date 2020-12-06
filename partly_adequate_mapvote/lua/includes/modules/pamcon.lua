@@ -266,11 +266,32 @@ end
 
 if SERVER then
 	util.AddNetworkString("PAMCON_RequestServerSettings")
+	util.AddNetworkString("PAMCON_ChangeSetting")
 
 	-- root namespace for all server settings
 	server_settings = Namespace:Create("server_settings")
 	-- root namespace for all client overriding Setting
 	client_overrides = Namespace:Create("client_overrides")
+
+	-- informs all clients on a change in a server setting
+	local function BroadcastChange(path, id, value)
+		net.Start("PAMCON_ChangeSetting")
+		net.WriteBool(false)
+		net.WriteString(Serialize(path))
+		net.WriteString(id)
+		net.WriteString(Serialize(value))
+		net.Broadcast()
+	end
+
+	-- informs all clients on a change in a client override
+	local function BroadcastOverrideChange(path, id, value)
+		net.Start("PAMCON_ChangeSetting")
+		net.WriteBool(true)
+		net.WriteString(Serialize(path))
+		net.WriteString(id)
+		net.WriteString(Serialize(value))
+		net.Broadcast()
+	end
 
 	-- creates/replaces a server setting
 	function AddSetting(path, id, value)
@@ -291,10 +312,18 @@ if SERVER then
 			StoreValue(path_id, setting:GetValue())
 		end)
 
+		-- inform clients whenever it's changed
+		setting:AddCallback(function(setting)
+			BroadcastChange(path, id, setting:GetValue())
+		end)
+
 		-- call special callbacks whenever it's changed
 		setting:AddCallback(function(setting)
 			CallExternalCallbacks(path_id, setting)
 		end)
+
+		-- inform clients about new setting
+		BroadcastChange(path, id, setting:GetValue())
 	end
 
 	-- returns the value of previously added Setting
@@ -345,6 +374,14 @@ if SERVER then
 		setting:AddCallback(function(setting)
 			StoreValue(path_id, setting:GetValue())
 		end)
+
+		-- inform clients whenever it's changed
+		setting:AddCallback(function(setting)
+			BroadcastOverrideChange(path, id, setting:GetValue())
+		end)
+
+		-- inform clients about new override
+		BroadcastOverrideChange(path, id, setting:GetValue())
 	end
 
 	-- writes a Setting to the current netmessage
@@ -381,6 +418,32 @@ if SERVER then
 		SendNamespace(client_overrides)
 
 		net.Send(ply)
+	end)
+
+	net.Receive("PAMCON_ChangeSetting", function(len, ply)
+		local is_override = net.ReadBool()
+		local root = is_override and client_overrides or server_settings
+		local path = Deserialize(net.ReadString())
+		local id = net.ReadString()
+		local value = Deserialize(net.ReadString())
+
+		-- TODO add api for permissions
+		if not IsValid(ply) or not ply:IsSuperAdmin() then return end
+
+		local namespace = root:GetChildAtPath(path)
+
+		if not namespace then return end
+
+		local setting = namespace:GetSetting(id)
+
+		if not setting then
+			if is_override then
+				AddClientOverride(path, id, value)
+			end
+			return
+		end
+
+		setting:SetValue(value)
 	end)
 else
 	-- root namespace for all client settings
@@ -521,8 +584,49 @@ else
 		setting:AddCallback(function(setting)
 			CallExternalCallbacks(path_id, setting)
 		end)
+
+		CallExternalCallbacks(path_id, setting)
 	end
 
+	-- requests to change a server setting
+	function RequestChange(path, id, value)
+		net.Start("PAMCON_ChangeSetting")
+		net.WriteBool(false)
+		net.WriteString(Serialize(path))
+		net.WriteString(id)
+		net.WriteString(Serialize(value))
+		net.SendToServer()
+	end
+
+	-- requests to add or change a client override
+	function RequestOverride(path, id, value)
+		net.Start("PAMCON_ChangeSetting")
+		net.WriteBool(true)
+		net.WriteString(Serialize(path))
+		net.WriteString(id)
+		net.WriteString(Serialize(value))
+		net.SendToServer()
+	end
+
+	net.Receive("PAMCON_ChangeSetting", function(len)
+		local is_override = net.ReadBool()
+		local root = is_override and client_overrides or server_settings
+		local path = Deserialize(net.ReadString())
+		local id = net.ReadString()
+		local value = Deserialize(net.ReadString())
+
+		local namespace = root:AddChildrenAlongPath(path)
+
+		local setting = namespace:GetSetting(id)
+
+		if setting then
+			setting:SetValue(value)
+		elseif is_override then
+			AddClientOverride(path, id, value)
+		else
+			AddServerSetting(path, id, value)
+		end
+	end)
 
 	-- reads a Namespace from a received netmessage and calles add_func for all transmitted Settings
 	local function ReceiveSettings(add_func, path)
