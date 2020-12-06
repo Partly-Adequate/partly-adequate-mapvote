@@ -21,6 +21,17 @@ local function PathToID(root, path, setting_id)
 	return path_id .. ValidateString(setting_id)
 end
 
+local function Serialize(value)
+	local serializable = {}
+	serializable.value = value
+	return util.TableToJSON(serializable)
+end
+
+local function Deserialize(str)
+	deserialized = util.JSONToTable(str)
+	return deserialized.value
+end
+
 -- returns a stored value
 local function GetStoredValue(storage_id)
 	-- TODO
