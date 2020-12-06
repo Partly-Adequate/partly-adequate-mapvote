@@ -270,7 +270,7 @@ if SERVER then
 	-- root namespace for all client overriding Setting
 	client_overrides = Namespace:Create("client_overrides")
 
-	-- creates a new Setting and adds it to the server's settings
+	-- creates/replaces a server setting
 	function AddSetting(path, id, value)
 		-- get id for storage
 		local path_id = PathToID(server_settings, path, id)
@@ -324,6 +324,26 @@ if SERVER then
 			callback(setting:GetValue())
 		end)
 	end
+
+	-- creates/replaces a client override
+	local function AddClientOverride(path, id, value)
+		-- get id for storage
+		local path_id = PathToID(client_overrides, path, id)
+
+		-- get stored value if possible
+		value = GetStoredValue(path_id) or value
+
+		-- create Setting
+		local setting = Setting:Create(id, value)
+
+		-- add Setting to client_overrides
+		client_overrides:AddChildrenAlongPath(path):AddSetting(setting)
+
+		-- store value whenever it's changed
+		setting:AddCallback(function(setting)
+			StoreValue(path_id, setting:GetValue())
+		end)
+	end
 else
 	-- root namespace for all client settings
 	client_settings = Namespace:Create("client_settings")
@@ -332,7 +352,7 @@ else
 	-- root namespace for a copy of all client overrides
 	client_overrides = Namespace:Create("client_overrides")
 
-	-- creates a new Setting and adds it to the client's settings
+	-- creates/replaces a client setting
 	function AddSetting(path, id, value)
 		-- get id for storage
 		path_id = PathToID(client_settings, path, id)
@@ -404,6 +424,23 @@ else
 		end)
 	end
 
+	-- creates/replaces a server setting
+	local function AddServerSetting(path, id, value)
+		-- get id for callbacks
+		path_id = PathToID(server_settings, path, id)
+
+		-- create Setting
+		local setting = Setting:Create(id, value)
+
+		-- add Setting to client_settings
+		client_settings:AddChildrenAlongPath(path):AddSetting(setting)
+
+		-- call special callbacks whenever it's changed and no override exists
+		setting:AddCallback(function(setting)
+			CallExternalCallbacks(path_id, setting)
+		end)
+	end
+
 	-- returns the value of the server setting with the given id at the given path
 	-- returns nil when no setting with the given id exists in the given path
 	function GetServerSetting(path, id)
@@ -428,6 +465,23 @@ else
 		-- adds a callback to the Setting
 		AddExternalCallback(server_settings, path, id, function(setting)
 			callback(setting:GetValue())
+		end)
+	end
+
+	-- creates/replaces a client override
+	local function AddClientOverride(path, id, value)
+		-- get id for callbacks
+		path_id = PathToID(client_settings, path, id)
+
+		-- create Setting
+		local setting = Setting:Create(id, value)
+
+		-- add Setting to client_settings
+		client_overrides:AddChildrenAlongPath(path):AddSetting(setting)
+
+		-- call special callbacks whenever it's changed and no override exists
+		setting:AddCallback(function(setting)
+			CallExternalCallbacks(path_id, setting)
 		end)
 	end
 end
