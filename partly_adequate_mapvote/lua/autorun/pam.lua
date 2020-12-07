@@ -10,7 +10,6 @@ if SERVER then
 	AddCSLuaFile("pam/client/cl_networking.lua")
 	AddCSLuaFile("pam/client/cl_commands.lua")
 
-	include("includes/modules/pamcon.lua")
 	include("pam/sh_init.lua")
 	include("pam/server/sv_init.lua")
 	include("pam/server/sv_pam.lua")
@@ -27,7 +26,6 @@ if SERVER then
 	resource.AddFile("materials/vgui/pam/ic_selected.vmt")
 	resource.AddFile("materials/vgui/pam/ic_not_selected.vmt")
 else
-	include("includes/modules/pamcon.lua")
 	include("pam/sh_init.lua")
 	include("pam/client/cl_init.lua")
 	include("pam/client/cl_pam.lua")
