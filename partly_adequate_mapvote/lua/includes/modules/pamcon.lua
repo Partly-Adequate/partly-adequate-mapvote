@@ -1,39 +1,35 @@
 module("pamcon", package.seeall)
 pamcon = {}
 
-if not sql.TableExists("pamcon_values") then
-	sql.Query("CREATE TABLE pamcon_values(id TEXT NOT NULL PRIMARY KEY, value TEXT NOT NULL)")
-end
+local roots = {}
 
-local path_separator = "/"
-
-local function ValidateString(str)
-	return string.Replace(str, path_separator, path_separator .. path_separator)
-end
-
--- converts a path to a setting to a unique string
-local function PathToID(root, path, setting_id)
-	-- add root
-	local path_id = ValidateString(root:GetID()) .. path_separator
-
-	-- add segments of path
-	for i = 1, #path do
-		path_id = path_id .. ValidateString(path[i]) .. path_separator
-	end
-
-	-- add setting id and return
-	return path_id .. ValidateString(setting_id)
-end
-
+-- serializes any value
+-- uses TableToJSON internally and has all it's bugs
 local function Serialize(value)
 	local serializable = {}
 	serializable.value = value
 	return util.TableToJSON(serializable)
 end
 
+-- deserializes any value
+-- uses TableToJSON internally and has all it's bugs
 local function Deserialize(str)
 	local deserialized = util.JSONToTable(str)
 	return deserialized.value
+end
+
+-- create table for storing values
+if not sql.TableExists("pamcon_values") then
+	sql.Query("CREATE TABLE pamcon_values(id TEXT NOT NULL PRIMARY KEY, value TEXT NOT NULL)")
+end
+
+-- stores a value
+local function StoreValue(storage_id, value)
+	-- serialize
+	local serialized = Serialize(value)
+
+	-- insert or replace value into database
+	sql.Query("INSERT OR REPLACE INTO pamcon_values VALUES( " .. SQLStr(storage_id) .. ", " .. SQLStr(serialized) .. ")")
 end
 
 -- returns a stored value
@@ -48,13 +44,37 @@ local function GetStoredValue(storage_id)
 	return Deserialize(data[1]["value"])
 end
 
--- stores a value
-local function StoreValue(storage_id, value)
-	-- serialize
-	local serialized = Serialize(value)
+-- external callbacks
+local external_callbacks = {}
 
-	-- insert or replace value into database
-	sql.Query("INSERT OR REPLACE INTO pamcon_values VALUES( " .. SQLStr(storage_id) .. ", " .. SQLStr(serialized) .. ")")
+-- calls all external callbacks that were registered under the callback_id and provides the setting as a parameter for these
+local function CallExternalCallbacks(callback_id, setting)
+	-- tries to find callbacks
+	local cbs = external_callbacks[callback_id]
+
+	-- returns nil when no callbacks were found
+	if not cbs then return end
+
+	-- calls callbacks
+	for i = 1, #cbs do
+		cbs[i](setting)
+	end
+end
+
+-- adds an external callback to the callbacks at the callback_id
+local function AddExternalCallback(callback_id, callback)
+	-- tries to find callbacks
+	local cbs = external_callbacks[callback_id]
+
+	-- adds callbacks table if necessary
+	if not cbs then
+		cbs = {}
+		external_callbacks[callback_id] = cbs
+	end
+
+	-- adds callback to callbacks table
+	local index = #cbs + 1
+	cbs[index] = callback
 end
 
 -- Namespace class
@@ -75,6 +95,18 @@ function Namespace:Create(id)
 	namespace.setting_indices = {}
 
 	-- return new namespace
+	return namespace
+end
+
+-- creates a new Namespace and adds it to the roots table
+function Namespace:CreateAsRoot(id)
+	-- creates a new namespace
+	local namespace = Namespace:Create(id)
+
+	-- adds it to the roots table
+	roots[id] = namespace
+
+	-- returns the new namespace
 	return namespace
 end
 
@@ -232,46 +264,79 @@ function Setting:SetValue(new_value)
 	end
 end
 
--- special callbacks
-local external_callbacks = {}
+local path_separator = "/"
 
--- calls all external callbacks that were registered under the callback_id and provides the setting as a parameter for these
-local function CallExternalCallbacks(callback_id, setting)
-	-- tries to find callbacks
-	local cbs = external_callbacks[callback_id]
-
-	-- returns nil when no callbacks were found
-	if not cbs then return end
-
-	-- calls callbacks
-	for i = 1, #cbs do
-		cbs[i](setting)
-	end
+-- replaces any occurrence of path_separators with two path_separators
+-- it's used internally to make sure path_ids are always unique
+local function ValidateString(str)
+	return string.Replace(str, path_separator, path_separator .. path_separator)
 end
--- adds an external callback to the callbacks at the callback_id
-local function AddExternalCallback(callback_id, callback)
-	-- tries to find callbacks
-	local cbs = external_callbacks[callback_id]
 
-	-- adds callbacks table if necessary
-	if not cbs then
-		cbs = {}
-		external_callbacks[callback_id] = cbs
+-- converts a path to a setting to a unique string
+local function PathToID(root, path, setting_id)
+	-- add root
+	local path_id = ValidateString(root:GetID()) .. path_separator
+
+	-- add segments of path
+	for i = 1, #path do
+		path_id = path_id .. ValidateString(path[i]) .. path_separator
 	end
 
-	-- adds callback to callbacks table
-	local index = #cbs + 1
-	cbs[index] = callback
+	-- add setting id and return
+	return path_id .. ValidateString(setting_id)
+end
+
+-- converts a path_id to a path
+local function IDToPath(path_id)
+	-- this will store the values
+	local root_id
+	local path = {}
+
+	-- rough split with some mistakes wherever a segment contains a path_separator
+	local split_values = string.Split(path_id, path_separator)
+	-- temporary variable for accumulating segments
+	local current = ""
+	-- temporary variable for checking if the amount of path separators is even or odd
+	local append = false
+
+	-- fixes splitting mistakes and stores the properly split version in formatted_values
+	for i = 1, #split_values do
+		local value = split_values[i]
+		if append then
+			current = current .. value
+			append = false
+		elseif value == "" then
+			current = current .. path_separator
+			append = true
+		else
+			current = current .. value
+			if not root_id then
+				root_id = current
+			else
+				path[#path + 1] = current
+			end
+			current = ""
+		end
+	end
+
+	-- get the setting_id
+	local setting_id = path[#path]
+	-- remove the setting_id from the path
+	path[#path] = nil
+
+	-- return everything
+	return roots[root_id], path, setting_id
 end
 
 if SERVER then
 	util.AddNetworkString("PAMCON_RequestServerSettings")
 	util.AddNetworkString("PAMCON_ChangeSetting")
 
-	-- root namespace for all server settings
-	server_settings = Namespace:Create("server_settings")
-	-- root namespace for all client overriding Setting
-	client_overrides = Namespace:Create("client_overrides")
+	local server_settings_id = "server_settings"
+	local client_overrides_id = "client_overrides"
+
+	server_settings = Namespace:CreateAsRoot(server_settings_id)
+	client_overrides = Namespace:CreateAsRoot(client_overrides_id)
 
 	-- informs all clients on a change in a server setting
 	local function BroadcastChange(path, id, value)
@@ -381,6 +446,7 @@ if SERVER then
 		end)
 
 		-- inform clients about new override
+		StoreValue(path_id, setting:GetValue())
 		BroadcastOverrideChange(path, id, setting:GetValue())
 	end
 
@@ -432,26 +498,40 @@ if SERVER then
 
 		local namespace = root:GetChildAtPath(path)
 
-		if not namespace then return end
-
-		local setting = namespace:GetSetting(id)
-
-		if not setting then
-			if is_override then
-				AddClientOverride(path, id, value)
+		if namespace then
+			local setting = namespace:GetSetting(id)
+			if setting then
+				setting:SetValue(value)
+				return
 			end
-			return
 		end
 
-		setting:SetValue(value)
+		if not is_override then return end
+
+		AddClientOverride(path, id, value)
 	end)
+
+	local data = sql.Query("SELECT id,value FROM pamcon_values")
+	if data then
+		for i = 1, #data do
+			local datum = data[i]
+			local root, path, id = IDToPath(datum["id"])
+			if root and root == client_overrides then
+				AddClientOverride(path, id, Deserialize(datum.value))
+			end
+		end
+	end
 else
+	local client_settings_id = "client_settings"
+	local server_settings_id = "server_settings"
+	local client_overrides_id = "client_overrides"
+
 	-- root namespace for all client settings
-	client_settings = Namespace:Create("client_settings")
+	client_settings = Namespace:CreateAsRoot(client_settings_id)
 	-- root namespace for a copy of all server settings
-	server_settings = Namespace:Create("server_settings")
+	server_settings = Namespace:CreateAsRoot(server_settings_id)
 	-- root namespace for a copy of all client overrides
-	client_overrides = Namespace:Create("client_overrides")
+	client_overrides = Namespace:CreateAsRoot(client_overrides_id)
 
 	-- creates/replaces a client setting
 	function AddSetting(path, id, value)
@@ -657,6 +737,7 @@ else
 	net.Receive("PAMCON_RequestServerSettings", function(len)
 		ReceiveSettings(AddServerSetting, nil)
 		ReceiveSettings(AddClientOverride, nil)
+		RequestOverride({"pam", "vote_screen"}, "scale", 150)
 	end)
 
 	hook.Add("InitPostEntity", "pamcon_request_server_settings", function()
