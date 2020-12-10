@@ -137,7 +137,7 @@ Namespace.__index = Namespace
 function Namespace:Create(id)
 	-- create new Namespace
 	local namespace = {}
-	setmetatable(namespace, Namespace)
+	setmetatable(namespace, self)
 
 	-- set attributes
 	namespace.id = id
@@ -276,7 +276,7 @@ Setting.__index = Setting
 function Setting:Create(id, type, value)
 	-- create new Setting
 	local setting = {}
-	setmetatable(setting, Setting)
+	setmetatable(setting, self)
 
 	if not type:IsValueValid(value) then return end
 
