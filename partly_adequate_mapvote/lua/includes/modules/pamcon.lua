@@ -77,6 +77,58 @@ local function AddExternalCallback(callback_id, callback)
 	cbs[index] = callback
 end
 
+local Type = {}
+Type.__index = Type
+
+function Type:Create(id, is_value_valid)
+	new_type = {}
+	setmetatable(new_type, self)
+
+	new_type.id = id
+	new_type.is_value_valid = is_value_valid
+
+	return new_type
+end
+
+function Type:GetID()
+	return self.id
+end
+
+function Type:IsValueValid(value)
+	return not self.is_value_valid or self.is_value_valid(value)
+end
+
+local types = {}
+
+function RegisterType(id, is_value_valid)
+	if types[id] then return end
+	types[id] = Type:Create(id, is_value_valid)
+end
+
+P_TYPE_ANY = "any"
+P_TYPE_STRING = "string"
+P_TYPE_BOOLEAN = "boolean"
+P_TYPE_NUMBER = "number"
+P_TYPE_PERCENTAGE = "percentage"
+P_TYPE_INTEGER = "integer"
+
+-- checks if a value is an integer
+function IsInteger(value)
+	return value and type(value) == "number" and math.floor(value) == value
+end
+
+-- checks if a value is a number that's bigger or equal to 0 and smaller or equal to 100
+function IsPercentage(value)
+	return value and type(value) == "number" and value >= 0 and value <= 100
+end
+
+RegisterType(P_TYPE_ANY, nil)
+RegisterType(P_TYPE_STRING, isstring)
+RegisterType(P_TYPE_NUMBER, isnumber)
+RegisterType(P_TYPE_BOOLEAN, isbool)
+RegisterType(P_TYPE_PERCENTAGE, IsPercentage)
+RegisterType(P_TYPE_INTEGER, IsInteger)
+
 -- Namespace class
 local Namespace = {}
 Namespace.__index = Namespace
@@ -221,17 +273,16 @@ local Setting = {}
 Setting.__index = Setting
 
 -- creates a new Setting
-function Setting:Create(id, type_id, value_validator, value)
+function Setting:Create(id, type, value)
 	-- create new Setting
 	local setting = {}
 	setmetatable(setting, Setting)
 
-	if value_validator and not value_validator(value) then return end
+	if not type:IsValueValid(value) then return end
 
 	-- set attributes
 	setting.id = id
-	setting.type_id = type_id
-	setting.value_validator = value_validator
+	setting.type = type
 	setting.value = value
 	setting.callbacks = {}
 
@@ -239,14 +290,9 @@ function Setting:Create(id, type_id, value_validator, value)
 	return setting
 end
 
--- returns this Setting's type_id
+-- returns this Setting's Type
 function Setting:GetType()
-	return self.type_id
-end
-
--- returns this Setting's value_validator
-function Setting:GetValidator()
-	return self.value_validator
+	return self.type
 end
 
 -- returns this Setting's id
@@ -270,7 +316,7 @@ end
 
 -- changes the value of this Setting and calls all callbacks with the new value as a parameter
 function Setting:SetValue(new_value)
-	if self.value_validator and not self.value_validator(new_value) then return end
+	if not self.type:IsValueValid(new_value) then return end
 
 	-- update value
 	self.value = new_value
@@ -344,31 +390,6 @@ local function IDToPath(path_id)
 	return roots[root_id], path, setting_id
 end
 
--- checks if a value is a boolean
-function BooleanValidator(value)
-	return not value or type(value) == "boolean"
-end
-
--- checks if a value is a string
-function StringValidator(value)
-	return value and type(value) == "string"
-end
-
--- checks if a value is a number
-function NumberValidator(value)
-	return value and type(value) == "number"
-end
-
--- checks if a value is an integer
-function IntegerValidator(value)
-	return value and type(value) == "number" and math.floor(value) == value
-end
-
--- checks if a value is a number that's bigger or equal to 0 and smaller or equal to 100
-function PercentageValidator(value)
-	return value and type(value) == "number" and value >= 0 and value <= 100
-end
-
 if SERVER then
 	util.AddNetworkString("PAMCON_RequestServerSettings")
 	util.AddNetworkString("PAMCON_ChangeSetting")
@@ -400,9 +421,11 @@ if SERVER then
 	end
 
 	-- creates/replaces a server setting
-	function AddSetting(path, id, type, value_validator, value)
-		-- makes sure the value fits the type
-		if value_validator and not value_validator(value) then return end
+	function AddSetting(path, id, type_id, value)
+		-- gets the type
+		local t = types[type_id]
+
+		if not t then return end
 
 		-- gets the id for storage
 		local path_id = PathToID(server_settings, path, id)
@@ -411,12 +434,14 @@ if SERVER then
 		local stored_value = GetStoredValue(path_id)
 
 		-- checks stored value
-		if not value_validator or value_validator(stored_value) then
+		if t:IsValueValid(stored_value) then
 			value = stored_value
 		end
 
 		-- create Setting
-		local setting = Setting:Create(id, type, value_validator, value)
+		local setting = Setting:Create(id, t, value)
+
+		if not setting then return end
 
 		-- add Setting to server_settings
 		server_settings:AddChildrenAlongPath(path):AddSetting(setting)
@@ -475,11 +500,10 @@ if SERVER then
 		-- get id for storage
 		local path_id = PathToID(client_overrides, path, id)
 
-		-- get stored value if possible
-		value = GetStoredValue(path_id) or value
-
 		-- create Setting
-		local setting = Setting:Create(id, "override", nil, value)
+		local setting = Setting:Create(id, types[P_TYPE_ANY], value)
+
+		if not setting then return end
 
 		-- add Setting to client_overrides
 		client_overrides:AddChildrenAlongPath(path):AddSetting(setting)
@@ -502,7 +526,7 @@ if SERVER then
 	-- writes a Setting to the current netmessage
 	local function SendSetting(setting)
 		net.WriteString(setting:GetID())
-		net.WriteString(setting:GetType())
+		net.WriteString(setting:GetType():GetID())
 		net.WriteString(Serialize(setting:GetValue()))
 	end
 
@@ -584,8 +608,11 @@ else
 	client_overrides = Namespace:CreateAsRoot(client_overrides_id)
 
 	-- creates/replaces a client setting
-	function AddSetting(path, id, type, value_validator, value)
-		if value_validator and not value_validator(value) then return end
+	function AddSetting(path, id, type_id, value)
+		-- gets the type
+		local t = types[type_id]
+
+		if not t then return end
 
 		-- get id for storage
 		path_id = PathToID(client_settings, path, id)
@@ -594,12 +621,14 @@ else
 		local stored_value = GetStoredValue(path_id)
 
 		-- use stored value when it's valid
-		if not value_validator or value_validator(stored_value) then
+		if t:IsValueValid(stored_value) then
 			value = stored_value
 		end
 
 		-- create Setting
-		local setting = Setting:Create(id, type, value_validator, value)
+		local setting = Setting:Create(id, t, value)
+
+		if not setting then return end
 
 		-- add Setting to client_settings
 		client_settings:AddChildrenAlongPath(path):AddSetting(setting)
@@ -663,12 +692,16 @@ else
 	end
 
 	-- creates/replaces a server setting
-	local function AddServerSetting(path, id, type, value)
+	local function AddServerSetting(path, id, type_id, value)
+		local type = types[type_id] or types[P_TYPE_ANY]
+
 		-- get id for callbacks
-		path_id = PathToID(server_settings, path, id)
+		local path_id = PathToID(server_settings, path, id)
 
 		-- create Setting
-		local setting = Setting:Create(id, type, nil, value)
+		local setting = Setting:Create(id, type, value)
+
+		if not setting then return end
 
 		-- add Setting to client_settings
 		server_settings:AddChildrenAlongPath(path):AddSetting(setting)
@@ -720,14 +753,15 @@ else
 		-- returns nil when the setting doesn't exist
 		if not real_setting then return end
 
-		-- returns nil when the value doesn't fit the setting this will override
-		if real_setting:GetValidator() and not real_setting:GetValidator()(value) then return end
+		local t = real_setting:GetType()
+
+		-- create Setting
+		local setting = Setting:Create(id, t, value)
+
+		if not setting then return end
 
 		-- get id for callbacks
 		path_id = PathToID(client_settings, path, id)
-
-		-- create Setting
-		local setting = Setting:Create(id, real_setting:GetType(), real_setting:GetValidator(), value)
 
 		-- add Setting to client_settings
 		client_overrides:AddChildrenAlongPath(path):AddSetting(setting)
@@ -802,7 +836,7 @@ else
 			local id = net.ReadString()
 			local type_id = net.ReadString()
 			local value = Deserialize(net.ReadString())
-			add_func(path, id, type, value)
+			add_func(path, id, type_id, value)
 		end
 
 		path[#path] = nil
