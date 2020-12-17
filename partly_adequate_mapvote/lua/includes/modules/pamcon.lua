@@ -80,12 +80,13 @@ end
 local Type = {}
 Type.__index = Type
 
-function Type:Create(id, is_value_valid)
+function Type:Create(id, is_value_valid, compare_values)
 	new_type = {}
 	setmetatable(new_type, self)
 
 	new_type.id = id
 	new_type.is_value_valid = is_value_valid
+	new_type.compare_values = compare_values
 
 	return new_type
 end
@@ -96,6 +97,17 @@ end
 
 function Type:IsValueValid(value)
 	return not self.is_value_valid or self.is_value_valid(value)
+end
+
+function Type:IsComparable()
+	if self.compare_values then
+		return true
+	end
+	return false
+end
+
+function Type:CompareValues(value_1, value_2)
+	return not compare_values or self.compare_values(value_1, value_2)
 end
 
 local types = {}
@@ -113,21 +125,25 @@ P_TYPE_PERCENTAGE = "percentage"
 P_TYPE_INTEGER = "integer"
 
 -- checks if a value is an integer
-function IsInteger(value)
+local function IsInteger(value)
 	return value and type(value) == "number" and math.floor(value) == value
 end
 
 -- checks if a value is a number that's bigger or equal to 0 and smaller or equal to 100
-function IsPercentage(value)
+local function IsPercentage(value)
 	return value and type(value) == "number" and value >= 0 and value <= 100
+end
+
+local function CompareNumber(value_1, value_2)
+	return value_1 <= value_2
 end
 
 RegisterType(P_TYPE_ANY, nil)
 RegisterType(P_TYPE_STRING, isstring)
-RegisterType(P_TYPE_NUMBER, isnumber)
+RegisterType(P_TYPE_NUMBER, isnumber, CompareNumber)
 RegisterType(P_TYPE_BOOLEAN, isbool)
-RegisterType(P_TYPE_PERCENTAGE, IsPercentage)
-RegisterType(P_TYPE_INTEGER, IsInteger)
+RegisterType(P_TYPE_PERCENTAGE, IsPercentage, CompareNumber)
+RegisterType(P_TYPE_INTEGER, IsInteger, CompareNumber)
 
 -- Namespace class
 local Namespace = {}
