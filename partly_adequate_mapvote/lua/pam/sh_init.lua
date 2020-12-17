@@ -1,3 +1,5 @@
+require("pacoman")
+
 PAM = {}
 
 --the possible states
