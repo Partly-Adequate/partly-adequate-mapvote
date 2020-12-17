@@ -1095,11 +1095,9 @@ else
 
 	net.Receive("PAMCON_RequestServerSettings", function(len)
 		-- TODO save values in server_settings and client_overrides
-		print("Hello")
 		ReceiveDependencies()
-		PrintTable(dependencies)
-		PrintTable(ReceiveNamespace())
-		PrintTable(ReceiveNamespace())
+		server_settings = ReceiveNamespace()
+		client_overrides = ReceiveNamespace()
 	end)
 
 	hook.Add("InitPostEntity", "pamcon_request_server_settings", function()
