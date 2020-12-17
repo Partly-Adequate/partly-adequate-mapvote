@@ -145,6 +145,101 @@ RegisterType(P_TYPE_BOOLEAN, isbool)
 RegisterType(P_TYPE_PERCENTAGE, IsPercentage, CompareNumber)
 RegisterType(P_TYPE_INTEGER, IsInteger, CompareNumber)
 
+-- Dependency class
+local Dependency = {}
+Dependency.__index = Dependency
+
+function Dependency:Create(id, type, value)
+	if not type:IsValueValid(value) then return end
+
+	local dependency = {}
+	setmetatable(dependency, self)
+
+	dependency.id = id
+	dependency.type = type
+	dependency.active_value = value
+	dependency.callbacks = {}
+
+	return dependency
+end
+
+function Dependency:GetID()
+	return self.id
+end
+
+function Dependency:GetType()
+	return self.type
+end
+
+function Dependency:GetActiveValue(potential_sources)
+	local active_value = self.active_value
+	local type = self.type
+
+	if not potential_values or not type:IsComparable() then
+		return active_value
+	end
+
+	local current = nil
+	for i = 1, #potential_sources do
+		local value = potential_sources[i]:GetID()
+
+		if type:CompareValues(value, active_value) and (not current or type:CompareValues(current, value)) then
+			current = value
+		end
+	end
+
+	return current or active_value
+end
+
+function Dependency:SetActiveValue(new_value)
+	if not self.type:IsValueValid(new_value) then return end
+
+	self.active_value = new_value
+
+	for i = 1, #self.callbacks do
+		self.callbacks[i]()
+	end
+end
+
+function Dependency:AddCallback(callback)
+	self.callbacks[#self.callbacks + 1] = callback
+end
+
+dependencies = {}
+dependency_indices = {}
+
+function RegisterDependency(id, type_id, value)
+	local type = types[type_id]
+
+	if not type then return end
+
+	local dependency = Dependency:Create(id, type, value)
+
+	if not dependency then return end
+
+	local index = dependency_indices[id] or #dependencies + 1
+
+	dependencies[index] = dependency
+	dependency_indices[id] = index
+end
+
+local function GetDependency(id)
+	local index = dependency_indices[id]
+
+	if not index then return end
+
+	return dependencies[index]
+end
+
+function UpdateDependency(id, value)
+	local dependency = GetDependency(id)
+	if not dependency then return end
+
+	if not dependency:GetType():IsValueValid(value) then return end
+
+	dependency:SetActiveValue(value)
+end
+
 -- Namespace class
 local Namespace = {}
 Namespace.__index = Namespace
