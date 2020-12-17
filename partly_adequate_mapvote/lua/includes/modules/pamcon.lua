@@ -395,7 +395,10 @@ function Setting:Create(id, type, value)
 	setting.id = id
 	setting.type = type
 	setting.value = value
+	setting.active_value = value
 	setting.callbacks = {}
+	setting.sources = {}
+	setting.source_indices = {}
 
 	-- return setting
 	return setting
@@ -431,10 +434,91 @@ function Setting:SetValue(new_value)
 
 	-- update value
 	self.value = new_value
-	-- call callbacks
+
+	if self.active_setting_id then return end
+
+	self:SetActiveValue(new_value)
+end
+
+function Setting:SetActiveSettingID(setting_id)
+	local source_index = self.source_indices[setting_id]
+
+	if not source_index then
+		self.active_setting_id = nil
+		self:SetActiveValue(self.value)
+		return
+	end
+
+	self.active_setting_id = setting_id
+	self:SetActiveValue(self.sources[source_index].value)
+end
+
+function Setting:GetActiveValue()
+	return self.active_value
+end
+
+function Setting:SetActiveValue(new_value)
+	if not self.type:IsValueValid(new_value) then return end
+
+	self.active_value = new_value
+
 	for i = 1, #self.callbacks do
 		self.callbacks[i](self)
 	end
+end
+
+function Setting:IsDependent()
+	return self.dependency and true or false
+end
+
+function Setting:GetDependency()
+	return self.dependency
+end
+
+function Setting:MakeDependent(dependency_id)
+	local dependency = GetDependency(dependency_id)
+	if not dependency then return end
+
+	if self:IsDependent() then
+		self:MakeIndependent()
+	end
+
+	self.dependency = dependency
+
+	dependency:AddCallback(function()
+		self:Update()
+	end)
+end
+
+function Setting:AddSource(source_setting)
+	if not self.dependency or not self.dependency:GetType():IsValueValid(source_setting:GetID()) or self.type ~= source_setting.type then return end
+
+	local index = #self.sources + 1
+
+	self.sources[index] = source_setting
+	self.source_indices[source_setting:GetID()] = index
+
+	source_setting:AddCallback(function(setting)
+		if not id ~= self.active_setting_id then return end
+
+		self:SetActiveValue(setting:GetValue())
+	end)
+
+	self:Update()
+end
+
+function Setting:RemoveSource(source_id)
+	if not self.source_indices[source_id] then return end
+end
+
+function Setting:Update()
+	self:SetActiveSettingID(self.dependency:GetActiveValue(self.sources))
+end
+
+function Setting:MakeIndependent()
+	self.dependency = nil
+	self:SetActiveSettingID(nil)
+	-- TODO remove callbacks
 end
 
 local path_separator = "/"
@@ -634,11 +718,37 @@ if SERVER then
 		BroadcastOverrideChange(path, id, setting:GetValue())
 	end
 
+	local function SendDependencies()
+		local dependency_count = #dependencies
+		net.WriteUInt(dependency_count, 32)
+
+		for i = 1, dependency_count do
+			local dependency = dependencies[i]
+			net.WriteString(dependency:GetID())
+			net.WriteString(dependency:GetType():GetID())
+			net.WriteString(Serialize(dependency:GetActiveValue()))
+		end
+	end
+
 	-- writes a Setting to the current netmessage
 	local function SendSetting(setting)
 		net.WriteString(setting:GetID())
 		net.WriteString(setting:GetType():GetID())
 		net.WriteString(Serialize(setting:GetValue()))
+
+		local is_dependent = setting:IsDependent()
+		net.WriteBool(is_dependent)
+
+		if not is_dependent then return end
+
+		net.WriteString(setting:GetDependency():GetID())
+
+		local source_count = #setting.sources
+		net.WriteUInt(source_count, 32)
+
+		for i = 1, source_count do
+			SendSetting(setting.sources[i])
+		end
 	end
 
 	-- writes a Namespace to the current netmessage
@@ -665,6 +775,7 @@ if SERVER then
 	net.Receive("PAMCON_RequestServerSettings",function(len, ply)
 		net.Start("PAMCON_RequestServerSettings")
 
+		SendDependencies()
 		SendNamespace(server_settings)
 		SendNamespace(client_overrides)
 
@@ -926,36 +1037,69 @@ else
 		end
 	end)
 
-	-- reads a Namespace from a received netmessage and calles add_func for all transmitted Settings
-	local function ReceiveSettings(add_func, path)
-		if path then
-			path[#path + 1] = net.ReadString()
-		else
-			net.ReadString()
-			path = {}
-		end
+	local function ReceiveDependencies()
+		local dependency_count = net.ReadUInt(32)
 
-		local child_count = net.ReadUInt(32)
-
-		for i = 1, child_count do
-			ReceiveSettings(add_func, path)
-		end
-
-		local setting_count = net.ReadUInt(32)
-
-		for i = 1, setting_count do
+		for i = 1, dependency_count do
 			local id = net.ReadString()
 			local type_id = net.ReadString()
 			local value = Deserialize(net.ReadString())
-			add_func(path, id, type_id, value)
+			RegisterDependency(id, type_id, value)
+		end
+	end
+
+	local function ReceiveSetting()
+		local id = net.ReadString()
+		local type = types[net.ReadString()]
+		local value = Deserialize(net.ReadString())
+
+		local setting = Setting:Create(id, type, value)
+
+		if not net.ReadBool() then
+			return setting
 		end
 
-		path[#path] = nil
+
+		local dependency_id = net.ReadString()
+		setting:MakeDependent(dependency_id)
+
+		local source_count = net.ReadUInt(32)
+		for i = 1, source_count do
+			local source = ReceiveSetting()
+			setting:AddSource(source)
+		end
+
+		return setting
+	end
+
+	-- reads a Namespace from a received netmessage
+	local function ReceiveNamespace()
+		local namespace = Namespace:Create(net.ReadString())
+
+		local child_count = net.ReadInt(32)
+		for i = 1, child_count do
+			namespace:AddChild(ReceiveNamespace())
+		end
+
+		local setting_count = net.ReadInt(32)
+		for i = 1, setting_count do
+			local new_setting = ReceiveSetting()
+
+			if new_setting then
+				namespace:AddSetting(new_setting)
+			end
+		end
+
+		return namespace
 	end
 
 	net.Receive("PAMCON_RequestServerSettings", function(len)
-		ReceiveSettings(AddServerSetting, nil)
-		ReceiveSettings(AddClientOverride, nil)
+		-- TODO save values in server_settings and client_overrides
+		print("Hello")
+		ReceiveDependencies()
+		PrintTable(dependencies)
+		PrintTable(ReceiveNamespace())
+		PrintTable(ReceiveNamespace())
 	end)
 
 	hook.Add("InitPostEntity", "pamcon_request_server_settings", function()
