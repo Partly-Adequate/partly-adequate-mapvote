@@ -1,7 +1,7 @@
 if SERVER then
 	AddCSLuaFile()
 
-	AddCSLuaFile("includes/modules/pamcon.lua")
+	AddCSLuaFile("includes/modules/pacoman.lua")
 	AddCSLuaFile("pam/sh_init.lua")
 	AddCSLuaFile("pam/client/cl_init.lua")
 	AddCSLuaFile("pam/client/cl_pam.lua")

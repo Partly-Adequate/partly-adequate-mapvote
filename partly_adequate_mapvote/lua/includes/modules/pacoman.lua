@@ -1,5 +1,5 @@
-module("pamcon", package.seeall)
-pamcon = {}
+module("pacoman", package.seeall)
+pacoman = {}
 
 local roots = {}
 
