@@ -290,11 +290,11 @@ Setting.__index = Setting
 
 -- creates a new Setting
 function Setting:Create(id, type, value)
+	if not type:IsValueValid(value) then return end
+
 	-- create new Setting
 	local setting = {}
 	setmetatable(setting, self)
-
-	if not type:IsValueValid(value) then return end
 
 	-- set attributes
 	setting.id = id
