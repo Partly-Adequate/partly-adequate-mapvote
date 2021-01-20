@@ -1,438 +1,411 @@
+---
+-- This is the <code>pacoman</code> module
+-- @author Reispfannenfresser
+-- @module pacoman
+
 module("pacoman", package.seeall)
 pacoman = {}
 
-local roots = {}
+-- @TypeText string string that's used to separate namespaces when a path is turned into a string
+local namespace_separator = "/"
+-- @TypeText string string that's used to separate settings when a path is turned into a string
+local setting_separator = "."
 
--- serializes any value
--- uses TableToJSON internally and has all it's bugs
-local function Serialize(value)
-	local serializable = {}
-	serializable.value = value
-	return util.TableToJSON(serializable)
+-- @TypeText string identifier for a pacoman <code>Type</code> that represents all types of values
+P_TYPE_ANY = "any"
+-- @TypeText string identifier for a pacoman <code>Type</code> that represents strings
+P_TYPE_STRING = "string"
+-- @TypeText string identifier for a pacoman <code>Type</code> that represents bools
+P_TYPE_BOOLEAN = "bool"
+-- @TypeText string identifier for a pacoman <code>Type</code> that represents numbers
+P_TYPE_NUMBER = "number"
+-- @TypeText string identifier for a pacoman <code>Type</code> that represents percentages
+P_TYPE_PERCENTAGE = "percentage"
+-- @TypeText string identifier for a pacoman <code>Type</code> that represents integers
+P_TYPE_INTEGER = "integer"
+
+---
+-- For every namespace-/setting_separator it inserts another one at the same position
+-- @param string str the string to prepare
+-- @note this is used for making sure the paths for storing settings are all unique
+-- @local
+local function PrepareString(str)
+	local tmp = string.Replace(str, namespace_separator, namespace_separator .. namespace_separator)
+	return string.Replace(tmp, setting_separator, setting_separator .. setting_separator)
 end
 
--- deserializes any value
--- uses TableToJSON internally and has all it's bugs
-local function Deserialize(str)
-	local deserialized = util.JSONToTable(str)
-	return deserialized and deserialized.value
-end
-
--- create table for storing values
-if not sql.TableExists("pamcon_values") then
-	sql.Query("CREATE TABLE pamcon_values(id TEXT NOT NULL PRIMARY KEY, value TEXT NOT NULL)")
-end
-
--- stores a value
-local function StoreValue(storage_id, value)
-	-- serialize
-	local serialized = Serialize(value)
-
-	-- insert or replace value into database
-	sql.Query("INSERT OR REPLACE INTO pamcon_values VALUES( " .. SQLStr(storage_id) .. ", " .. SQLStr(serialized) .. ")")
-end
-
--- returns a stored value
-local function GetStoredValue(storage_id)
-	-- get data
-	local data = sql.Query("SELECT value FROM pamcon_values WHERE id IS " .. SQLStr(storage_id))
-
-	-- return nil when no data was found
-	if not data then return end
-
-	-- return deserialized value
-	return Deserialize(data[1]["value"])
-end
-
--- external callbacks
-local external_callbacks = {}
-
--- calls all external callbacks that were registered under the callback_id and provides the setting as a parameter for these
-local function CallExternalCallbacks(callback_id, setting)
-	-- tries to find callbacks
-	local cbs = external_callbacks[callback_id]
-
-	-- returns nil when no callbacks were found
-	if not cbs then return end
-
-	-- calls callbacks
-	for i = 1, #cbs do
-		cbs[i](setting)
-	end
-end
-
--- adds an external callback to the callbacks at the callback_id
-local function AddExternalCallback(callback_id, callback)
-	-- tries to find callbacks
-	local cbs = external_callbacks[callback_id]
-
-	-- adds callbacks table if necessary
-	if not cbs then
-		cbs = {}
-		external_callbacks[callback_id] = cbs
-	end
-
-	-- adds callback to callbacks table
-	local index = #cbs + 1
-	cbs[index] = callback
-end
-
+-- TODO documentation for Type class
 local Type = {}
 Type.__index = Type
 
-function Type:Create(id, is_value_valid, compare_values)
+---
+-- creates a new <code>Type</code>
+-- @param string id the new <code>Type</code>'s id
+-- @param[opt] function is_value_valid a function that can be used to determine if a value is of the new <code>Type</code>
+-- @param[opt] function compare_values a function that can be used to compare two values of the new <code>Type</code> (a <= b)
+-- @return Type the new type
+-- @realm shared
+function Type:Create(id, is_value_valid, serialize, deserialize, compare_values)
 	new_type = {}
 	setmetatable(new_type, self)
 
 	new_type.id = id
+	new_type.serialize = serialize
+	new_type.deserialize = deserialize
 	new_type.is_value_valid = is_value_valid
 	new_type.compare_values = compare_values
 
 	return new_type
 end
 
+---
+-- @return string this <code>Type</code>'s id
+-- @realm shared
 function Type:GetID()
 	return self.id
 end
 
+---
+-- checks if a value is of this <code>Type</code>
+-- @param any value the value to check
+-- @return bool true if the value has this <code>Type</code>
+-- @realm shared
 function Type:IsValueValid(value)
 	return not self.is_value_valid or self.is_value_valid(value)
 end
 
+---
+-- @return bool true if this <code>Type</code> is comparable, false if it's not
+-- @realm shared
 function Type:IsComparable()
 	if self.compare_values then
 		return true
 	end
+
 	return false
 end
 
+---
+-- serializes a value of this <code>Type</code>
+-- @param any value the value to serialize
+-- @return string|nil the serialized value or nil when the value is invalid
+function Type:Serialize(value)
+	if not self:IsValueValid(value) then return end
+
+	return self.serialize(value)
+end
+
+---
+-- deserializes a string that was serialized using this <code>Type</code>'s Serialize function
+-- @param string srt the string to deserialize
+-- @return any|nil the deserialized value or nil when the value is invalid
+function Type:Deserialize(str)
+	local value = self.deserialize(str)
+	if not self:IsValueValid(value) then return end
+
+	return value
+end
+
+---
+-- compares two values of this <code>Type</code>
+-- @param any value_1 the first value
+-- @param any value_2 the second value
+-- @return bool value_1 <= value_2 or nil when this <code>Type</code> is not comparable
+-- @realm shared
 function Type:CompareValues(value_1, value_2)
-	return not compare_values or self.compare_values(value_1, value_2)
+	if not self:IsComparable() then return end
+
+	return self.compare_values(value_1, value_2)
 end
 
 local types = {}
 
-function RegisterType(id, is_value_valid)
+---
+-- creates and registers a new Type
+-- @param string id the new <code>Type</code>'s id
+-- @param[opt] function is_value_valid a function that can be used to determine if a value is of the new <code>Type</code>
+-- @param[opt] function compare_values a function that can be used to compare two values of the new <code>Type</code> (a <= b)
+-- @note won't do anything when a type with the id already exists
+-- @realm shared
+function RegisterType(id, is_value_valid, serialize, deserialize, compare_values)
 	if types[id] then return end
-	types[id] = Type:Create(id, is_value_valid)
+	types[id] = Type:Create(id, is_value_valid, serialize, deserialize, compare_values)
 end
 
-P_TYPE_ANY = "any"
-P_TYPE_STRING = "string"
-P_TYPE_BOOLEAN = "boolean"
-P_TYPE_NUMBER = "number"
-P_TYPE_PERCENTAGE = "percentage"
-P_TYPE_INTEGER = "integer"
-
--- checks if a value is an integer
+---
+-- checks if a value is an Integer
+-- @param any value the value to check
+-- @return bool
+-- @local
 local function IsInteger(value)
 	return value and type(value) == "number" and math.floor(value) == value
 end
 
--- checks if a value is a number that's bigger or equal to 0 and smaller or equal to 100
+---
+-- checks if a value is a number that's greater or equal to 0 and less or equal to 100
+-- @param any value the value to check
+-- @return bool
+-- @local
 local function IsPercentage(value)
 	return value and type(value) == "number" and value >= 0 and value <= 100
 end
 
+---
+-- checks if the first value is smaller than or equal to the second value
+-- @param number value_1 the first value
+-- @param number value_2 the second value
+-- @return bool
+-- @local
 local function CompareNumber(value_1, value_2)
 	return value_1 <= value_2
 end
 
-RegisterType(P_TYPE_ANY, nil)
-RegisterType(P_TYPE_STRING, isstring)
-RegisterType(P_TYPE_NUMBER, isnumber, CompareNumber)
-RegisterType(P_TYPE_BOOLEAN, isbool)
-RegisterType(P_TYPE_PERCENTAGE, IsPercentage, CompareNumber)
-RegisterType(P_TYPE_INTEGER, IsInteger, CompareNumber)
-
--- Dependency class
-local Dependency = {}
-Dependency.__index = Dependency
-
-function Dependency:Create(id, type, value)
-	if not type:IsValueValid(value) then return end
-
-	local dependency = {}
-	setmetatable(dependency, self)
-
-	dependency.id = id
-	dependency.type = type
-	dependency.active_value = value
-	dependency.callbacks = {}
-
-	return dependency
+---
+-- serializes anything
+-- @param any the value to serialize
+-- @return string the serialized value
+-- @note uses JSONToTable internally and contains all it's bugs
+local function SerializeAny(value)
+	local serializable = {}
+	serializable.value = value
+	return util.TableToJSON(serializable)
 end
 
-function Dependency:GetID()
+---
+-- deserializes strings which were serialized using SerializeAny
+-- @param string the value to deserialize
+-- @return any the deserialized value
+-- @note uses TableToJSON internally and contains all it's bugs
+local function DeserializeAny(str)
+	local deserialized = util.JSONToTable(str)
+	return deserialized and deserialized.value
+end
+
+RegisterType(P_TYPE_ANY, nil, SerializeAny, DeserializeAny)
+RegisterType(P_TYPE_STRING, isstring, tostring, tostring)
+RegisterType(P_TYPE_BOOLEAN, isbool, tostring, tobool)
+RegisterType(P_TYPE_NUMBER, isnumber, tostring, tonumber, CompareNumber)
+RegisterType(P_TYPE_PERCENTAGE, IsPercentage, tostring, tonumber, CompareNumber)
+RegisterType(P_TYPE_INTEGER, IsInteger, tostring, tonumber, CompareNumber)
+
+-- TODO documentation for Game_Property class
+local Game_Property = {}
+Game_Property.__index = Game_Property
+
+---
+-- Creates a new Game_Property
+-- @param string id the name/identifier of this Game_Property
+-- @param Type type the Type of this Game_Property's value
+-- @param any value the current value of this Game_Property
+-- @return the new Game_Property
+function Game_Property:Create(id, type, value)
+	if not type:IsValueValid(value) then return end
+
+	local game_property = {}
+	setmetatable(game_property, self)
+
+	game_property.id = id
+	game_property.type = type
+	game_property.value = value
+	game_property.callbacks = {}
+	game_property.callback_indices = {}
+	game_property.callback_ids = {}
+
+	return game_property
+end
+
+---
+-- @return string the name/identifier of this Game_Property
+function Game_Property:GetID()
 	return self.id
 end
 
-function Dependency:GetType()
+---
+-- @return Type the Type of this Game_Property
+function Game_Property:GetType()
 	return self.type
 end
 
-function Dependency:GetActiveValue(potential_sources)
-	local active_value = self.active_value
-	local type = self.type
-
-	if not potential_values or not type:IsComparable() then
-		return active_value
-	end
-
-	local current = nil
-	for i = 1, #potential_sources do
-		local value = potential_sources[i]:GetID()
-
-		if type:CompareValues(value, active_value) and (not current or type:CompareValues(current, value)) then
-			current = value
-		end
-	end
-
-	return current or active_value
+---
+-- @return the current value of this Game_Property
+function Game_Property:GetValue()
+	return self.active_value
 end
 
-function Dependency:SetActiveValue(new_value)
+---
+-- Updates the value of this Game_Property
+-- @param any new_value the new value of this Game_Property
+-- @note new_value has to be valid in regards to the Type of this Game_Property
+-- @note this will call all callbacks that were added previously
+function Game_Property:SetValue(new_value)
 	if not self.type:IsValueValid(new_value) then return end
 
-	self.active_value = new_value
+	self.value = new_value
 
 	for i = 1, #self.callbacks do
 		self.callbacks[i]()
 	end
 end
 
-function Dependency:AddCallback(callback)
-	self.callbacks[#self.callbacks + 1] = callback
+---
+-- Adds a callback to this Game_Property. All callbacks will be called whenever the value of this Game_Property changes
+-- @param function callback_func the function
+-- @return number an identifier which can be used to remove the callback
+function Game_Property:AddCallback(callback_id, callback)
+	if self.callback_indices[callback_id] then return end
+
+	local index = #self.callbacks + 1
+
+	self.callbacks[index] = callback
+
+	self.callback_ids[index] = callback_id
+	self.callback_indices[callback_id] = index
 end
 
-dependencies = {}
-dependency_indices = {}
+---
+-- Removes the callback with the provided id
+-- @param string callback_id the id of the callback to remove
+function Game_Property:RemoveCallback(callback_id)
+	local index = self.callback_indices[callback_id]
+	if not index then return end
 
-function RegisterDependency(id, type_id, value)
+	local last_index = #self.callbacks
+
+	if index == last_index then
+		self.callbacks[index] = nil
+		self.callback_ids[index] = nil
+		self.callback_indices[callback_id] = nil
+		return
+	end
+
+	local last_id = callback_ids[last_index]
+
+	self.callbacks[index] = self.callbacks[last_index]
+	self.callback_ids[index] = last_id
+	self.callback_indices[callback_id] = nil
+
+	self.callbacks[last_index] = nil
+	self.callback_ids[last_index] = nil
+	self.callback_indices[last_id] = index
+end
+
+game_properties = {}
+game_property_indices = {}
+
+---
+-- Creates a new GameProperty and registers it internally.
+-- @param string id identifier/name of the Game_Property
+-- @param string type_id identifier of the Type of the Game_Property
+-- @param any value the current value of the Game_Property
+-- @note value has to be valid in regards to the specified Type
+-- @realm shared
+function RegisterGameProperty(id, type_id, value)
+	if game_property_indices[id] then return end
+
 	local type = types[type_id]
-
 	if not type then return end
 
-	local dependency = Dependency:Create(id, type, value)
+	local game_property = Game_Property:Create(id, type, value)
 
-	if not dependency then return end
+	if not game_property then return end
 
-	local index = dependency_indices[id] or #dependencies + 1
+	local index = #game_properties + 1
 
-	dependencies[index] = dependency
-	dependency_indices[id] = index
+	game_properties[index] = game_property
+	game_property_indices[id] = index
 end
 
-local function GetDependency(id)
-	local index = dependency_indices[id]
+---
+-- @param string id the identifier/name of the Game_Property
+-- @return table the Game_Property that was registered under the specified name
+-- @local
+-- @realm shared
+local function GetGameProperty(id)
+	local index = game_property_indices[id]
 
 	if not index then return end
 
-	return dependencies[index]
+	return game_properties[index]
 end
 
-function UpdateDependency(id, value)
-	local dependency = GetDependency(id)
-	if not dependency then return end
+---
+-- Changes the value of a Game_Property
+-- @param string id the identifier/name of the Game_Property
+-- @param any value the new value of the Game_Property
+-- @note the new value has to be valid in regards to the Type of the Game_Property
+-- @realm shared
+function UpdateGameProperty(id, value)
+	local game_property = GetGameProperty(id)
+	if not game_property then return end
 
-	if not dependency:GetType():IsValueValid(value) then return end
+	if not game_property:GetType():IsValueValid(value) then return end
 
-	dependency:SetActiveValue(value)
+	game_property:SetValue(value)
 end
 
--- Namespace class
-local Namespace = {}
-Namespace.__index = Namespace
-
--- creates a new Namespace
-function Namespace:Create(id)
-	-- create new Namespace
-	local namespace = {}
-	setmetatable(namespace, self)
-
-	-- set attributes
-	namespace.id = id
-	namespace.children = {}
-	namespace.children_indices = {}
-	namespace.settings = {}
-	namespace.setting_indices = {}
-
-	-- return new namespace
-	return namespace
-end
-
--- creates a new Namespace and adds it to the roots table
-function Namespace:CreateAsRoot(id)
-	-- creates a new namespace
-	local namespace = Namespace:Create(id)
-
-	-- adds it to the roots table
-	roots[id] = namespace
-
-	-- returns the new namespace
-	return namespace
-end
-
--- adds the child Namespace
-function Namespace:AddChild(child)
-	-- calculate index
-	local index = self.children_indices[child:GetID()] or #self.children + 1
-
-	-- add child Namespace
-	self.children[index] = child
-	self.children_indices[child:GetID()] = index
-end
-
--- adds the Setting
--- it creates Namespaces if necessary
-function Namespace:AddSetting(setting)
-	-- calculate index
-	local index = self.setting_indices[setting:GetID()] or #self.settings + 1
-
-	-- add Setting
-	self.settings[index] = setting
-	self.setting_indices[setting:GetID()] = index
-end
-
--- returns the id of the Namespace
-function Namespace:GetID()
-	-- return id of found Namespace
-	return self.id
-end
-
-function Namespace:GetChild(child_id)
-	-- get index
-	local index = self.children_indices[child_id]
-
-	-- return nil when child doesn't exist
-	if not index then return end
-
-	-- return child
-	return self.children[index]
-end
-
--- returns this Namespace's children
-function Namespace:GetChildren()
-	-- return children
-	return self.children
-end
-
--- returns the child Namespace at the given path
--- it returns nil when the path can't be followed
-function Namespace:GetChildAtPath(path)
-	-- follows the path and creates namespaces if necessary
-	local current = self
-	for i = 1, #path do
-		local id = path[i]
-		-- tries to get the next Namespace
-		local next = current:GetChild(id)
-
-		if not next then return end
-
-		-- advances to the next namespace
-		current = next
-	end
-
-	-- return child
-	return current
-end
-
--- returns the child at the given path
--- it creates missing namespaces when necessary
-function Namespace:AddChildrenAlongPath(path)
-	-- follows the path and creates namespaces if necessary
-	local current = self
-	for i = 1, #path do
-		local id = path[i]
-		-- tries to get the next Namespace
-		local next = current:GetChild(id)
-
-		if not next then
-			-- creates a new Namespace to be used as the next one
-			next = Namespace:Create(id)
-			current:AddChild(next)
-		end
-
-		-- advances to the next namespace
-		current = next
-	end
-
-	-- return child
-	return current
-end
-
--- returns this Namespace's Setting with the given id at the given path
-function Namespace:GetSetting(setting_id)
-	-- get index
-	local index = self.setting_indices[setting_id]
-
-	-- return nil when setting doesn't exist
-	if not index then return end
-
-	-- return setting
-	return self.settings[index]
-end
-
--- returns this Namespace's Settings at the given path
-function Namespace:GetSettings()
-	-- return Settings of found Namespace
-	return self.settings
-end
-
--- Setting class
+-- TODO documentation for Setting class
 local Setting = {}
 Setting.__index = Setting
 
--- creates a new Setting
-function Setting:Create(id, type, value)
+---
+-- Creates a new Setting
+-- @param string the full_id of the namespace this Setting is a part of
+-- @param string id the name/identifier of this Setting
+-- @param Type type the Type of this Setting's value
+-- @param any value the value of this Setting
+-- @return the new Setting
+-- @note if the value doesn't fit the Type it will return nil
+function Setting:Create(path_id, id, type_id, value)
+	local type = types[type_id]
+
 	if not type:IsValueValid(value) then return end
 
-	-- create new Setting
 	local setting = {}
 	setmetatable(setting, self)
 
-	-- set attributes
 	setting.id = id
+	setting.full_id = path_id .. setting_separator .. PrepareString(id)
 	setting.type = type
 	setting.value = value
 	setting.active_value = value
-	setting.callbacks = {}
 	setting.sources = {}
 	setting.source_indices = {}
 
-	-- return setting
 	return setting
 end
 
--- returns this Setting's Type
+---
+-- @return Type this Setting's Type
 function Setting:GetType()
 	return self.type
 end
 
--- returns this Setting's id
+---
+-- @return string this Setting's name/identifier
 function Setting:GetID()
 	return self.id
 end
 
--- returns this Setting's value
+---
+-- @return any this Setting's value
 function Setting:GetValue()
 	return self.value
 end
 
--- adds a callback to this Setting
-function Setting:AddCallback(callback)
-	-- calculate index
-	local index = #self.callbacks + 1
+---
+-- Will be called whenever this Setting's active value changes
+-- @hook
+function Setting:OnActiveValueChanged()
 
-	-- register callback
-	self.callbacks[index] = callback
 end
 
--- changes the value of this Setting and calls all callbacks with the new value as a parameter
+---
+-- changes the value of this Setting and calls Setting:OnActiveValueChanged if necessary
+-- @param any new_value the new value
+-- @note will not do anything when the new value doesn't fit this Setting's type
 function Setting:SetValue(new_value)
 	if not self.type:IsValueValid(new_value) then return end
 
-	-- update value
 	self.value = new_value
 
 	if self.active_setting_id then return end
@@ -440,6 +413,9 @@ function Setting:SetValue(new_value)
 	self:SetActiveValue(new_value)
 end
 
+---
+-- changes the currently active setting to the source setting with the given id
+-- @param string setting_id the id of the setting to set as active
 function Setting:SetActiveSettingID(setting_id)
 	local source_index = self.source_indices[setting_id]
 
@@ -450,658 +426,408 @@ function Setting:SetActiveSettingID(setting_id)
 	end
 
 	self.active_setting_id = setting_id
-	self:SetActiveValue(self.sources[source_index].value)
+	self:SetActiveValue(self.sources[source_index]:GetActiveValue())
 end
 
+---
+-- @return any the currently active value of this Setting (will be of this Setting's Type)
 function Setting:GetActiveValue()
 	return self.active_value
 end
 
+---
+-- changes the currently active value of this Setting and calls OnActiveValueChanged
+-- @param any new_value the new active value
+-- @note won't do anything when the provided value doesn't fit the Type of this Setting
 function Setting:SetActiveValue(new_value)
 	if not self.type:IsValueValid(new_value) then return end
 
 	self.active_value = new_value
 
-	for i = 1, #self.callbacks do
-		self.callbacks[i](self)
-	end
+	self:OnActiveValueChanged()
+
+	if not self.parent or not parent.active_setting_id == self.id then return end
+
+	parent:SetActiveValue(new_value)
 end
 
+---
+-- @return bool true when this Setting depends on a Game_Property, false otherwise
 function Setting:IsDependent()
-	return self.dependency and true or false
+	return self.depends_on and true or false
 end
 
-function Setting:GetDependency()
-	return self.dependency
-end
-
-function Setting:MakeDependent(dependency_id)
-	local dependency = GetDependency(dependency_id)
-	if not dependency then return end
-
+---
+-- makes this Setting depend on a Game_Property
+-- @param Game_Property the property to depend on
+-- @note In case this Setting already depends on a Game_Property it will remove the dependency first.
+function Setting:MakeDependent(game_property)
 	if self:IsDependent() then
 		self:MakeIndependent()
 	end
 
-	self.dependency = dependency
+	self.depends_on = game_property
 
-	dependency:AddCallback(function()
+	game_property:AddCallback(self.full_id, function()
 		self:Update()
 	end)
 end
 
-function Setting:AddSource(source_setting)
-	if not self.dependency or not self.dependency:GetType():IsValueValid(source_setting:GetID()) or self.type ~= source_setting.type then return end
+---
+-- removes this Setting's dependence on a Game_Property
+function Setting:MakeIndependent()
+	if not self:IsDependent() then return end
+
+	self:SetActiveSettingID(nil)
+
+	for i = 1, #self.sources do
+		self.sources[i]:Remove()
+	end
+
+	self.depends_on:RemoveCallback(self.full_id)
+	self.depends_on = nil
+	self.sources = {}
+	self.source_indices = {}
+end
+
+---
+-- Adds a new Setting to this Setting's sources
+-- The new Setting will inherit this Setting's hooks
+-- @param string id the id of the new source Setting
+-- @param any value the value of the new source Setting
+function Setting:AddSource(id, value)
+	local game_property = self.depends_on
+	if not game_property then return end
+
+	local gp_type = game_property:GetType()
+	if not gp_type then return end
+
+	local type_id = self.type:GetID()
+
+	if not type:IsValueValid(value) or not gp_type:Deserialize(id) then return end
 
 	local index = #self.sources + 1
+
+	local source_setting = Setting:Create(self.full_id, id, type_id, value)
+	source_setting.parent = self
 
 	self.sources[index] = source_setting
 	self.source_indices[source_setting:GetID()] = index
 
-	source_setting:AddCallback(function(setting)
-		if not id ~= self.active_setting_id then return end
-
-		self:SetActiveValue(setting:GetValue())
-	end)
+	self:OnSourceAdded(source_setting)
 
 	self:Update()
 end
 
+---
+-- Will be called whenever a source is added to this Setting's sources
+-- @param Setting source_setting the added source
+-- @hook
+function Setting:OnSourceAdded(source_setting)
+
+end
+
+---
+-- Notifies this Setting and it's sources about it's removal
+function Setting:Remove()
+	self:MakeIndependent()
+	self:OnRemoved()
+end
+
+---
+-- Will be called when this Setting is removed
+-- @hook
+function Setting:OnRemoved()
+
+end
+
+---
+-- Removes a Setting from this Setting's sources
+-- @param string id the id of the source Setting that will be removed
 function Setting:RemoveSource(source_id)
-	if not self.source_indices[source_id] then return end
-end
+	local index = self.source_indices[source_id]
+	if not index then return end
 
-function Setting:Update()
-	self:SetActiveSettingID(self.dependency:GetActiveValue(self.sources))
-end
+	self.sources[index]:Remove()
 
-function Setting:MakeIndependent()
-	self.dependency = nil
-	self:SetActiveSettingID(nil)
-	-- TODO remove callbacks
-end
-
-local path_separator = "/"
-
--- replaces any occurrence of path_separators with two path_separators
--- it's used internally to make sure path_ids are always unique
-local function ValidateString(str)
-	return string.Replace(str, path_separator, path_separator .. path_separator)
-end
-
--- converts a path to a setting to a unique string
-local function PathToID(root, path, setting_id)
-	-- add root
-	local path_id = ValidateString(root:GetID()) .. path_separator
-
-	-- add segments of path
-	for i = 1, #path do
-		path_id = path_id .. ValidateString(path[i]) .. path_separator
+	if index == #self.sources then
+		self.sources[index] = nil
+		self.source_indices[source_id] = nil
+		return
 	end
 
-	-- add setting id and return
-	return path_id .. ValidateString(setting_id)
+	local last_index = #self.sources
+	local last_setting = self.sources[last_index]
+
+	self.sources[index] = last_setting
+	source_indices[source_id] = nil
+
+	self.sources[last_index] = nil
+	source_indices[last_setting:GetID()] = index
+
+	if source_id == self.active_setting_id then
+		self:Update()
+	end
 end
 
--- converts a path_id to a path
-local function IDToPath(path_id)
-	-- this will store the values
-	local root_id
-	local path = {}
+---
+-- Determines this Setting's active source and updates this Setting's active value
+function Setting:Update()
+	local game_property = self.depends_on
 
-	-- rough split with some mistakes wherever a segment contains a path_separator
-	local split_values = string.Split(path_id, path_separator)
-	-- temporary variable for accumulating segments
-	local current = ""
-	-- temporary variable for checking if the amount of path separators is even or odd
-	local append = false
+	local gp_value = game_property:GetActiveValue()
+	local gp_type = game_property:GetType()
 
-	-- fixes splitting mistakes and stores the properly split version in formatted_values
-	for i = 1, #split_values do
-		local value = split_values[i]
-		if append then
-			current = current .. value
-			append = false
-		elseif value == "" then
-			current = current .. path_separator
-			append = true
-		else
-			current = current .. value
-			if not root_id then
-				root_id = current
-			else
-				path[#path + 1] = current
-			end
-			current = ""
+	if not gp_type:IsComparable() then
+		self:SetActiveSettingID(gp_type:Serialize(gp_value))
+		return
+	end
+
+	local sources = self.sources
+	local best_id = nil
+	local comparable_best_id = nil
+
+	for i = 1, #sources do
+		local current = sources[i]
+		local comparable_id = gp_type:Deserialize(source_setting:GetID())
+		if gp_type:CompareValues(comparable_id, gp_value) and (not comparable_best_id or gp_type:CompareValues(comparable_id, comparable_best_id)) then
+			best = current:GetID()
+			comparable_best = comparable_id
 		end
 	end
 
-	-- get the setting_id
-	local setting_id = path[#path]
-	-- remove the setting_id from the path
-	path[#path] = nil
+	SetActiveSettingID(best)
+end
 
-	-- return everything
-	return roots[root_id], path, setting_id
+-- TODO documentation for Namespace class
+local Namespace = {}
+Namespace.__index = Namespace
+
+---
+-- creates a new Namespace
+-- @param string path_id the full id of the parent namespace
+-- @param string id the name/identifier for this namespace
+-- @return Namespace the new Namespace
+function Namespace:Create(path_id, id)
+	local namespace = {}
+	setmetatable(namespace, self)
+
+	namespace.id = id
+	namespace.full_id = path_id .. namespace_separator .. PrepareString(id)
+	namespace.children = {}
+	namespace.children_indices = {}
+	namespace.settings = {}
+	namespace.setting_indices = {}
+
+	return namespace
+end
+
+---
+-- @return the id of this Namespace
+function Namespace:GetID()
+	return self.id
+end
+
+---
+-- Adds a child Namespace to this Namespace
+-- @param Namespace child the Namespace to adopt
+-- @note If a child with the same name already exists within this Namespace's children, it won't be adopted.
+function Namespace:AddChild(child_id)
+	if self:GetChild(child_id) then return end
+
+	local index = #self.children + 1
+
+	local namespace = Namespace:Create(self.full_id, child_id)
+
+	self.children[index] = namespace
+	self.children_indices[child_id] = index
+
+	return namespace
+end
+
+---
+-- Gets a child Namespace from this Namespace
+-- @param string id The name/identifier of the child
+-- @return Namespace the child
+-- @note will return nil when no child with that name is found
+function Namespace:GetChild(child_id)
+	local index = self.children_indices[child_id]
+	if not index then return end
+
+	return self.children[index]
+end
+
+---
+-- @return table All Child Namespaces this Namespace has
+function Namespace:GetChildren()
+	return self.children
+end
+
+---
+-- Adds a Setting to this Namespace's Settings
+-- @param Setting setting the Setting to add
+-- @note If a Setting with the same name/identifier already exists within this Namespace's Settings, it won't be added.
+function Namespace:AddSetting(setting_id, type_id, value)
+	if self:GetSetting(setting_id) then return end
+
+	local index = #self.settings + 1
+
+	local setting = Setting:Create(self.full_id, setting_id, type_id, value)
+
+	self.settings[index] = setting
+	self.setting_indices[setting_id] = index
+
+	return setting
+end
+
+---
+-- Gets a Setting from this Namespace's Settings
+-- @param string setting_id The name/identifier of the Setting
+-- @return Setting the setting with the correct name/identifier
+-- @note will return nil when no Setting with that name/identifier is found
+function Namespace:GetSetting(setting_id)
+	local index = self.setting_indices[setting_id]
+	if not index then return end
+
+	return self.settings[index]
+end
+
+---
+-- Removes a Setting from this Namespace
+-- @param string setting_id the name/identifier of the Setting that will be removed
+function Namespace:RemoveSetting(setting_id)
+	local index = self.setting_indices[setting_id]
+	if not index then return end
+
+	local setting = self.settings[index]
+	setting:Remove()
+
+	if index == #self.settings then
+		self.settings[index] = nil
+		self.setting_indices[setting_id] = nil
+		return
+	end
+
+	local last_index = #self.settings
+	local last_setting = self.settings[last_index]
+
+	self.settings[index] = last_setting
+	self.setting_indices[setting_id] = nil
+
+	self.settings[last_index] = nil
+	self.setting_indices[last_setting:GetID()] = index
+end
+
+---
+-- @return table this Namespace's Settings
+function Namespace:GetSettings()
+	return self.settings
+end
+
+-- TODO documentation for Root_Namespace class
+local Root_Namespace = {}
+Root_Namespace.__index = Root_Namespace
+setmetatable(Root_Namespace, Namespace)
+
+---
+-- creates a new Root_Namespace
+-- @param string id the name/identifier for this Namespace (will also be used as this Namespace's full_id)
+-- @return Root_Namespace the new Root_Namespace
+function Root_Namespace:Create(id)
+	local namespace = {}
+	setmetatable(namespace, self)
+
+	namespace.id = id
+	namespace.full_id = PrepareString(id)
+	namespace.children = {}
+	namespace.children_indices = {}
+	namespace.settings = {}
+	namespace.setting_indices = {}
+
+	return namespace
+end
+
+---
+-- Adds a setting at the given path to this Root_Namespace
+-- @param table path a list of strings that represent the Setting's position in the Namespace tree
+-- @param Setting setting the Setting to add
+-- @note this calls the Root_Namespace:OnSettingAdded hook which can be used to add callbacks or change the setting's value
+-- @note this will automatically create Namespaces if necessary
+function Root_Namespace:AddSetting(path, id, type_id, value)
+	local namespace = self
+	for i = 1, #path do
+		local segment = path[i]
+		local next_namespace = namespace:GetChild(segment) or namespace:AddChild(segment)
+
+		namespace = next_namespace
+	end
+
+	local setting = namespace:AddSetting(id, type_id, value)
+	setting.OnSourceAdded = self.OnSettingAdded
+
+	self:OnSettingAdded(setting)
+end
+
+---
+-- Removes the Setting at the given path from this Root_Namespace
+-- @param table path a list of strings that represent the Setting's position in the Namespace tree
+-- @param string setting_id the name/identifier of the setting that should be removed
+function Root_Namespace:RemoveSetting(path, setting_id)
+	local namespace = self
+	for i = 1, #path do
+		local segment = path[i]
+		local next_namespace = namespace:GetChild(segment)
+		if not next_namespace then return end
+
+		namespace = next_namespace
+	end
+
+	namespace:RemoveSetting(setting_id)
+end
+
+---
+-- @param string setting_id
+-- @param table path
+-- @return Setting the Setting with the given setting_id at the given path
+-- @note will return nil when no Setting with the given id is found
+function Root_Namespace:GetSetting(path, setting_id)
+	local namespace = self
+	for i = 1, #path do
+		local segment = path[i]
+		local next_namespace = namespace:GetChild(segment)
+		if not next_namespace then return end
+
+		namespace = next_namespace
+	end
+
+	return namespace:GetSetting(setting_id)
+end
+
+---
+-- will be called whenever a Setting is added to this Root_Namespace
+-- @param Setting setting the setting that will be added
+-- @hook
+function Root_Namespace:OnSettingAdded(setting)
+
 end
 
 if SERVER then
-	util.AddNetworkString("PAMCON_RequestServerSettings")
-	util.AddNetworkString("PAMCON_ChangeSetting")
-
 	local server_settings_id = "server_settings"
 	local client_overrides_id = "client_overrides"
 
-	server_settings = Namespace:CreateAsRoot(server_settings_id)
-	client_overrides = Namespace:CreateAsRoot(client_overrides_id)
-
-	-- informs all clients on a change in a server setting
-	local function BroadcastChange(path, id, value)
-		net.Start("PAMCON_ChangeSetting")
-		net.WriteBool(false)
-		net.WriteString(Serialize(path))
-		net.WriteString(id)
-		net.WriteString(Serialize(value))
-		net.Broadcast()
-	end
-
-	-- informs all clients on a change in a client override
-	local function BroadcastOverrideChange(path, id, value)
-		net.Start("PAMCON_ChangeSetting")
-		net.WriteBool(true)
-		net.WriteString(Serialize(path))
-		net.WriteString(id)
-		net.WriteString(Serialize(value))
-		net.Broadcast()
-	end
-
-	-- creates/replaces a server setting
-	function AddSetting(path, id, type_id, value)
-		-- gets the type
-		local t = types[type_id]
-
-		if not t then return end
-
-		-- gets the id for storage
-		local path_id = PathToID(server_settings, path, id)
-
-		-- gets stored value if possible
-		local stored_value = GetStoredValue(path_id)
-
-		-- checks stored value
-		if t:IsValueValid(stored_value) then
-			value = stored_value
-		end
-
-		-- create Setting
-		local setting = Setting:Create(id, t, value)
-
-		if not setting then return end
-
-		-- add Setting to server_settings
-		server_settings:AddChildrenAlongPath(path):AddSetting(setting)
-
-		-- store value whenever it's changed
-		setting:AddCallback(function(setting)
-			StoreValue(path_id, setting:GetValue())
-		end)
-
-		-- inform clients whenever it's changed
-		setting:AddCallback(function(setting)
-			BroadcastChange(path, id, setting:GetValue())
-		end)
-
-		-- call special callbacks whenever it's changed
-		setting:AddCallback(function(setting)
-			CallExternalCallbacks(path_id, setting)
-		end)
-
-		-- inform clients about new setting
-		BroadcastChange(path, id, setting:GetValue())
-	end
-
-	-- returns the value of previously added Setting
-	-- returns nil when no setting with the given id exists in the given path
-	function GetSetting(path, id)
-		-- gets Namespace
-		local namespace = server_settings:GetChildAtPath(path)
-
-		-- returns nil when the Namespace isn't found
-		if not namespace then return end
-
-		-- gets the Setting
-		local setting = namespace:GetSetting(id)
-
-		-- returns nil when the Setting isn't found
-		if not setting then return end
-
-		-- returns the Setting's value
-		return setting:GetValue()
-	end
-
-	-- adds the given callback to the setting with the given id at the given path
-	function AddCallback(path, id, callback)
-		-- gets the Setting's unique id
-		local path_id = PathToID(server_settings, path, id)
-
-		-- adds an external callback for this setting
-		AddExternalCallback(path_id, function(setting)
-			callback(setting:GetValue())
-		end)
-	end
-
-	-- creates/replaces a client override
-	local function AddClientOverride(path, id, value)
-		-- get id for storage
-		local path_id = PathToID(client_overrides, path, id)
-
-		-- create Setting
-		local setting = Setting:Create(id, types[P_TYPE_ANY], value)
-
-		if not setting then return end
-
-		-- add Setting to client_overrides
-		client_overrides:AddChildrenAlongPath(path):AddSetting(setting)
-
-		-- store value whenever it's changed
-		setting:AddCallback(function(setting)
-			StoreValue(path_id, setting:GetValue())
-		end)
-
-		-- inform clients whenever it's changed
-		setting:AddCallback(function(setting)
-			BroadcastOverrideChange(path, id, setting:GetValue())
-		end)
-
-		-- inform clients about new override
-		StoreValue(path_id, setting:GetValue())
-		BroadcastOverrideChange(path, id, setting:GetValue())
-	end
-
-	local function SendDependencies()
-		local dependency_count = #dependencies
-		net.WriteUInt(dependency_count, 32)
-
-		for i = 1, dependency_count do
-			local dependency = dependencies[i]
-			net.WriteString(dependency:GetID())
-			net.WriteString(dependency:GetType():GetID())
-			net.WriteString(Serialize(dependency:GetActiveValue()))
-		end
-	end
-
-	-- writes a Setting to the current netmessage
-	local function SendSetting(setting)
-		net.WriteString(setting:GetID())
-		net.WriteString(setting:GetType():GetID())
-		net.WriteString(Serialize(setting:GetValue()))
-
-		local is_dependent = setting:IsDependent()
-		net.WriteBool(is_dependent)
-
-		if not is_dependent then return end
-
-		net.WriteString(setting:GetDependency():GetID())
-
-		local source_count = #setting.sources
-		net.WriteUInt(source_count, 32)
-
-		for i = 1, source_count do
-			SendSetting(setting.sources[i])
-		end
-	end
-
-	-- writes a Namespace to the current netmessage
-	local function SendNamespace(namespace)
-		net.WriteString(namespace:GetID())
-
-		local children = namespace:GetChildren()
-		local child_count = #children
-		net.WriteUInt(child_count, 32)
-
-		for i = 1, child_count do
-			SendNamespace(children[i])
-		end
-
-		local settings = namespace:GetSettings()
-		local setting_count = #settings
-
-		net.WriteUInt(setting_count, 32)
-		for i = 1, setting_count do
-			SendSetting(settings[i])
-		end
-	end
-
-	net.Receive("PAMCON_RequestServerSettings",function(len, ply)
-		net.Start("PAMCON_RequestServerSettings")
-
-		SendDependencies()
-		SendNamespace(server_settings)
-		SendNamespace(client_overrides)
-
-		net.Send(ply)
-	end)
-
-	net.Receive("PAMCON_ChangeSetting", function(len, ply)
-		local is_override = net.ReadBool()
-		local root = is_override and client_overrides or server_settings
-		local path = Deserialize(net.ReadString())
-		local id = net.ReadString()
-		local value = Deserialize(net.ReadString())
-
-		-- TODO add api for permissions
-		if not IsValid(ply) or not ply:IsSuperAdmin() then return end
-
-		local namespace = root:GetChildAtPath(path)
-
-		if namespace then
-			local setting = namespace:GetSetting(id)
-			if setting then
-				setting:SetValue(value)
-				return
-			end
-		end
-
-		if not is_override then return end
-
-		AddClientOverride(path, id, value)
-	end)
-
-	local data = sql.Query("SELECT id,value FROM pamcon_values")
-	if data then
-		for i = 1, #data do
-			local datum = data[i]
-			local root, path, id = IDToPath(datum["id"])
-			if root and root == client_overrides then
-				AddClientOverride(path, id, Deserialize(datum.value))
-			end
-		end
-	end
+	-- root namespace for all server settings
+	server_settings = Root_Namespace:Create(server_settings_id)
+	-- root namespace for all client overrides
+	client_overrides = Root_Namespace:Create(client_overrides_id)
 else
 	local client_settings_id = "client_settings"
 	local server_settings_id = "server_settings"
 	local client_overrides_id = "client_overrides"
 
 	-- root namespace for all client settings
-	client_settings = Namespace:CreateAsRoot(client_settings_id)
+	client_settings = Root_Namespace:Create(client_settings_id)
 	-- root namespace for a copy of all server settings
-	server_settings = Namespace:CreateAsRoot(server_settings_id)
+	server_settings = Root_Namespace:Create(server_settings_id)
 	-- root namespace for a copy of all client overrides
-	client_overrides = Namespace:CreateAsRoot(client_overrides_id)
-
-	-- creates/replaces a client setting
-	function AddSetting(path, id, type_id, value)
-		-- gets the type
-		local t = types[type_id]
-
-		if not t then return end
-
-		-- get id for storage
-		path_id = PathToID(client_settings, path, id)
-
-		-- get stored value if possible
-		local stored_value = GetStoredValue(path_id)
-
-		-- use stored value when it's valid
-		if t:IsValueValid(stored_value) then
-			value = stored_value
-		end
-
-		-- create Setting
-		local setting = Setting:Create(id, t, value)
-
-		if not setting then return end
-
-		-- add Setting to client_settings
-		client_settings:AddChildrenAlongPath(path):AddSetting(setting)
-
-		-- store value whenever it's changed
-		setting:AddCallback(function(new_value)
-			StoreValue(path_id, new_value)
-		end)
-
-		-- call special callbacks whenever it's changed and no override exists
-		setting:AddCallback(function(setting)
-			local override_namespace = client_overrides:GetChildAtPath(path)
-
-			if override_namespace and override_namespace:GetSetting(id) then return end
-
-			CallExternalCallbacks(path_id, setting)
-		end)
-	end
-
-	-- returns the value of the client setting with the given id at the given path
-	-- when an override exists it will return the value of the override
-	-- returns nil when no setting with the given id exists in the given path
-	function GetSetting(path, id)
-		-- tries to get the namespace the override setting would be stored under
-		local override_namespace = client_overrides:GetChildAtPath(path)
-
-		-- checks if override value can exist
-		if override_namespace then
-			-- tries to get the override setting in the override namespace
-			local override_setting = override_namespace:GetSetting(id)
-			-- checks if override value exists
-			if override_setting then
-				-- returns override value when it exists
-				return override_setting:GetValue()
-			end
-		end
-
-		-- gets the Namespace
-		local namespace = client_overrides:GetChildAtPath(path)
-
-		-- returns nil when namespace can't be found
-		if not namespace then return end
-
-		-- gets the setting
-		local namespace = namespace:GetSetting(id)
-
-		-- returns nil when the Setting isn't found
-		if not setting then return end
-
-		-- returns the Setting's value
-		return setting:GetValue()
-	end
-
-	-- adds the given callback to the client setting with the given id at the given path
-	-- the callback will only be called when no override for the setting exists or when the override's value changes
-	function AddSettingCallback(path, id, callback)
-		-- adds a callback to the Setting
-		AddExternalCallback(PathToID(client_settings, path, id), function(setting)
-			callback(setting:GetValue())
-		end)
-	end
-
-	-- creates/replaces a server setting
-	local function AddServerSetting(path, id, type_id, value)
-		local type = types[type_id] or types[P_TYPE_ANY]
-
-		-- get id for callbacks
-		local path_id = PathToID(server_settings, path, id)
-
-		-- create Setting
-		local setting = Setting:Create(id, type, value)
-
-		if not setting then return end
-
-		-- add Setting to client_settings
-		server_settings:AddChildrenAlongPath(path):AddSetting(setting)
-
-		-- call special callbacks whenever it's changed and no override exists
-		setting:AddCallback(function(setting)
-			CallExternalCallbacks(path_id, setting)
-		end)
-	end
-
-	-- returns the value of the server setting with the given id at the given path
-	-- returns nil when no setting with the given id exists in the given path
-	function GetServerSetting(path, id)
-		-- tries to get the Namespace at path
-		local namespace = server_settings:GetChildAtPath(path)
-
-		-- returns nil when the Namespace isn't found
-		if not namespace then return end
-
-		-- tries to get the Setting
-		local setting = namespace:GetSetting(id)
-
-		-- returns nil when the Setting isn't found
-		if not setting then return end
-
-		-- returns the Setting's value
-		return setting:GetValue()
-	end
-
-	-- adds the given callback to the server setting with the given id at the given path
-	function AddServerSettingCallback(path, id, callback)
-		-- adds a callback to the Setting
-		AddExternalCallback(server_settings, path, id, function(setting)
-			callback(setting:GetValue())
-		end)
-	end
-
-	-- creates/replaces a client override
-	local function AddClientOverride(path, id, type_id, value)
-		-- gets the namespace of the setting this will override
-		local namespace = client_settings:GetChildAtPath(path)
-
-		-- returns nil when the namespace doesn't exist
-		if not namespace then return end
-
-		-- gets the setting this will override
-		local real_setting = namespace:GetSetting(id)
-
-		-- returns nil when the setting doesn't exist
-		if not real_setting then return end
-
-		local t = real_setting:GetType()
-
-		-- create Setting
-		local setting = Setting:Create(id, t, value)
-
-		if not setting then return end
-
-		-- get id for callbacks
-		path_id = PathToID(client_settings, path, id)
-
-		-- add Setting to client_settings
-		client_overrides:AddChildrenAlongPath(path):AddSetting(setting)
-
-		-- call special callbacks whenever it's changed and no override exists
-		setting:AddCallback(function(setting)
-			CallExternalCallbacks(path_id, setting)
-		end)
-
-		CallExternalCallbacks(path_id, setting)
-	end
-
-	-- requests to change a server setting
-	function RequestChange(path, id, value)
-		net.Start("PAMCON_ChangeSetting")
-		net.WriteBool(false)
-		net.WriteString(Serialize(path))
-		net.WriteString(id)
-		net.WriteString(Serialize(value))
-		net.SendToServer()
-	end
-
-	-- requests to add or change a client override
-	function RequestOverride(path, id, value)
-		net.Start("PAMCON_ChangeSetting")
-		net.WriteBool(true)
-		net.WriteString(Serialize(path))
-		net.WriteString(id)
-		net.WriteString(Serialize(value))
-		net.SendToServer()
-	end
-
-	net.Receive("PAMCON_ChangeSetting", function(len)
-		local is_override = net.ReadBool()
-		local root = is_override and client_overrides or server_settings
-		local path = Deserialize(net.ReadString())
-		local id = net.ReadString()
-		local type_id = net.ReadString()
-		local value = Deserialize(net.ReadString())
-
-		local namespace = root:AddChildrenAlongPath(path)
-
-		local setting = namespace:GetSetting(id)
-
-		if setting then
-			setting:SetValue(value)
-		elseif is_override then
-			AddClientOverride(path, id, type_id, value)
-		else
-			AddServerSetting(path, id, type_id, value)
-		end
-	end)
-
-	local function ReceiveDependencies()
-		local dependency_count = net.ReadUInt(32)
-
-		for i = 1, dependency_count do
-			local id = net.ReadString()
-			local type_id = net.ReadString()
-			local value = Deserialize(net.ReadString())
-			RegisterDependency(id, type_id, value)
-		end
-	end
-
-	local function ReceiveSetting()
-		local id = net.ReadString()
-		local type = types[net.ReadString()]
-		local value = Deserialize(net.ReadString())
-
-		local setting = Setting:Create(id, type, value)
-
-		if not net.ReadBool() then
-			return setting
-		end
-
-
-		local dependency_id = net.ReadString()
-		setting:MakeDependent(dependency_id)
-
-		local source_count = net.ReadUInt(32)
-		for i = 1, source_count do
-			local source = ReceiveSetting()
-			setting:AddSource(source)
-		end
-
-		return setting
-	end
-
-	-- reads a Namespace from a received netmessage
-	local function ReceiveNamespace()
-		local namespace = Namespace:Create(net.ReadString())
-
-		local child_count = net.ReadInt(32)
-		for i = 1, child_count do
-			namespace:AddChild(ReceiveNamespace())
-		end
-
-		local setting_count = net.ReadInt(32)
-		for i = 1, setting_count do
-			local new_setting = ReceiveSetting()
-
-			if new_setting then
-				namespace:AddSetting(new_setting)
-			end
-		end
-
-		return namespace
-	end
-
-	net.Receive("PAMCON_RequestServerSettings", function(len)
-		-- TODO save values in server_settings and client_overrides
-		ReceiveDependencies()
-		server_settings = ReceiveNamespace()
-		client_overrides = ReceiveNamespace()
-	end)
-
-	hook.Add("InitPostEntity", "pamcon_request_server_settings", function()
-		net.Start("PAMCON_RequestServerSettings")
-		net.SendToServer()
-	end)
+	client_overrides = Root_Namespace:Create(client_overrides_id)
 end
