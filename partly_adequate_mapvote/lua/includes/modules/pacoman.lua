@@ -400,6 +400,13 @@ function Setting:OnActiveValueChanged()
 end
 
 ---
+-- Will be called whenever this Setting's value changes
+-- @hook
+function Setting:OnValueChanged()
+
+end
+
+---
 -- changes the value of this Setting and calls Setting:OnActiveValueChanged if necessary
 -- @param any new_value the new value
 -- @note will not do anything when the new value doesn't fit this Setting's type
@@ -407,6 +414,8 @@ function Setting:SetValue(new_value)
 	if not self.type:IsValueValid(new_value) then return end
 
 	self.value = new_value
+
+	self:OnValueChanged()
 
 	if self.active_setting_id then return end
 
