@@ -24,6 +24,83 @@ P_TYPE_PERCENTAGE = "percentage"
 -- @TypeText string identifier for a pacoman <code>Type</code> that represents integers
 P_TYPE_INTEGER = "integer"
 
+local callback_lists = {}
+
+---
+-- Adds a callback to the specified call_id
+-- @param string call_id the id to call this callback with
+-- @param string id the id to identify/remove this callback with at a later point
+-- @callback function callback the function to call
+-- @local
+-- @note this won't allow registering two callbacks with the same call_id and id.
+local function AddCallback(call_id, id, callback)
+	if not callback_lists[call_id] then
+		callback_lists[call_id] = {
+			callbacks = {},
+			ids = {},
+			indices = {}
+		}
+	end
+
+	local callback_list = callback_lists[call_id]
+	if callback_list.indices[id] then return end
+
+	local index = #callback_list.callbacks + 1
+
+	callback_list.callbacks[index] = callback
+	callback_list.ids[index] = id
+	callback_list.indices[id] = index
+end
+
+---
+-- Removes a callback from the callbacks at the specified call_id
+-- @param string call_id the id that is used to call the callback with
+-- @param string id the identifier of the callback that will be deleted
+-- @local
+local function RemoveCallback(call_id, id)
+	local callback_list = callback_lists[call_id]
+	if not callback_list then return end
+
+	local callbacks = callback_list.callbacks
+	local callback_ids = callback_list.ids
+	local callback_indices = callback_list.indices
+
+	local index = callback_indices[id]
+	local last_index = #callbacks
+
+	if index == last_index then
+		callback_ids[index] = nil
+		callback_indices[id] = nil
+		callbacks[id] = nil
+		return
+	end
+
+	local last_id = callback_ids[last_index]
+
+	callbacks[index] = callbacks[last_index]
+	callback_ids[index] = callback_ids[last_index]
+	callback_indices[last_id] = index
+
+	callbacks[last_index] = nil
+	callback_ids[last_index] = nil
+	callback_indices[id] = nil
+end
+
+---
+-- Calls all callbacks at the specified call_id
+-- @param string call_id the id that is used to call the callback with
+-- @local
+local function CallCallbacks(call_id)
+	local callback_list = callback_lists[call_id]
+	if not callback_list then return end
+
+	local callbacks = callback_list.callbacks
+
+	for i = 1, #callbacks do
+		callbacks[i]()
+	end
+end
+
 ---
 -- For every namespace-/setting_separator it inserts another one at the same position
 -- @param string str the string to prepare
