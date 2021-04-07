@@ -2,7 +2,6 @@
 -- This is the <code>pacoman</code> module
 -- @author Reispfannenfresser
 -- @module pacoman
-
 module("pacoman", package.seeall)
 pacoman = {}
 
@@ -209,6 +208,10 @@ function RegisterType(id, is_value_valid, serialize, deserialize, compare_values
 	types[id] = Type:Create(id, is_value_valid, serialize, deserialize, compare_values)
 end
 
+local function GetType(id)
+	return types[id]
+end
+
 ---
 -- checks if a value is an Integer
 -- @param any value the value to check
@@ -306,7 +309,7 @@ end
 ---
 -- @return the current value of this Game_Property
 function Game_Property:GetValue()
-	return self.active_value
+	return self.value
 end
 
 ---
@@ -379,7 +382,7 @@ game_property_indices = {}
 function RegisterGameProperty(id, type_id, value)
 	if game_property_indices[id] then return end
 
-	local type = types[type_id]
+	local type = GetType(type_id)
 	if not type then return end
 
 	local game_property = Game_Property:Create(id, type, value)
@@ -432,9 +435,7 @@ Setting.__index = Setting
 -- @param any value the value of this Setting
 -- @return the new Setting
 -- @note if the value doesn't fit the Type it will return nil
-function Setting:Create(path_id, id, type_id, value)
-	local type = types[type_id]
-
+function Setting:Create(path_id, id, type, value)
 	if not type:IsValueValid(value) then return end
 
 	local setting = {}
@@ -545,9 +546,14 @@ end
 
 ---
 -- makes this Setting depend on a Game_Property
--- @param Game_Property the property to depend on
+-- @param string game_property_id the id of the property to depend on
+-- @note In case no game_property with that id is found it won't do anything.
 -- @note In case this Setting already depends on a Game_Property it will remove the dependency first.
-function Setting:MakeDependent(game_property)
+function Setting:MakeDependent(game_property_id)
+	local game_property = GetGameProperty(game_property_id)
+
+	if not game_property then return end
+
 	if self:IsDependent() then
 		self:MakeIndependent()
 	end
@@ -588,13 +594,13 @@ function Setting:AddSource(id, value)
 	local gp_type = game_property:GetType()
 	if not gp_type then return end
 
-	local type_id = self.type:GetID()
+	local type = self.type
 
 	if not type:IsValueValid(value) or not gp_type:Deserialize(id) then return end
 
 	local index = #self.sources + 1
 
-	local source_setting = Setting:Create(self.full_id, id, type_id, value)
+	local source_setting = Setting:Create(self.full_id, id, type, value)
 	source_setting.parent = self
 
 	self.sources[index] = source_setting
@@ -661,7 +667,7 @@ end
 function Setting:Update()
 	local game_property = self.depends_on
 
-	local gp_value = game_property:GetActiveValue()
+	local gp_value = game_property:GetValue()
 	local gp_type = game_property:GetType()
 
 	if not gp_type:IsComparable() then
@@ -675,14 +681,15 @@ function Setting:Update()
 
 	for i = 1, #sources do
 		local current = sources[i]
-		local comparable_id = gp_type:Deserialize(source_setting:GetID())
+		local current_id = current:GetID()
+		local comparable_id = gp_type:Deserialize(current_id)
 		if gp_type:CompareValues(comparable_id, gp_value) and (not comparable_best_id or gp_type:CompareValues(comparable_id, comparable_best_id)) then
-			best = current:GetID()
+			best = current_id
 			comparable_best = comparable_id
 		end
 	end
 
-	SetActiveSettingID(best)
+	self:SetActiveSettingID(best)
 end
 
 -- TODO documentation for Namespace class
@@ -753,12 +760,12 @@ end
 -- Adds a Setting to this Namespace's Settings
 -- @param Setting setting the Setting to add
 -- @note If a Setting with the same name/identifier already exists within this Namespace's Settings, it won't be added.
-function Namespace:AddSetting(setting_id, type_id, value)
+function Namespace:AddSetting(setting_id, type, value)
 	if self:GetSetting(setting_id) then return end
 
 	local index = #self.settings + 1
 
-	local setting = Setting:Create(self.full_id, setting_id, type_id, value)
+	local setting = Setting:Create(self.full_id, setting_id, type, value)
 
 	self.settings[index] = setting
 	self.setting_indices[setting_id] = index
@@ -840,6 +847,9 @@ end
 -- @note this calls the Root_Namespace:OnSettingAdded hook which can be used to add callbacks or change the setting's value
 -- @note this will automatically create Namespaces if necessary
 function Root_Namespace:AddSetting(path, id, type_id, value)
+	local type = GetType(type_id)
+	if not type then return end
+
 	local namespace = self
 	for i = 1, #path do
 		local segment = path[i]
@@ -848,7 +858,10 @@ function Root_Namespace:AddSetting(path, id, type_id, value)
 		namespace = next_namespace
 	end
 
-	local setting = namespace:AddSetting(id, type_id, value)
+	local setting = namespace:AddSetting(id, type, value)
+
+	if not setting then return end
+
 	setting.OnSourceAdded = self.OnSettingAdded
 
 	self:OnSettingAdded(setting)
