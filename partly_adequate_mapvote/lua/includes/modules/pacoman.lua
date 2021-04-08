@@ -495,6 +495,7 @@ function Setting:SetValue(new_value)
 
 	self:OnValueChanged()
 
+	-- if this setting has a source setting that overrides the active value it should not change it's active value
 	if self.active_setting_id then return end
 
 	self:SetActiveValue(new_value)
@@ -506,6 +507,7 @@ end
 function Setting:SetActiveSettingID(setting_id)
 	local source_index = self.source_indices[setting_id]
 
+	-- if no source is found with that id it should use the default value
 	if not source_index then
 		self.active_setting_id = nil
 		self:SetActiveValue(self.value)
@@ -533,6 +535,7 @@ function Setting:SetActiveValue(new_value)
 
 	self:OnActiveValueChanged()
 
+	-- update the parent setting when this setting is a source and currently active
 	if not self.parent or not parent.active_setting_id == self.id then return end
 
 	parent:SetActiveValue(new_value)
@@ -570,14 +573,19 @@ end
 function Setting:MakeIndependent()
 	if not self:IsDependent() then return end
 
+	-- update active value to default
 	self:SetActiveSettingID(nil)
 
+	-- inform the sources about their imminent removal
 	for i = 1, #self.sources do
 		self.sources[i]:Remove()
 	end
 
+	-- remove game property callback
 	self.depends_on:RemoveCallback(self.full_id)
 	self.depends_on = nil
+
+	-- remove sources
 	self.sources = {}
 	self.source_indices = {}
 end
@@ -588,16 +596,17 @@ end
 -- @param string id the id of the new source Setting
 -- @param any value the value of the new source Setting
 function Setting:AddSource(id, value)
+	-- return when this setting doesn't depend on a game property
 	local game_property = self.depends_on
 	if not game_property then return end
 
 	local gp_type = game_property:GetType()
-	if not gp_type then return end
-
 	local type = self.type
 
+	-- return when the value isn't valid or when the id can't be deserialised by the game properties type
 	if not type:IsValueValid(value) or not gp_type:Deserialize(id) then return end
 
+	-- add new source
 	local index = #self.sources + 1
 
 	local source_setting = Setting:Create(self.full_id, id, type, value)
@@ -608,6 +617,7 @@ function Setting:AddSource(id, value)
 
 	self:OnSourceAdded(source_setting)
 
+	-- check if the new setting should be the active setting
 	self:Update()
 end
 
@@ -637,11 +647,14 @@ end
 -- Removes a Setting from this Setting's sources
 -- @param string id the id of the source Setting that will be removed
 function Setting:RemoveSource(source_id)
+	-- return when the source doesn't exist
 	local index = self.source_indices[source_id]
 	if not index then return end
 
+	-- inform source about imminent removal
 	self.sources[index]:Remove()
 
+	-- remove source
 	if index == #self.sources then
 		self.sources[index] = nil
 		self.source_indices[source_id] = nil
@@ -657,24 +670,29 @@ function Setting:RemoveSource(source_id)
 	self.sources[last_index] = nil
 	source_indices[last_setting:GetID()] = index
 
-	if source_id == self.active_setting_id then
-		self:Update()
-	end
+	-- update this setting when the active source got removed
+	if source_id != self.active_setting_id then return end
+
+	self:Update()
 end
 
 ---
 -- Determines this Setting's active source and updates this Setting's active value
 function Setting:Update()
+	-- return when this setting is independent
 	local game_property = self.depends_on
+	if not game_property then return end
 
 	local gp_value = game_property:GetValue()
 	local gp_type = game_property:GetType()
 
+	-- when the game property's type is not comparable it picks the source that fits precisely
 	if not gp_type:IsComparable() then
 		self:SetActiveSettingID(gp_type:Serialize(gp_value))
 		return
 	end
 
+	-- search for the best fitting source by iterating over all sources
 	local sources = self.sources
 	local best_id = nil
 	local comparable_best_id = nil
