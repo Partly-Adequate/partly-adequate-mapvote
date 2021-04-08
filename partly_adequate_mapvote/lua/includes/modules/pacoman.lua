@@ -465,6 +465,12 @@ function Setting:GetID()
 end
 
 ---
+-- @return string this Setting's global identifier (unique for each setting)
+function Setting:GetFullID()
+	return self.full_id
+end
+
+---
 -- @return any this Setting's value
 function Setting:GetValue()
 	return self.value
