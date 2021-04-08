@@ -110,6 +110,14 @@ local function PrepareString(str)
 	return string.Replace(tmp, setting_separator, setting_separator .. setting_separator)
 end
 
+local function SaveSetting(setting)
+	print("[NYI] Settings can't be saved")
+end
+
+local function LoadSetting(setting)
+	print("[NYI] Settings can't be loaded")
+end
+
 -- TODO documentation for Type class
 local Type = {}
 Type.__index = Type
@@ -942,6 +950,36 @@ if SERVER then
 	server_settings = Root_Namespace:Create(server_settings_id)
 	-- root namespace for all client overrides
 	client_overrides = Root_Namespace:Create(client_overrides_id)
+
+	local function UpdateSettingOnClients(setting)
+		print("[NYI] Settings can't be sent to clients")
+	end
+
+	local function RemoveSettingFromClients(setting)
+		print("[NYI] Settings can't be removed from clients")
+	end
+
+	local function OnServerSettingRemoved(self, setting)
+		RemoveSettingFromClients(setting)
+	end
+
+	local function OnServerSettingAdded(self, setting)
+		LoadSetting(setting)
+
+		setting.OnValueChanged = function(self)
+			SaveSetting(self)
+			UpdateSettingOnClients(self)
+		end
+
+		-- Tasty spaghetti
+		setting.OnSourceAdded = OnServerSettingAdded
+		setting.OnRemoved = OnServerSettingRemoved
+
+		SaveSetting(setting)
+		UpdateSettingOnClients(setting)
+	end
+
+	server_settings.OnSettingAdded = OnServerSettingAdded
 else
 	local client_settings_id = "client_settings"
 	local server_settings_id = "server_settings"
