@@ -110,11 +110,11 @@ local function PrepareString(str)
 	return string.Replace(tmp, setting_separator, setting_separator .. setting_separator)
 end
 
-local function SaveSetting(setting)
+local function SaveSettingToDatabase(setting)
 	print("[NYI] Settings can't be saved")
 end
 
-local function LoadSetting(setting)
+local function LoadSettingFromDatabase(setting)
 	print("[NYI] Settings can't be loaded")
 end
 
@@ -960,11 +960,12 @@ if SERVER then
 	end
 
 	local function OnServerSettingRemoved(self, setting)
+		DeleteSettingFromDatabase(setting)
 		RemoveSettingFromClients(setting)
 	end
 
 	local function OnServerSettingAdded(self, setting)
-		LoadSetting(setting)
+		LoadSettingFromDatabase(setting)
 
 		setting.OnValueChanged = function(self)
 			SaveSetting(self)
@@ -975,11 +976,12 @@ if SERVER then
 		setting.OnSourceAdded = OnServerSettingAdded
 		setting.OnRemoved = OnServerSettingRemoved
 
-		SaveSetting(setting)
+		SaveSettingToDatabase(setting)
 		UpdateSettingOnClients(setting)
 	end
 
 	server_settings.OnSettingAdded = OnServerSettingAdded
+	client_overrides.OnSettingAdded = OnServerSettingAdded
 else
 	local client_settings_id = "client_settings"
 	local server_settings_id = "server_settings"
