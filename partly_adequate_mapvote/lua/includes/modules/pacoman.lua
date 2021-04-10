@@ -1025,4 +1025,63 @@ else
 	server_settings = Root_Namespace:Create(server_settings_id)
 	-- root namespace for a copy of all client overrides
 	client_overrides = Root_Namespace:Create(client_overrides_id)
+
+	local function OnClientSettingRemoved(self, setting)
+		RemoveCallbacks(setting:GetFullID())
+		DeleteSettingFromDatabase(setting)
+	end
+
+	local function OnClientSettingAdded(self, setting)
+		LoadSettingFromDatabase(setting)
+
+		setting.OnValueChanged = function(self)
+			SaveSettingToDatabase(self)
+		end
+
+		-- Tasty spaghetti
+		setting.OnSourceAdded = OnClientSettingAdded
+		setting.OnActiveValueChanged = function(self)
+			// TODO check for override
+			CallCallbacks(self.GetFullID())
+		end
+		setting.OnRemoved = OnClientSettingRemoved
+
+		SaveSettingToDatabase(setting)
+	end
+
+	client_settings.OnSettingAdded = OnClientSettingAdded
+
+	local function OnServerSettingRemoved(self, setting)
+		RemoveCallbacks(setting:GetFullID())
+	end
+
+	local function OnServerSettingAdded(self, setting)
+		-- Tasty spaghetti
+		setting.OnSourceAdded = OnServerSettingAdded
+		setting.OnActiveValueChanged = function(self)
+			-- TODO check for override
+			CallCallbacks(self.GetFullID())
+		end
+		setting.OnRemoved = OnServerSettingRemoved
+	end
+
+	server_settings.OnSettingAdded = OnServerSettingAdded
+
+	local function OnClientOverrideRemoved(self, setting)
+		-- TODO give original setting control of callbacks
+	end
+
+	local function OnClientOverrideAdded(self, setting)
+		-- TODO take control of callbacks from original setting
+
+		-- Tasty spaghetti
+		setting.OnSourceAdded = OnServerSettingAdded
+		setting.OnActiveValueChanged = function(self)
+			CallCallbacks(self.GetFullID())
+		end
+
+		setting.OnRemoved = OnClientOverrideRemoved
+	end
+
+	client_overrides.OnSettingAdded = OnClientOverrideAdded
 end
