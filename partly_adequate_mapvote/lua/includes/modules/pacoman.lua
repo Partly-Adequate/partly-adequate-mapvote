@@ -52,6 +52,14 @@ local function AddCallback(call_id, id, callback)
 end
 
 ---
+-- Removes all callbacks at the specified call_id
+-- @param string call_id the id to remove all callbacks from
+-- @local
+local function RemoveCallbacks(call_id)
+	callback_lists[call_id] = nil
+end
+
+---
 -- Removes a callback from the callbacks at the specified call_id
 -- @param string call_id the id that is used to call the callback with
 -- @param string id the identifier of the callback that will be deleted
@@ -960,6 +968,7 @@ if SERVER then
 	end
 
 	local function OnServerSettingRemoved(self, setting)
+		RemoveCallbacks(setting:GetFullID())
 		DeleteSettingFromDatabase(setting)
 		RemoveSettingFromClients(setting)
 	end
@@ -974,6 +983,9 @@ if SERVER then
 
 		-- Tasty spaghetti
 		setting.OnSourceAdded = OnServerSettingAdded
+		setting.OnActiveValueChanged = function(self)
+			CallCallbacks(self.GetFullID())
+		end
 		setting.OnRemoved = OnServerSettingRemoved
 
 		SaveSettingToDatabase(setting)
@@ -981,7 +993,27 @@ if SERVER then
 	end
 
 	server_settings.OnSettingAdded = OnServerSettingAdded
-	client_overrides.OnSettingAdded = OnServerSettingAdded
+
+	local function OnClientOverrideRemoved(self, setting)
+		DeleteSettingFromDatabase(setting)
+		RemoveSettingFromClients(setting)
+	end
+
+	local function OnClientOverrideAdded(self, setting)
+		setting.OnValueChanged = function(self)
+			SaveSetting(self)
+			UpdateSettingOnClients(self)
+		end
+
+		-- Tasty spaghetti
+		setting.OnSourceAdded = OnClientOverrideAdded
+		setting.OnRemoved = OnClientOverrideRemoved
+
+		SaveSettingToDatabase(setting)
+		UpdateSettingOnClients(setting)
+	end
+
+	client_overrides.OnSettingAdded = OnClientOverrideAdded
 else
 	local client_settings_id = "client_settings"
 	local server_settings_id = "server_settings"
