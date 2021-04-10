@@ -977,7 +977,7 @@ if SERVER then
 		LoadSettingFromDatabase(setting)
 
 		setting.OnValueChanged = function(self)
-			SaveSetting(self)
+			SaveSettingToDatabase(self)
 			UpdateSettingOnClients(self)
 		end
 
@@ -1001,7 +1001,7 @@ if SERVER then
 
 	local function OnClientOverrideAdded(self, setting)
 		setting.OnValueChanged = function(self)
-			SaveSetting(self)
+			SaveSettingToDatabase(self)
 			UpdateSettingOnClients(self)
 		end
 
