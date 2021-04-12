@@ -956,7 +956,7 @@ end
 -- @return Setting the Setting with the given setting_id at the given path
 -- @note will return nil when no Setting with the given id is found
 function Root_Namespace:GetSetting(path, setting_id)
-	local full_id = GetFullID(path, setting_id)
+	local full_id = self:GetFullID(path, setting_id)
 	if not full_id then return end
 
 	return all_settings[full_id]
