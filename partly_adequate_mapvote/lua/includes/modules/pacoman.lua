@@ -950,6 +950,13 @@ function Root_Namespace:GetSetting(path, setting_id)
 	return namespace:GetSetting(setting_id)
 end
 
+function Root_Namespace:GetActiveValue(path, setting_id)
+	local setting = self:GetSetting(path, setting_id)
+	if not setting then return end
+
+	return setting:GetActiveValue()
+end
+
 ---
 -- adds a callback to the setting
 -- the setting needs to exist in this namespace
@@ -1064,6 +1071,14 @@ else
 	-- root namespace for a copy of all client overrides
 	client_overrides = Root_Namespace:Create(client_overrides_id)
 
+	local function OverrideIDToClientSettingID(override_id)
+		return client_settings_id .. string.sub(override_id, #client_overrides_id + 1, -1)
+	end
+
+	local function ClientSettingIDToOverrideID(override_id)
+		return client_overrides_id .. string.sub(override_id, #client_settings_id + 1, -1)
+	end
+
 	local function OnClientSettingRemoved(self, setting)
 		RemoveCallbacks(setting:GetFullID())
 		DeleteSettingFromDatabase(setting)
@@ -1091,6 +1106,18 @@ else
 	end
 
 	client_settings.OnSettingAdded = OnClientSettingAdded
+	-- return overriden values whenever the active value is requested
+	client_settings.GetActiveValue = function(self, path, setting_id)
+		local setting = self:GetSetting(path, setting_id)
+		if not setting then return end
+
+		local full_id = setting:GetFullID()
+		if not overrides[full_id] then
+			return setting:GetActiveValue()
+		end
+
+		return all_settings[ClientSettingIDToOverrideID(full_id)]:GetActiveValue()
+	end
 
 	local function OnServerSettingRemoved(self, setting)
 		RemoveCallbacks(setting:GetFullID())
@@ -1106,10 +1133,6 @@ else
 	end
 
 	server_settings.OnSettingAdded = OnServerSettingAdded
-
-	local function OverrideIDToClientSettingID(override_id)
-		return client_settings_id .. string.sub(override_id, #client_overrides_id + 1, -1)
-	end
 
 	local function OnClientOverrideRemoved(self, setting)
 		local full_id = setting:GetFullID();
