@@ -933,23 +933,40 @@ function Root_Namespace:RemoveSetting(path, setting_id)
 end
 
 ---
+-- returns the full id of a setting that's inside this namespace
+-- @param table path a list of strings that represent the Setting's position in the Namespace tree
+-- @param string setting_id the name/identifier of the setting that should be removed
+-- @return the full id of the Setting with the given setting_id at the given path
+-- @note will return nil when no Setting is found
+function Root_Namespace:GetFullID(path, setting_id)
+	local full_id = self.full_id
+	for i = 1, #path do
+		full_id = full_id .. namespace_separator .. PrepareString(path[i])
+	end
+	full_id = full_id .. setting_separator .. PrepareString(setting_id)
+
+	if all_settings[full_id] then
+		return full_id
+	end
+end
+
+---
 -- @param table path a list of strings that represent the Setting's position in the Namespace tree
 -- @param string setting_id the name/identifier of the setting that should be removed
 -- @return Setting the Setting with the given setting_id at the given path
 -- @note will return nil when no Setting with the given id is found
 function Root_Namespace:GetSetting(path, setting_id)
-	local namespace = self
-	for i = 1, #path do
-		local segment = path[i]
-		local next_namespace = namespace:GetChild(segment)
-		if not next_namespace then return end
+	local full_id = GetFullID(path, setting_id)
+	if not full_id then return end
 
-		namespace = next_namespace
-	end
-
-	return namespace:GetSetting(setting_id)
+	return all_settings[full_id]
 end
 
+---
+-- returns the active value of the setting
+-- @param table path a list of strings that represent the Setting's position in the Namespace tree
+-- @param string setting_id the name/identifier of the setting that should be removed
+-- @return any the active value of the setting
 function Root_Namespace:GetActiveValue(path, setting_id)
 	local setting = self:GetSetting(path, setting_id)
 	if not setting then return end
