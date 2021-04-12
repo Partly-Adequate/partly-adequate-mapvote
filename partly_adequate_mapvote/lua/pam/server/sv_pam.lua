@@ -1,9 +1,10 @@
-function PAM.Start(vote_type, vote_length, winner_callback)
+function PAM.Start(vote_type, vote_length_override, winner_callback_override)
 	if PAM.state ~= PAM.STATE_DISABLED then return end
 
 	PAM.vote_type = vote_type or "map"
-	PAM.winner_callback = winner_callback or PAM.ChangeMap
-	vote_length = vote_length or GetConVar("pam_vote_length"):GetInt()
+	PAM.winner_callback = winner_callback_override or PAM.ChangeMap
+
+	local vote_length = vote_length_override or PAM.settings.vote_length
 
 	table.Empty(PAM.options)
 	table.Empty(PAM.votes)
@@ -162,7 +163,7 @@ function PAM.AddRTVVoter(ply)
 	net.WriteEntity(ply)
 	net.Broadcast()
 
-	if not GetConVar("pam_rtv_delayed"):GetBool() then
+	if not PAM.settings.rtv_delayed then
 		PAM.CheckForRTV()
 	end
 
@@ -181,7 +182,7 @@ function PAM.RemoveRTVVoter(ply)
 end
 
 function PAM.CheckForDelayedRTV()
-	if GetConVar("pam_rtv_delayed"):GetBool() then
+	if PAM.settings.rtv_delayed then
 		return PAM.CheckForRTV()
 	end
 	return false
@@ -189,7 +190,7 @@ end
 
 function PAM.CheckForRTV()
 	-- check if there are enough players
-	local needed_count = math.ceil(GetConVar("pam_rtv_percentage"):GetFloat() * player.GetCount())
+	local needed_count = math.ceil(PAM.settings.rtv_percentage * player.GetCount())
 
 	if (PAM.rtv_voter_count >= needed_count) then
 		-- start pam
