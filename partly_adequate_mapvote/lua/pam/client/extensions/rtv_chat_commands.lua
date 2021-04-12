@@ -1,9 +1,8 @@
 local extension = {}
 extension.name = "rtv_chat"
 extension.enabled = true
-extension.settings = {
-	commands = "!rtv,rtv"
-}
+
+local commands = "!rtv,rtv"
 
 local col_prefix = Color(255, 50, 255, 255)
 local col_bright = Color(255, 255, 255, 255)
@@ -21,7 +20,7 @@ end
 
 hook.Add( "OnPlayerChat", "PAM_RTV_Chat_Commands", function( ply, text, bTeam, bDead )
     if !extension.enabled then return end
-	if not GetConVar("pam_rtv_enabled"):GetBool() then return end
+	if not pacoman.server_settings:GetActiveValue({"pam", "rtv"}, "is_enabled") then return end
 	if PAM.state != PAM.STATE_DISABLED then return end
     if ply != LocalPlayer() then return end
 
@@ -40,3 +39,14 @@ hook.Add( "OnPlayerChat", "PAM_RTV_Chat_Commands", function( ply, text, bTeam, b
 end)
 
 PAM.extension_handler.RegisterExtension(extension)
+
+local path = {"pam", extension.name}
+local commands_setting_id = "commands"
+
+pacoman.client_settings:AddSetting(path, commands_setting_id, pacoman.P_TYPE_STRING, commands)
+
+commands = pacoman.client_settings:GetActiveValue(path, commands_setting_id)
+
+pacoman.client_settings:AddCallback(path, commands_setting_id, function(new_value)
+	commands = new_value
+end)

@@ -2,9 +2,6 @@ local extension = {}
 local panel = nil
 extension.name = "default_votescreen"
 extension.enabled = true
-extension.settings = {
-	scale = 100
-}
 
 function extension.OnVoteStarted()
 	panel = vgui.Create("pam_default_votescreen")
@@ -48,16 +45,19 @@ function extension.OnDisable()
 	end
 end
 
-function extension.OnSettingChanged(setting)
-	if setting != "scale" then return end
-
-	include("pam/client/extensions/default_votescreen_panel.lua")
-	if extension.enabled then
-		extension.OnDisable()
-		extension.OnEnable()
-	end
-end
-
 PAM.extension_handler.RegisterExtension(extension)
+
+local path = {"pam", extension.name}
+local scale_setting_id = "scale"
+
+pacoman.client_settings:AddSetting(path, scale_setting_id, pacoman.P_TYPE_INTEGER, 100)
+
+pacoman.client_settings:AddCallback(path, scale_setting_id, function(new_value)
+	include("pam/client/extensions/default_votescreen_panel.lua")
+	if not extension.enabled then return end
+
+	extension.OnDisable()
+	extension.OnEnable()
+end)
 
 include("pam/client/extensions/default_votescreen_panel.lua")

@@ -1,10 +1,6 @@
 local PANEL = {}
 
-local scale = PAM.extension_handler.GetSetting("default_votescreen", "scale")
-
-if not scale then
-	scale = 100
-end
+local scale = pacoman.client_settings:GetActiveValue({"pam", "default_votescreen"}, "scale") or 100
 
 scale = scale / 100
 

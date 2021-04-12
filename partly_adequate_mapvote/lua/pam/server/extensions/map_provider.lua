@@ -1,14 +1,34 @@
 local extension = {}
-extension.name = "map"
+extension.name = "map_provider"
 extension.enabled = true
-extension.gamemode_dependent = true
-extension.settings = {
-	prefixes = "",
-	blacklist = "",
-	whitelist = "",
-	limit = 20,
-	cooldown = 0
-}
+
+local prefixes = ""
+local blacklist = ""
+local whitelist = ""
+local limit = 20
+local cooldown = 0
+
+-- cooldown stuff
+if not sql.TableExists("pam_map_cooldowns") then
+	sql.Query("CREATE TABLE pam_map_cooldowns(id TEXT NOT NULL PRIMARY KEY, heat INTEGER NOT NULL)")
+end
+
+local function GetMapCooldown(mapname)
+	local data = sql.Query("SELECT heat FROM pam_map_cooldowns WHERE id IS " .. sql.SQLStr(mapname))
+	if data then
+		return tonumber(data[1]["heat"])
+	else
+		return 0
+	end
+end
+
+local function SetMapCooldown(mapname, cooldown)
+	if(cooldown <= 0) then
+		sql.Query("DELETE FROM pam_map_cooldowns WHERE id IS " .. sql.SQLStr(mapname))
+	else
+		sql.Query("INSERT OR REPLACE INTO pam_map_cooldowns VALUES( " .. sql.SQLStr(mapname) .. ", " .. cooldown .. ")")
+	end
+end
 
 function extension.RegisterOptions()
 	if PAM.vote_type ~= "map" then return end
@@ -16,10 +36,7 @@ function extension.RegisterOptions()
 	local all_maps = file.Find("maps/*.bsp", "GAME")
 	local starting_option_count = PAM.option_count
 
-	local prefixes = string.Split(extension.settings.prefixes, ",")
-	local limit = extension.settings.limit
-	local blacklist = extension.settings.blacklist
-	local whitelist = extension.settings.whitelist
+	local prefixes = string.Split(prefixes, ",")
 
 	for _, map in RandomPairs(all_maps) do
 		map = map:sub(1, -5)
@@ -30,7 +47,7 @@ function extension.RegisterOptions()
 		end
 
 		-- don't add maps which were played recently
-		if PAM.GetMapCooldown(map) > 0 then
+		if GetMapCooldown(map) > 0 then
 			continue
 		end
 
@@ -70,34 +87,48 @@ function extension.OnWinnerAnnounced(vote_type, option)
 	if data then
 		for _, heat_info in ipairs(data) do
 			local mapname = heat_info["id"]
-			PAM.SetMapCooldown(mapname, PAM.GetMapCooldown(mapname) - 1)
+			SetMapCooldown(mapname, GetMapCooldown(mapname) - 1)
 		end
 	end
 
 	-- set/reset the cooldown of the winning map
-	PAM.SetMapCooldown(winning_map, GetConVar("pam_map_cooldown"):GetInt())
+	SetMapCooldown(winning_map, cooldown)
 end
 
 PAM.extension_handler.RegisterExtension(extension)
 
--- cooldown stuff
-if not sql.TableExists("pam_map_cooldowns") then
-	sql.Query("CREATE TABLE pam_map_cooldowns(id TEXT NOT NULL PRIMARY KEY, heat INTEGER NOT NULL)")
-end
+-- Settings
+local path = {"pam", extension.name}
+local prefixes_setting_id = "prefixes"
+local blacklist_setting_id = "blacklist"
+local whitelist_setting_id = "whitelist"
+local limit_setting_id = "limit"
+local cooldown_setting_id = "cooldown"
 
-function PAM.GetMapCooldown(mapname)
-	local data = sql.Query("SELECT heat FROM pam_map_cooldowns WHERE id IS " .. sql.SQLStr(mapname))
-	if data then
-		return tonumber(data[1]["heat"])
-	else
-		return 0
-	end
-end
+pacoman.server_settings:AddSetting(path, prefixes_setting_id, pacoman.P_TYPE_STRING, prefixes)
+pacoman.server_settings:AddSetting(path, blacklist_setting_id, pacoman.P_TYPE_STRING, blacklist)
+pacoman.server_settings:AddSetting(path, whitelist_setting_id, pacoman.P_TYPE_STRING, whitelist)
+pacoman.server_settings:AddSetting(path, limit_setting_id, pacoman.P_TYPE_INTEGER, limit)
+pacoman.server_settings:AddSetting(path, cooldown_setting_id, pacoman.P_TYPE_INTEGER, cooldown)
 
-function PAM.SetMapCooldown(mapname, cooldown)
-	if(cooldown <= 0) then
-		sql.Query("DELETE FROM pam_map_cooldowns WHERE id IS " .. sql.SQLStr(mapname))
-	else
-		sql.Query("INSERT OR REPLACE INTO pam_map_cooldowns VALUES( " .. sql.SQLStr(mapname) .. ", " .. cooldown .. ")")
-	end
-end
+prefixes = pacoman.server_settings:GetActiveValue(path, prefixes_setting_id)
+blacklist = pacoman.server_settings:GetActiveValue(path, blacklist_setting_id)
+whitelist = pacoman.server_settings:GetActiveValue(path, whitelist_setting_id)
+limit = pacoman.server_settings:GetActiveValue(path, limit_setting_id)
+cooldown = pacoman.server_settings:GetActiveValue(path, cooldown_setting_id)
+
+pacoman.server_settings:AddCallback(path, prefixes_setting_id, function(new_value)
+	prefixes = new_value
+end)
+pacoman.server_settings:AddCallback(path, blacklist_setting_id, function(new_value)
+	blacklist = new_value
+end)
+pacoman.server_settings:AddCallback(path, whitelist_setting_id, function(new_value)
+	whitelist = new_value
+end)
+pacoman.server_settings:AddCallback(path, limit_setting_id, function(new_value)
+	limit = new_value
+end)
+pacoman.server_settings:AddCallback(path, cooldown_setting_id, function(new_value)
+	cooldown = new_value
+end)

@@ -1,16 +1,16 @@
 local extension = {}
 extension.name = "gamemode"
-extension.settings = {
-	vote_length = 20,
-	blacklist = "base"
-}
+extension.enabled = false
+
+local vote_length = 20
+local blacklist = "base"
 
 function extension.RegisterSpecialOptions()
 	if PAM.vote_type ~= "map" then return end
 
 	PAM.RegisterOption("change_gamemode", function()
 		PAM.Cancel()
-		PAM.Start("gamemode", extension.settings.vote_length, function(option)
+		PAM.Start("gamemode", vote_length, function(option)
 			PAM.ChangeGamemode(option)
 			PAM.Cancel()
 			PAM.Start()
@@ -24,8 +24,6 @@ function extension.RegisterOptions()
 	local all_gamemodes = engine.GetGamemodes()
 	local gamemode_amount = 0
 
-	local blacklist = extension.settings.blacklist
-
 	for _, gamemode_table in ipairs(all_gamemodes) do
 		-- don't add blacklisted gamemodes
 		if string.find(blacklist, gamemode_table.name) then
@@ -37,3 +35,20 @@ function extension.RegisterOptions()
 end
 
 PAM.extension_handler.RegisterExtension(extension)
+
+local path = {"pam", extension.name}
+local vote_length_setting_id = "vote_length"
+local blacklist_setting_id = "blacklist"
+
+pacoman.server_settings:AddSetting(path, vote_length_setting_id, pacoman.P_TYPE_INTEGER, vote_length)
+pacoman.server_settings:AddSetting(path, blacklist_setting_id, pacoman.P_TYPE_STRING, blacklist)
+
+vote_length = pacoman.server_settings:GetActiveValue(path, vote_length_setting_id)
+blacklist = pacoman.server_settings:GetActiveValue(path, blacklist_setting_id)
+
+pacoman.server_settings:AddCallback(path, vote_length_setting_id, function(new_value)
+	vote_length = new_value
+end)
+pacoman.server_settings:AddCallback(path, blacklist_setting_id, function(new_value)
+	blacklist = new_value
+end)
