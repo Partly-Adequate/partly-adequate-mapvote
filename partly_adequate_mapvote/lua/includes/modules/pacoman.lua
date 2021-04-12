@@ -97,14 +97,14 @@ end
 -- Calls all callbacks at the specified call_id
 -- @param string call_id the id that is used to call the callback with
 -- @local
-local function CallCallbacks(call_id)
+local function CallCallbacks(call_id, value)
 	local callback_list = callback_lists[call_id]
 	if not callback_list then return end
 
 	local callbacks = callback_list.callbacks
 
 	for i = 1, #callbacks do
-		callbacks[i]()
+		callbacks[i](value)
 	end
 end
 
@@ -439,6 +439,9 @@ function UpdateGameProperty(id, value)
 	game_property:SetValue(value)
 end
 
+-- cache for full_id -> setting
+local all_settings = {}
+
 -- TODO documentation for Setting class
 local Setting = {}
 Setting.__index = Setting
@@ -457,13 +460,17 @@ function Setting:Create(path_id, id, type, value)
 	local setting = {}
 	setmetatable(setting, self)
 
+	local full_id = path_id .. setting_separator .. PrepareString(id)
+
 	setting.id = id
-	setting.full_id = path_id .. setting_separator .. PrepareString(id)
+	setting.full_id = full_id
 	setting.type = type
 	setting.value = value
 	setting.active_value = value
 	setting.sources = {}
 	setting.source_indices = {}
+
+	all_settings[full_id] = setting
 
 	return setting
 end
@@ -656,6 +663,7 @@ end
 function Setting:Remove()
 	self:MakeIndependent()
 	self:OnRemoved()
+	all_settings[self.full_id] = nil
 end
 
 ---
@@ -1011,7 +1019,7 @@ if SERVER then
 		-- Tasty spaghetti
 		setting.OnSourceAdded = OnServerSettingAdded
 		setting.OnActiveValueChanged = function(self)
-			CallCallbacks(self:GetFullID())
+			CallCallbacks(self:GetFullID(), self:GetActiveValue())
 		end
 		setting.OnRemoved = OnServerSettingRemoved
 
@@ -1075,7 +1083,7 @@ else
 			local full_id = self:GetFullID()
 			if overrides[full_id] then return end
 
-			CallCallbacks(full_id)
+			CallCallbacks(full_id, self:GetActiveValue())
 		end
 		setting.OnRemoved = OnClientSettingRemoved
 
@@ -1092,7 +1100,7 @@ else
 		-- Tasty spaghetti
 		setting.OnSourceAdded = OnServerSettingAdded
 		setting.OnActiveValueChanged = function(self)
-			CallCallbacks(self:GetFullID())
+			CallCallbacks(self:GetFullID(), self:GetActiveValue())
 		end
 		setting.OnRemoved = OnServerSettingRemoved
 	end
@@ -1109,7 +1117,9 @@ else
 
 		overrides[setting_id] = nil
 		RemoveCallbacks(full_id)
-		CallCallbacks(setting_id)
+
+		-- call callbacks for original setting
+		CallCallbacks(setting_id, all_settings[setting_id]:GetActiveValue())
 	end
 
 	local function OnClientOverrideAdded(self, setting)
@@ -1121,15 +1131,16 @@ else
 		-- Tasty spaghetti
 		setting.OnSourceAdded = OnServerSettingAdded
 		setting.OnActiveValueChanged = function(self)
+			local new_value = self:GetActiveValue()
+			CallCallbacks(full_id, new_value)
 			-- call callbacks for original setting
-			CallCallbacks(setting_id)
-			CallCallbacks(full_id)
+			CallCallbacks(setting_id, new_value)
 		end
 
 		setting.OnRemoved = OnClientOverrideRemoved
 
 		-- call callbacks
-		CallCallbacks(setting_id)
+		CallCallbacks(setting_id, self:GetActiveValue())
 	end
 
 	client_overrides.OnSettingAdded = OnClientOverrideAdded
