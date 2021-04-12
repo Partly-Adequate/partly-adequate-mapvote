@@ -925,8 +925,8 @@ function Root_Namespace:RemoveSetting(path, setting_id)
 end
 
 ---
--- @param string setting_id
--- @param table path
+-- @param table path a list of strings that represent the Setting's position in the Namespace tree
+-- @param string setting_id the name/identifier of the setting that should be removed
 -- @return Setting the Setting with the given setting_id at the given path
 -- @note will return nil when no Setting with the given id is found
 function Root_Namespace:GetSetting(path, setting_id)
@@ -940,6 +940,33 @@ function Root_Namespace:GetSetting(path, setting_id)
 	end
 
 	return namespace:GetSetting(setting_id)
+end
+
+---
+-- adds a callback to the setting
+-- the setting needs to exist in this namespace
+-- @param table path a list of strings that represent the Setting's position in the Namespace tree
+-- @param string setting_id the name/identifier of the setting that should be removed
+-- @param string callback_id the id to store this callback with
+-- @param function callback the function to call
+function Root_Namespace:AddCallback(path, setting_id, callback_id, callback)
+	local setting = self:GetSetting(path, setting_id)
+	if not setting then return end
+
+	AddCallback(setting:GetFullID(), callback_id, callback)
+end
+
+---
+-- removes a callback
+-- the setting needs to exist in this namespace
+-- @param table path a list of strings that represent the Setting's position in the Namespace tree
+-- @param string setting_id the name/identifier of the setting that should be removed
+-- @param string callback_id the id of the callback that should be removed
+function Root_Namespace:RemoveCallback(path, setting_id, callback_id)
+	local setting = self:GetSetting(path, setting_id)
+	if not setting then return end
+
+	RemoveCallback(setting:GetFullID(), callback_id)
 end
 
 ---
@@ -984,7 +1011,7 @@ if SERVER then
 		-- Tasty spaghetti
 		setting.OnSourceAdded = OnServerSettingAdded
 		setting.OnActiveValueChanged = function(self)
-			CallCallbacks(self.GetFullID())
+			CallCallbacks(self:GetFullID())
 		end
 		setting.OnRemoved = OnServerSettingRemoved
 
@@ -1077,12 +1104,18 @@ else
 	end
 
 	local function OnClientOverrideRemoved(self, setting)
-		overrides[OverrideIDToClientSettingID(setting:GetFullID())] = nil
+		local full_id = setting:GetFullID();
+		local setting_id = OverrideIDToClientSettingID(full_id)
+
+		overrides[setting_id] = nil
+		RemoveCallbacks(full_id)
+		CallCallbacks(setting_id)
 	end
 
 	local function OnClientOverrideAdded(self, setting)
 		-- mark callback id as overriden
-		local setting_id = OverrideIDToClientSettingID(setting:GetFullID())
+		local full_id = setting:GetFullID()
+		local setting_id = OverrideIDToClientSettingID(full_id)
 		overrides[setting_id] = true
 
 		-- Tasty spaghetti
@@ -1090,9 +1123,13 @@ else
 		setting.OnActiveValueChanged = function(self)
 			-- call callbacks for original setting
 			CallCallbacks(setting_id)
+			CallCallbacks(full_id)
 		end
 
 		setting.OnRemoved = OnClientOverrideRemoved
+
+		-- call callbacks
+		CallCallbacks(setting_id)
 	end
 
 	client_overrides.OnSettingAdded = OnClientOverrideAdded
