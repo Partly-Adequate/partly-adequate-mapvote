@@ -1019,6 +1019,9 @@ else
 	local server_settings_id = "server_settings"
 	local client_overrides_id = "client_overrides"
 
+	-- stores which client settings are currently overriden
+	local overrides = {}
+
 	-- root namespace for all client settings
 	client_settings = Root_Namespace:Create(client_settings_id)
 	-- root namespace for a copy of all server settings
@@ -1041,8 +1044,11 @@ else
 		-- Tasty spaghetti
 		setting.OnSourceAdded = OnClientSettingAdded
 		setting.OnActiveValueChanged = function(self)
-			// TODO check for override
-			CallCallbacks(self.GetFullID())
+			-- only call callbacks when this setting isn't overriden
+			local full_id = self:GetFullID()
+			if overrides[full_id] then return end
+
+			CallCallbacks(full_id)
 		end
 		setting.OnRemoved = OnClientSettingRemoved
 
@@ -1059,25 +1065,31 @@ else
 		-- Tasty spaghetti
 		setting.OnSourceAdded = OnServerSettingAdded
 		setting.OnActiveValueChanged = function(self)
-			-- TODO check for override
-			CallCallbacks(self.GetFullID())
+			CallCallbacks(self:GetFullID())
 		end
 		setting.OnRemoved = OnServerSettingRemoved
 	end
 
 	server_settings.OnSettingAdded = OnServerSettingAdded
 
+	local function OverrideIDToClientSettingID(override_id)
+		return client_settings_id .. string.sub(override_id, #client_overrides_id + 1, -1)
+	end
+
 	local function OnClientOverrideRemoved(self, setting)
-		-- TODO give original setting control of callbacks
+		overrides[OverrideIDToClientSettingID(setting:GetFullID())] = nil
 	end
 
 	local function OnClientOverrideAdded(self, setting)
-		-- TODO take control of callbacks from original setting
+		-- mark callback id as overriden
+		local setting_id = OverrideIDToClientSettingID(setting:GetFullID())
+		overrides[setting_id] = true
 
 		-- Tasty spaghetti
 		setting.OnSourceAdded = OnServerSettingAdded
 		setting.OnActiveValueChanged = function(self)
-			CallCallbacks(self.GetFullID())
+			-- call callbacks for original setting
+			CallCallbacks(setting_id)
 		end
 
 		setting.OnRemoved = OnClientOverrideRemoved
