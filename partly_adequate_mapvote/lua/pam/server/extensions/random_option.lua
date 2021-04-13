@@ -19,9 +19,7 @@ PAM.extension_handler.RegisterExtension(extension)
 local path = {"pam", extension.name}
 local allow_specials_setting_id = "allow_specials"
 
-pacoman.server_settings:AddSetting(path, allow_specials_setting_id, pacoman.P_TYPE_BOOLEAN, allow_specials)
-
-allow_specials = pacoman.server_settings:GetActiveValue(path, allow_specials_setting_id)
+allow_specials = pacoman.server_settings:AddSetting(path, allow_specials_setting_id, pacoman.P_TYPE_BOOLEAN, allow_specials)
 
 pacoman.server_settings:AddCallback(path, allow_specials_setting_id, function(new_value)
 	allow_specials = new_value

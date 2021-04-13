@@ -26,42 +26,31 @@ if not sql.TableExists("pam_pickcounts") then
 	sql.Query("CREATE TABLE pam_pickcounts(id TEXT NOT NULL PRIMARY KEY, pickcount INTEGER NOT NULL)")
 end
 
-PAM.settings = {
-	vote_length = 30,
-	rtv_enabled = false,
-	rtv_delayed = false,
-	rtv_percentage = 0.6
-}
-
 -- settings
 local path = {"pam"}
 local rtv_path = {"pam", "rtv"}
+local server_settings = pacoman.server_settings
 local vote_length_setting_id = "vote_length"
 local rtv_enabled_setting_id = "is_enabled"
 local rtv_delayed_setting_id = "is_delayed"
 local rtv_percentage_setting_id = "percentage"
 
-pacoman.server_settings:AddSetting(path, vote_length_setting_id, pacoman.P_TYPE_INTEGER, PAM.settings.vote_length)
-pacoman.server_settings:AddSetting(rtv_path, rtv_enabled_setting_id, pacoman.P_TYPE_BOOLEAN, PAM.settings.rtv_enabled)
-pacoman.server_settings:AddSetting(rtv_path, rtv_delayed_setting_id, pacoman.P_TYPE_BOOLEAN, PAM.settings.rtv_delayed)
-pacoman.server_settings:AddSetting(rtv_path, rtv_percentage_setting_id, pacoman.P_TYPE_PERCENTAGE, PAM.settings.rtv_percentage)
-
 PAM.settings = {
-	vote_length = pacoman.server_settings:GetActiveValue({"pam"}, "vote_length"),
-	rtv_enabled = pacoman.server_settings:GetActiveValue({"pam", "rtv"}, "is_enabled"),
-	rtv_delayed = pacoman.server_settings:GetActiveValue({"pam", "rtv"}, "is_delayed"),
-	rtv_percentage = pacoman.server_settings:GetActiveValue({"pam", "rtv"}, "percentage")
+	vote_length = server_settings:AddSetting(path, vote_length_setting_id, pacoman.P_TYPE_INTEGER, 30),
+	rtv_enabled = server_settings:AddSetting(rtv_path, rtv_enabled_setting_id, pacoman.P_TYPE_BOOLEAN, false),
+	rtv_delayed = server_settings:AddSetting(rtv_path, rtv_delayed_setting_id, pacoman.P_TYPE_BOOLEAN, false),
+	rtv_percentage = server_settings:AddSetting(rtv_path, rtv_percentage_setting_id, pacoman.P_TYPE_PERCENTAGE, 0.6)
 }
 
-pacoman.server_settings:AddCallback({"pam"}, "vote_length", function(new_value)
+pacoman.server_settings:AddCallback(path, vote_length_setting_id, function(new_value)
 	PAM.settings.vote_length = new_value
 end)
-pacoman.server_settings:AddCallback({"pam", "rtv"}, "is_enabled", function(new_value)
+pacoman.server_settings:AddCallback(rtv_path, rtv_enabled_setting_id, function(new_value)
 	PAM.settings.rtv_enabled = new_value
 end)
-pacoman.server_settings:AddCallback({"pam", "rtv"}, "is_delayed", function(new_value)
+pacoman.server_settings:AddCallback(rtv_path, rtv_delayed_setting_id, function(new_value)
 	PAM.settings.rtv_delayed = new_value
 end)
-pacoman.server_settings:AddCallback({"pam", "rtv"}, "percentage", function(new_value)
+pacoman.server_settings:AddCallback(rtv_path, rtv_percentage_setting_id, function(new_value)
 	PAM.settings.rtv_percentage = new_value
 end)

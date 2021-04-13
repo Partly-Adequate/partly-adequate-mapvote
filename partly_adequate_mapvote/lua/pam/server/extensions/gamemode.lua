@@ -2,7 +2,7 @@ local extension = {}
 extension.name = "gamemode"
 extension.enabled = false
 
-local vote_length = 20
+local vote_length = 30
 local blacklist = "base"
 
 function extension.RegisterSpecialOptions()
@@ -40,11 +40,8 @@ local path = {"pam", extension.name}
 local vote_length_setting_id = "vote_length"
 local blacklist_setting_id = "blacklist"
 
-pacoman.server_settings:AddSetting(path, vote_length_setting_id, pacoman.P_TYPE_INTEGER, vote_length)
-pacoman.server_settings:AddSetting(path, blacklist_setting_id, pacoman.P_TYPE_STRING, blacklist)
-
-vote_length = pacoman.server_settings:GetActiveValue(path, vote_length_setting_id)
-blacklist = pacoman.server_settings:GetActiveValue(path, blacklist_setting_id)
+vote_length = pacoman.server_settings:AddSetting(path, vote_length_setting_id, pacoman.P_TYPE_INTEGER, vote_length)
+blacklist = pacoman.server_settings:AddSetting(path, blacklist_setting_id, pacoman.P_TYPE_STRING, blacklist)
 
 pacoman.server_settings:AddCallback(path, vote_length_setting_id, function(new_value)
 	vote_length = new_value

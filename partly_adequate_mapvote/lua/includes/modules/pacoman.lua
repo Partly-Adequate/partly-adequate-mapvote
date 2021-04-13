@@ -806,7 +806,9 @@ end
 
 ---
 -- Adds a Setting to this Namespace's Settings
--- @param Setting setting the Setting to add
+-- @param string setting_id the id of the setting to add
+-- @param type type the type of the setting
+-- @param any value the value of the setting
 -- @note If a Setting with the same name/identifier already exists within this Namespace's Settings, it won't be added.
 function Namespace:AddSetting(setting_id, type, value)
 	if self:GetSetting(setting_id) then return end
@@ -892,8 +894,12 @@ end
 -- Adds a setting at the given path to this Root_Namespace
 -- @param table path a list of strings that represent the Setting's position in the Namespace tree
 -- @param Setting setting the Setting to add
+-- @param string type_id the id of the type of the setting
+-- @param any value the value of the setting
+-- @return any the active value of the setting
 -- @note this calls the Root_Namespace:OnSettingAdded hook which can be used to add callbacks or change the setting's value
 -- @note this will automatically create Namespaces if necessary
+-- @note returns nil when the type isn't found or when the value doesn't fit the type
 function Root_Namespace:AddSetting(path, id, type_id, value)
 	local type = GetType(type_id)
 	if not type then return end
@@ -910,9 +916,9 @@ function Root_Namespace:AddSetting(path, id, type_id, value)
 
 	if not setting then return end
 
-	setting.OnSourceAdded = self.OnSettingAdded
-
 	self:OnSettingAdded(setting)
+
+	return setting:GetActiveValue()
 end
 
 ---
