@@ -1,6 +1,7 @@
 local PANEL = {}
 
-local scale = pacoman.client_settings:GetActiveValue({"pam", "default_votescreen"}, "scale") or 100
+local setting_namespace = PAM.setting_namespace:GetChild("default_votescreen")
+local scale = setting_namespace and setting_namespace:GetSetting("scale"):GetActiveValue() or 100
 
 scale = scale / 100
 

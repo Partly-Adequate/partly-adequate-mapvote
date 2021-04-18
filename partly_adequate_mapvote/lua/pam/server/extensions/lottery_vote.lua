@@ -1,5 +1,6 @@
 local extension = {}
 extension.name = "lottery_voting"
+extension.enabled = false
 
 function extension.GetWinningKey(vote_results)
 	local vote_sum = 0

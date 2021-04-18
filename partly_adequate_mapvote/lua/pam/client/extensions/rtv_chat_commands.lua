@@ -40,11 +40,11 @@ end)
 
 PAM.extension_handler.RegisterExtension(extension)
 
-local path = {"pam", extension.name}
-local commands_setting_id = "commands"
+local setting_namespace = PAM.setting_namespace:AddChild(extension.name)
+local commands_setting = setting_namespace:AddSetting("commands", pacoman.P_TYPE_STRING, commands)
 
-commands = pacoman.client_settings:AddSetting(path, commands_setting_id, pacoman.P_TYPE_STRING, commands)
+commands = commands_setting:GetActiveValue()
 
-pacoman.client_settings:AddCallback(path, commands_setting_id, function(new_value)
+commands_setting:AddCallback("default", function(new_value)
 	commands = new_value
 end)

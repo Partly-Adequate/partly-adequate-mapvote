@@ -36,16 +36,16 @@ end
 
 PAM.extension_handler.RegisterExtension(extension)
 
-local path = {"pam", extension.name}
-local vote_length_setting_id = "vote_length"
-local blacklist_setting_id = "blacklist"
+local setting_namespace = PAM.setting_namespace:AddChild(extension.name)
+local vote_length_setting = setting_namespace:AddSetting("vote_length", pacoman.P_TYPE_INTEGER, vote_length)
+local blacklist_setting = setting_namespace:AddSetting("blacklist", pacoman.P_TYPE_STRING, blacklist)
 
-vote_length = pacoman.server_settings:AddSetting(path, vote_length_setting_id, pacoman.P_TYPE_INTEGER, vote_length)
-blacklist = pacoman.server_settings:AddSetting(path, blacklist_setting_id, pacoman.P_TYPE_STRING, blacklist)
+vote_length = vote_length_setting:GetActiveValue()
+blacklist = blacklist_setting:GetActiveValue()
 
-pacoman.server_settings:AddCallback(path, vote_length_setting_id, function(new_value)
+vote_length_setting:AddCallback("default", function(new_value)
 	vote_length = new_value
 end)
-pacoman.server_settings:AddCallback(path, blacklist_setting_id, function(new_value)
+blacklist_setting:AddCallback("default", function(new_value)
 	blacklist = new_value
 end)

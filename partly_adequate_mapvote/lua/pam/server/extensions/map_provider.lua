@@ -98,31 +98,32 @@ end
 PAM.extension_handler.RegisterExtension(extension)
 
 -- Settings
-local path = {"pam", extension.name}
-local prefixes_setting_id = "prefixes"
-local blacklist_setting_id = "blacklist"
-local whitelist_setting_id = "whitelist"
-local limit_setting_id = "limit"
-local cooldown_setting_id = "cooldown"
+local setting_namespace = PAM.setting_namespace:AddChild(extension.name)
 
-prefixes = pacoman.server_settings:AddSetting(path, prefixes_setting_id, pacoman.P_TYPE_STRING, prefixes)
-blacklist = pacoman.server_settings:AddSetting(path, blacklist_setting_id, pacoman.P_TYPE_STRING, blacklist)
-whitelist = pacoman.server_settings:AddSetting(path, whitelist_setting_id, pacoman.P_TYPE_STRING, whitelist)
-limit = pacoman.server_settings:AddSetting(path, limit_setting_id, pacoman.P_TYPE_INTEGER, limit)
-cooldown = pacoman.server_settings:AddSetting(path, cooldown_setting_id, pacoman.P_TYPE_INTEGER, cooldown)
+prefixes_setting = setting_namespace:AddSetting("prefixes", pacoman.P_TYPE_STRING, prefixes)
+blacklist_setting = setting_namespace:AddSetting("blacklist", pacoman.P_TYPE_STRING, blacklist)
+whitelist_setting = setting_namespace:AddSetting("whitelist", pacoman.P_TYPE_STRING, whitelist)
+limit_setting = setting_namespace:AddSetting("limit", pacoman.P_TYPE_INTEGER, limit)
+cooldown_setting = setting_namespace:AddSetting("cooldown", pacoman.P_TYPE_INTEGER, cooldown)
 
-pacoman.server_settings:AddCallback(path, prefixes_setting_id, function(new_value)
+prefixes = prefixes_setting:GetActiveValue()
+blacklist = blacklist_setting:GetActiveValue()
+whitelist = whitelist_setting:GetActiveValue()
+limit = limit_setting:GetActiveValue()
+cooldown = cooldown_setting:GetActiveValue()
+
+prefixes_setting:AddCallback("default", function(new_value)
 	prefixes = new_value
 end)
-pacoman.server_settings:AddCallback(path, blacklist_setting_id, function(new_value)
+blacklist_setting:AddCallback("default", function(new_value)
 	blacklist = new_value
 end)
-pacoman.server_settings:AddCallback(path, whitelist_setting_id, function(new_value)
+whitelist_setting:AddCallback("default", function(new_value)
 	whitelist = new_value
 end)
-pacoman.server_settings:AddCallback(path, limit_setting_id, function(new_value)
+limit_setting:AddCallback("default", function(new_value)
 	limit = new_value
 end)
-pacoman.server_settings:AddCallback(path, cooldown_setting_id, function(new_value)
+cooldown_setting:AddCallback("default", function(new_value)
 	cooldown = new_value
 end)

@@ -37,14 +37,11 @@ function PAM.extension_handler.RegisterExtension(extension)
 	PAM.extensions[id] = extension
 	extension_map[extension_name] = id
 
-	local setting_path = {"pam", extension_name}
-	local setting_id = "is_enabled"
+	local enabled_setting = PAM.setting_namespace:AddChild(extension.name):AddSetting("enabled", pacoman.P_TYPE_BOOLEAN, extension.enabled)
 
-	setting_namespace:AddSetting(setting_path, setting_id, pacoman.P_TYPE_BOOLEAN, extension.enabled)
+	extension.enabled = enabled_setting:GetActiveValue()
 
-	extension.enabled = setting_namespace:GetActiveValue(setting_path, setting_id)
-
-	setting_namespace:AddCallback(setting_path, setting_id, function(value)
+	enabled_setting:AddCallback("extension handler", function(value)
 		if value then
 			PAM.extension_handler.EnableExtension(extension)
 			return
@@ -71,6 +68,7 @@ else
 		local cl_extension = cl_extensions[i]
 		include("pam/client/extensions/" .. cl_extension)
 	end
+	PrintTable(pacoman.server_settings)
 end
 
 function PAM.extension_handler.OnInitialize()
