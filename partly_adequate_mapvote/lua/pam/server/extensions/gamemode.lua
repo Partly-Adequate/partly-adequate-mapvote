@@ -37,8 +37,8 @@ end
 PAM.extension_handler.RegisterExtension(extension)
 
 local setting_namespace = PAM.setting_namespace:AddChild(extension.name)
-local vote_length_setting = setting_namespace:AddSetting("vote_length", pacoman.P_TYPE_INTEGER, vote_length)
-local blacklist_setting = setting_namespace:AddSetting("blacklist", pacoman.P_TYPE_STRING, blacklist)
+local vote_length_setting = setting_namespace:AddSetting("vote_length", pacoman.TYPE_INTEGER, vote_length)
+local blacklist_setting = setting_namespace:AddSetting("blacklist", pacoman.TYPE_STRING, blacklist)
 
 vote_length = vote_length_setting:GetActiveValue()
 blacklist = blacklist_setting:GetActiveValue()

@@ -48,7 +48,7 @@ end
 PAM.extension_handler.RegisterExtension(extension)
 
 local setting_namespace = PAM.setting_namespace:AddChild(extension.name)
-setting_namespace:AddSetting("scale", pacoman.P_TYPE_INTEGER, 100):AddCallback("default", function(new_value)
+setting_namespace:AddSetting("scale", pacoman.TYPE_INTEGER, 100):AddCallback("default", function(new_value)
 	include("pam/client/extensions/default_votescreen_panel.lua")
 	if not extension.enabled then return end
 

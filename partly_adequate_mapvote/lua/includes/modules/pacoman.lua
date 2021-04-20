@@ -10,19 +10,6 @@ local namespace_separator = "/"
 -- @TypeText string string that's used to separate settings when a path is turned into a string
 local setting_separator = "."
 
--- @TypeText string identifier for a pacoman Type that represents all types of values
-P_TYPE_ANY = "any"
--- @TypeText string identifier for a pacoman Type that represents strings
-P_TYPE_STRING = "string"
--- @TypeText string identifier for a pacoman Type that represents bools
-P_TYPE_BOOLEAN = "bool"
--- @TypeText string identifier for a pacoman Type that represents numbers
-P_TYPE_NUMBER = "number"
--- @TypeText string identifier for a pacoman Type that represents percentages
-P_TYPE_PERCENTAGE = "percentage"
--- @TypeText string identifier for a pacoman Type that represents integers
-P_TYPE_INTEGER = "integer"
-
 local callback_lists = {}
 
 ---
@@ -213,7 +200,10 @@ local types = {}
 -- @realm shared
 function RegisterType(id, is_value_valid, serialize, deserialize, compare_values)
 	if types[id] then return end
-	types[id] = Type:Create(id, is_value_valid, serialize, deserialize, compare_values)
+	local type = Type:Create(id, is_value_valid, serialize, deserialize, compare_values)
+
+	types[id] = type
+	return type
 end
 
 local function GetType(id)
@@ -269,12 +259,18 @@ local function DeserializeAny(str)
 	return deserialized and deserialized.value
 end
 
-RegisterType(P_TYPE_ANY, nil, SerializeAny, DeserializeAny)
-RegisterType(P_TYPE_STRING, isstring, tostring, tostring)
-RegisterType(P_TYPE_BOOLEAN, isbool, tostring, tobool)
-RegisterType(P_TYPE_NUMBER, isnumber, tostring, tonumber, CompareNumber)
-RegisterType(P_TYPE_PERCENTAGE, IsPercentage, tostring, tonumber, CompareNumber)
-RegisterType(P_TYPE_INTEGER, IsInteger, tostring, tonumber, CompareNumber)
+-- @TypeText Type describes all types of values
+TYPE_ANY = RegisterType("any", nil, SerializeAny, DeserializeAny)
+-- @TypeText Type describes strings
+TYPE_STRING = RegisterType("string", isstring, tostring, tostring)
+-- @TypeText Type describes booleans
+TYPE_BOOLEAN = RegisterType("boolean", isbool, tostring, tobool)
+-- @TypeText Type describes numbers
+TYPE_NUMBER = RegisterType("number", isnumber, tostring, tonumber, CompareNumber)
+-- @TypeText Type describes percentages (numbers in interval [0;1])
+TYPE_PERCENTAGE = RegisterType("percentage", IsPercentage, tostring, tonumber, CompareNumber)
+-- @TypeText Type describes integers
+TYPE_INTEGER = RegisterType("integer", IsInteger, tostring, tonumber, CompareNumber)
 
 -- TODO documentation for Game_Property class
 local Game_Property = {}
@@ -754,14 +750,11 @@ end
 ---
 -- Adds a Setting to this Namespace's Settings
 -- @param string setting_id the id of the setting to add
--- @param string type_id the id of the type of the setting
+-- @param Type type the type of the setting
 -- @param any value the value of the setting
 -- @note If a Setting with the same name/identifier already exists within this Namespace's Settings, it will be overriden.
-function Namespace:AddSetting(setting_id, type_id, value)
+function Namespace:AddSetting(setting_id, type, value)
 	self:RemoveSetting(setting_id)
-
-	local type = GetType(type_id)
-	if not type then return end
 
 	local index = #self.settings + 1
 

@@ -100,11 +100,11 @@ PAM.extension_handler.RegisterExtension(extension)
 -- Settings
 local setting_namespace = PAM.setting_namespace:AddChild(extension.name)
 
-prefixes_setting = setting_namespace:AddSetting("prefixes", pacoman.P_TYPE_STRING, prefixes)
-blacklist_setting = setting_namespace:AddSetting("blacklist", pacoman.P_TYPE_STRING, blacklist)
-whitelist_setting = setting_namespace:AddSetting("whitelist", pacoman.P_TYPE_STRING, whitelist)
-limit_setting = setting_namespace:AddSetting("limit", pacoman.P_TYPE_INTEGER, limit)
-cooldown_setting = setting_namespace:AddSetting("cooldown", pacoman.P_TYPE_INTEGER, cooldown)
+prefixes_setting = setting_namespace:AddSetting("prefixes", pacoman.TYPE_STRING, prefixes)
+blacklist_setting = setting_namespace:AddSetting("blacklist", pacoman.TYPE_STRING, blacklist)
+whitelist_setting = setting_namespace:AddSetting("whitelist", pacoman.TYPE_STRING, whitelist)
+limit_setting = setting_namespace:AddSetting("limit", pacoman.TYPE_INTEGER, limit)
+cooldown_setting = setting_namespace:AddSetting("cooldown", pacoman.TYPE_INTEGER, cooldown)
 
 prefixes = prefixes_setting:GetActiveValue()
 blacklist = blacklist_setting:GetActiveValue()

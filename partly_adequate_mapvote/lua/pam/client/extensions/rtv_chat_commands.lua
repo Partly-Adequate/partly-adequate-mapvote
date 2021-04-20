@@ -41,7 +41,7 @@ end)
 PAM.extension_handler.RegisterExtension(extension)
 
 local setting_namespace = PAM.setting_namespace:AddChild(extension.name)
-local commands_setting = setting_namespace:AddSetting("commands", pacoman.P_TYPE_STRING, commands)
+local commands_setting = setting_namespace:AddSetting("commands", pacoman.TYPE_STRING, commands)
 
 commands = commands_setting:GetActiveValue()
 

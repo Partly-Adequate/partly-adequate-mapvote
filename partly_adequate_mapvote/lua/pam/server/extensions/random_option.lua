@@ -18,7 +18,7 @@ PAM.extension_handler.RegisterExtension(extension)
 
 local setting_namespace = PAM.setting_namespace:AddChild(extension.name)
 
-allow_specials_setting = setting_namespace:AddSetting("allow_specials", pacoman.P_TYPE_BOOLEAN, allow_specials)
+allow_specials_setting = setting_namespace:AddSetting("allow_specials", pacoman.TYPE_BOOLEAN, allow_specials)
 
 allow_specials = allow_specials_setting:GetActiveValue()
 

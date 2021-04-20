@@ -31,10 +31,10 @@ local rtv_namespace = setting_namespace:AddChild("rtv")
 
 PAM.setting_namespace = setting_namespace
 
-local vote_length_setting = setting_namespace:AddSetting("vote_length", pacoman.P_TYPE_INTEGER, 30)
-local rtv_enabled_setting = rtv_namespace:AddSetting("is_enabled", pacoman.P_TYPE_BOOLEAN, false)
-local rtv_delayed_setting = rtv_namespace:AddSetting("is_delayed", pacoman.P_TYPE_BOOLEAN, false)
-local rtv_percentage_setting = rtv_namespace:AddSetting("percentage", pacoman.P_TYPE_PERCENTAGE, 0.6)
+local vote_length_setting = setting_namespace:AddSetting("vote_length", pacoman.TYPE_INTEGER, 30)
+local rtv_enabled_setting = rtv_namespace:AddSetting("is_enabled", pacoman.TYPE_BOOLEAN, false)
+local rtv_delayed_setting = rtv_namespace:AddSetting("is_delayed", pacoman.TYPE_BOOLEAN, false)
+local rtv_percentage_setting = rtv_namespace:AddSetting("percentage", pacoman.TYPE_PERCENTAGE, 0.6)
 
 PAM.settings = {
 	vote_length = vote_length_setting:GetActiveValue(),
