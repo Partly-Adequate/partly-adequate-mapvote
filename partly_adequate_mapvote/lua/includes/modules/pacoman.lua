@@ -427,6 +427,7 @@ function Setting:Create(path_id, id, type, value)
 	setting.sources = {}
 	setting.source_indices = {}
 	setting.depends_on = nil
+	setting.parent = nil
 
 	all_settings[full_id] = setting
 
@@ -521,7 +522,7 @@ end
 
 ---
 -- makes this Setting depend on a Game_Property
--- @param GameProperty game_property the property to depend on
+-- @param Game_Property game_property the property to depend on
 -- @note In case this Setting already depends on a Game_Property it will remove the old dependency first.
 function Setting:MakeDependent(game_property)
 	if self:IsDependent() then
@@ -586,6 +587,8 @@ function Setting:AddSource(id, value)
 
 	-- check if the new setting should be the active setting
 	self:Update()
+
+	return source_setting
 end
 
 ---
@@ -722,6 +725,8 @@ function Namespace:AddChild(child_id)
 
 	local namespace = Namespace:Create(self.full_id, child_id)
 	namespace.OnSettingAdded = self.OnSettingAdded
+	namespace.OnSettingRemoved = self.OnSettingRemoved
+	namespace.OnChildAdded = self.OnChildAdded
 
 	self.children[index] = namespace
 	self.children_indices[child_id] = index
@@ -821,11 +826,20 @@ function Namespace:GetSettings()
 end
 
 ---
+-- will be called whenever a Child Namespace is created in this namespace
+-- this function will also be passed to any children that are added to this namespace
+-- @param Setting setting the setting that will be added
+-- @hook
+function Namespace:OnChildAdded(child_namespace)
+
+end
+
+---
 -- will be called whenever a Setting is added to this namespace
 -- this function will also be passed to any children that are added to this namespace
 -- @param Setting setting the setting that will be added
 -- @hook
-function Namespace.OnSettingAdded(setting)
+function Namespace:OnSettingAdded(setting)
 
 end
 
@@ -834,7 +848,7 @@ end
 -- this function will also be passed to any children that are added to this namespace
 -- @param Setting setting the setting that was be removed
 -- @hook
-function Namespace.OnSettingRemoved(setting)
+function Namespace:OnSettingRemoved(setting)
 
 end
 
@@ -847,51 +861,111 @@ if SERVER then
 	-- root namespace for all client overrides
 	client_overrides = Namespace:Create(client_overrides_id, nil)
 
-	local function UpdateSettingOnClients(setting)
-		print("[NYI] Settings can't be sent to clients")
-	end
-
-	local function RemoveSettingFromClients(setting)
-		print("[NYI] Settings can't be removed from clients")
-	end
-
-	local function OnServerSettingAdded(setting)
+	local function OnServerSettingAdded(self, setting)
 		-- TODO load value from database
 
 		setting.OnValueChanged = function(self)
 			-- TODO save value in database
-			UpdateSettingOnClients(self)
+			BroadcastValueChange(self)
 		end
 
 		-- TODO save value in database when it wasn't loaded
-		UpdateSettingOnClients(setting)
 	end
 
-	local function OnServerSettingRemoved(setting)
+	local function OnServerSettingRemoved(self, setting)
 		-- TODO delete Setting from database
-		RemoveSettingFromClients(self)
+		BroadcastSettingRemoval(self)
+	end
+
+	local function OnChildAdded(self, child_namespace)
+		BroadcastNamespaceCreation(self, child_namespace)
 	end
 
 	server_settings.OnSettingAdded = OnServerSettingAdded
 	server_settings.OnSettingRemoved = OnServerSettingRemoved
+	server_settings.OnChildAdded = OnChildAdded
 
-	local function OnClientOverrideAdded(setting)
+	local function OnClientOverrideAdded(self, setting)
 		setting.OnValueChanged = function(self)
 			-- TODO save setting in database
-			UpdateSettingOnClients(self)
+			BroadcastValueChange(self)
 		end
 
 		-- TODO save setting in database when it wasn't loaded
-		UpdateSettingOnClients(setting)
+		BroadcastSettingCreation(self, setting)
 	end
 
-	local function OnClientOverrideRemoved(setting)
+	local function OnClientOverrideRemoved(self, setting)
 		-- TODO delete Setting from database
-		RemoveSettingFromClients(setting)
+		BroadcastSettingRemoval(self, setting)
 	end
 
 	client_overrides.OnSettingAdded = OnClientOverrideAdded
 	client_overrides.OnSettingRemoved = OnClientOverrideRemoved
+	client_overrides.OnChildAdded = OnChildAdded
+
+	-- networking
+	util.AddNetworkString("PACOMAN_GamePropertyChanged")
+	util.AddNetworkString("PACOMAN_ValueChanged")
+	util.AddNetworkString("PACOMAN_SettingRemoved")
+	util.AddNetworkString("PACOMAN_NamespaceCreated")
+	util.AddNetworkString("PACOMAN_SettingCreated")
+	util.AddNetworkString("PACOMAN_SettingDependencyChanged")
+	util.AddNetworkString("PACOMAN_RequestFullState")
+	util.AddNetworkString("PACOMAN_SendFullState")
+
+	local function BroadcastGamePropertyChange(game_property)
+		net.Start("PACOMAN_GamePropertyChanged")
+		net.WriteString(game_property.id)
+		net.WriteString(game_property.type:Serialize(game_property.value))
+		net.Broadcast()
+	end
+
+	local function BroadcastValueChange(setting)
+		net.Start("PACOMAN_ValueChanged")
+		net.WriteString(setting.full_id)
+		net.WriteString(setting.type:Serialize(setting.value))
+		net.Broadcast()
+	end
+
+	local function BroadcastSettingRemoval(parent, setting)
+		net.Start("PACOMAN_SettingRemoved")
+		net.WriteString(parent.full_id)
+		net.WriteString(setting.id)
+		net.Broadcast()
+	end
+
+	local function BroadcastNamespaceCreation(parent, child)
+		net.Start("PACOMAN_NamespaceCreated")
+		net.WriteString(parent.full_id)
+		net.WriteString(child.id)
+		net.Broadcast()
+	end
+
+	local function BroadcastSettingCreation(parent, setting)
+		local type = setting.type
+		net.Start("PACOMAN_SettingCreated")
+		net.WriteString(parent.full_id)
+		net.WriteString(setting.id)
+		net.WriteString(type.id)
+		net.WriteString(type:Serialize(setting.value))
+		net.Broadcast()
+	end
+
+	local function BroadcastSettingDependencyChange(setting)
+		local game_property = setting.depends_on
+		net.Start("PACOMAN_SettingDependencyChanged")
+		net.Write(setting.full_id)
+		if game_property then
+			net.Write(game_property.id)
+		end
+		net.Broadcast()
+	end
+
+	local function SendFullState(len, ply)
+		error("not yet implemented")
+	end
+	net.Receive("PACOMAN_RequestFullState", SendFullState)
 else
 	local client_settings_id = "client_settings"
 	local server_settings_id = "server_settings"
@@ -915,7 +989,7 @@ else
 		return client_overrides_id .. string.sub(override_id, #client_settings_id + 1, -1)
 	end
 
-	local function OnClientSettingAdded(setting)
+	local function OnClientSettingAdded(self, setting)
 		-- TODO load Setting from database
 
 		setting.OnValueChanged = function(self)
@@ -942,14 +1016,14 @@ else
 		-- TODO save setting in database when it wasn't loaded before
 	end
 
-	local function OnClientSettingRemoved(setting)
+	local function OnClientSettingRemoved(self, setting)
 		-- TODO delete Setting in database
 	end
 
 	client_settings.OnSettingAdded = OnClientSettingAdded
 	client_settings.OnSettingRemoved = OnClientSettingRemoved
 
-	local function OnClientOverrideAdded(setting)
+	local function OnClientOverrideAdded(self, setting)
 		-- mark callback id as overriden
 		local full_id = setting.full_id
 		local setting_id = OverrideIDToClientSettingID(full_id)
@@ -968,7 +1042,7 @@ else
 		CallCallbacks(setting_id, self.active_value)
 	end
 
-	local function OnClientOverrideRemoved(setting)
+	local function OnClientOverrideRemoved(self, setting)
 		local full_id = setting.full_id;
 		local setting_id = OverrideIDToClientSettingID(full_id)
 
@@ -980,4 +1054,90 @@ else
 
 	client_overrides.OnSettingAdded = OnClientOverrideAdded
 	client_overrides.OnSettingRemoved = OnClientOverrideRemoved
+
+	local function ReceiveGamePropertyChange(len)
+		local game_property = GetGameProperty(net.ReadString())
+		if not game_property then return end
+
+		game_property:SetValue(game_property.type:Deserialize(net.ReadString()))
+	end
+	net.Receive("PACOMAN_GamePropertyChanged", ReceiveGamePropertyChange)
+
+	local function ReceiveValueChange(len)
+		local setting = all_settings[net.ReadString()]
+		if not setting then return end
+
+		setting:SetValue(setting.type:Deserialize(net.ReadString))
+	end
+	net.Receive("PACOMAN_ValueChanged", ReceiveValueChange)
+
+	local function ReceiveSettingRemoval(len)
+		local full_parent_id = net.ReadString()
+		local child_id = net.ReadString()
+		local parent = all_namespaces[full_parent_id]
+		if parent then
+			parent:RemoveSetting(child_id)
+			return
+		end
+
+		parent = all_settings[full_parent_id]
+		if not parent then return end
+
+		parent.RemoveSource(child_id)
+	end
+	net.Receive("PACOMAN_SettingRemoved", ReceiveSettingRemoval)
+
+	local function ReceiveNamespaceCreation(len)
+		local parent = all_namespaces[net.ReadString()]
+		if not parent then return end
+		parent:AddChild(net.ReadString())
+	end
+	net.Receive("PACOMAN_NamespaceCreated", ReceiveNamespaceCreation)
+
+	local function ReceiveSettingCreation(len)
+		local full_parent_id = net.ReadString()
+		local id = net.ReadString()
+		local type = GetType(net.ReadString())
+		if not type then return end
+
+		local value = type:Deserialize(net.ReadString())
+		if not value then return end
+
+		local parent = all_namespaces[full_parent_id]
+		if parent then
+			parent:AddSetting(id, type, value)
+			return
+		end
+
+		parent = all_settings[full_parent_id]
+		if not parent then return end
+
+		parent:AddSource(id, value)
+	end
+	net.Receive("PACOMAN_SettingCreated", ReceiveSettingCreation)
+
+	local function ReceiveSettingDependencyChange(len)
+		local setting = all_settings[net.ReadString()]
+		if not setting then return end
+
+		setting:MakeIndependent()
+
+		if len == 1 then return end
+
+		local game_property = GetGameProperty(net.ReadString())
+		if not game_property then return end
+
+		setting:MakeDependent(game_property)
+	end
+	net.Receive("PACOMAN_SettingDependencyChanged", ReceiveSettingDependencyChange)
+
+	local function ReceiveFullState(len)
+		error("not yet implemented")
+	end
+	net.Receive("PACOMAN_SendFullState", ReceiveFullState)
+
+	hook.Add("InitPostEntity", "PACOMAN_RequestState", function()
+		net.Start("PACOMAN_RequestFullState")
+		net.SendToServer()
+	end)
 end
