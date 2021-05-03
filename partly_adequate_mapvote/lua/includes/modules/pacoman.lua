@@ -359,17 +359,24 @@ game_properties = {}
 game_property_indices = {}
 
 ---
+-- Called whenever a new GameProperty is registered.
+-- @param Game_Property game_property the Game_Property that was registered
+-- @realm shared
+-- @hook
+-- @local
+local function OnGamePropertyRegistered(game_property)
+
+end
+
+---
 -- Creates a new GameProperty and registers it internally.
 -- @param string id identifier/name of the Game_Property
--- @param string type_id identifier of the Type of the Game_Property
+-- @param Type type the Type of the Game_Property
 -- @param any value the current value of the Game_Property
 -- @note value has to be valid in regards to the specified Type
 -- @realm shared
-function RegisterGameProperty(id, type_id, value)
+function RegisterGameProperty(id, type, value)
 	if game_property_indices[id] then return end
-
-	local type = GetType(type_id)
-	if not type then return end
 
 	local game_property = Game_Property:Create(id, type, value)
 
@@ -379,6 +386,8 @@ function RegisterGameProperty(id, type_id, value)
 
 	game_properties[index] = game_property
 	game_property_indices[id] = index
+
+	OnGamePropertyRegistered(game_property)
 end
 
 ---
@@ -866,7 +875,7 @@ if SERVER then
 
 		setting.OnValueChanged = function(self)
 			-- TODO save value in database
-			BroadcastValueChange(self)
+			SendValueChange(self, nil)
 		end
 
 		-- TODO save value in database when it wasn't loaded
@@ -874,11 +883,11 @@ if SERVER then
 
 	local function OnServerSettingRemoved(self, setting)
 		-- TODO delete Setting from database
-		BroadcastSettingRemoval(self)
+		SendSettingRemoval(self, nil)
 	end
 
 	local function OnChildAdded(self, child_namespace)
-		BroadcastNamespaceCreation(self, child_namespace)
+		SendNamespaceCreation(self, child_namespace, nil)
 	end
 
 	server_settings.OnSettingAdded = OnServerSettingAdded
@@ -888,16 +897,16 @@ if SERVER then
 	local function OnClientOverrideAdded(self, setting)
 		setting.OnValueChanged = function(self)
 			-- TODO save setting in database
-			BroadcastValueChange(self)
+			SendValueChange(self, nil)
 		end
 
 		-- TODO save setting in database when it wasn't loaded
-		BroadcastSettingCreation(self, setting)
+		SendSettingCreation(self, setting, nil)
 	end
 
 	local function OnClientOverrideRemoved(self, setting)
 		-- TODO delete Setting from database
-		BroadcastSettingRemoval(self, setting)
+		SendSettingRemoval(self, setting, nil)
 	end
 
 	client_overrides.OnSettingAdded = OnClientOverrideAdded
@@ -905,67 +914,152 @@ if SERVER then
 	client_overrides.OnChildAdded = OnChildAdded
 
 	-- networking
-	util.AddNetworkString("PACOMAN_GamePropertyChanged")
-	util.AddNetworkString("PACOMAN_ValueChanged")
-	util.AddNetworkString("PACOMAN_SettingRemoved")
+	util.AddNetworkString("PACOMAN_GamePropertyCreated")
 	util.AddNetworkString("PACOMAN_NamespaceCreated")
 	util.AddNetworkString("PACOMAN_SettingCreated")
+	util.AddNetworkString("PACOMAN_GamePropertyChanged")
+	util.AddNetworkString("PACOMAN_ValueChanged")
 	util.AddNetworkString("PACOMAN_SettingDependencyChanged")
+	util.AddNetworkString("PACOMAN_SettingRemoved")
 	util.AddNetworkString("PACOMAN_RequestFullState")
-	util.AddNetworkString("PACOMAN_SendFullState")
+	util.AddNetworkString("PACOMAN_FullStateSent")
 
-	local function BroadcastGamePropertyChange(game_property)
+	local function SendGamePropertyCreation(game_property, ply)
+		net.Start("PACOMAN_GamePropertyCreated")
+		net.WriteString(game_property.id)
+		net.WriteString(game_property.type.id)
+		net.WriteString(game_property.type:Serialize(game_property.value))
+		if ply then
+			net.Send(ply)
+		else
+			net.Broadcast()
+		end
+	end
+
+	local function SendGamePropertyChange(game_property, ply)
 		net.Start("PACOMAN_GamePropertyChanged")
 		net.WriteString(game_property.id)
 		net.WriteString(game_property.type:Serialize(game_property.value))
-		net.Broadcast()
+		if ply then
+			net.Send(ply)
+		else
+			net.Broadcast()
+		end
 	end
 
-	local function BroadcastValueChange(setting)
+	local function SendValueChange(setting, ply)
 		net.Start("PACOMAN_ValueChanged")
 		net.WriteString(setting.full_id)
 		net.WriteString(setting.type:Serialize(setting.value))
-		net.Broadcast()
+		if ply then
+			net.Send(ply)
+		else
+			net.Broadcast()
+		end
 	end
 
-	local function BroadcastSettingRemoval(parent, setting)
+	local function SendSettingRemoval(parent, setting, ply)
 		net.Start("PACOMAN_SettingRemoved")
 		net.WriteString(parent.full_id)
 		net.WriteString(setting.id)
-		net.Broadcast()
+		if ply then
+			net.Send(ply)
+		else
+			net.Broadcast()
+		end
 	end
 
-	local function BroadcastNamespaceCreation(parent, child)
+	local function SendNamespaceCreation(parent, child, ply)
 		net.Start("PACOMAN_NamespaceCreated")
 		net.WriteString(parent.full_id)
 		net.WriteString(child.id)
-		net.Broadcast()
+		if ply then
+			net.Send(ply)
+		else
+			net.Broadcast()
+		end
 	end
 
-	local function BroadcastSettingCreation(parent, setting)
+	local function SendSettingCreation(parent, setting, ply)
 		local type = setting.type
 		net.Start("PACOMAN_SettingCreated")
 		net.WriteString(parent.full_id)
 		net.WriteString(setting.id)
 		net.WriteString(type.id)
 		net.WriteString(type:Serialize(setting.value))
-		net.Broadcast()
+		if ply then
+			net.Send(ply)
+		else
+			net.Broadcast()
+		end
 	end
 
-	local function BroadcastSettingDependencyChange(setting)
+	local function SendSettingDependencyChange(setting, ply)
 		local game_property = setting.depends_on
 		net.Start("PACOMAN_SettingDependencyChanged")
 		net.Write(setting.full_id)
 		if game_property then
 			net.Write(game_property.id)
 		end
-		net.Broadcast()
+		if ply then
+			net.Send(ply)
+		else
+			net.Broadcast()
+		end
+	end
+
+	local function SendSetting(setting, ply)
+		local game_property = setting.depends_on
+		if not game_property then return end
+		SendSettingDependencyChange(setting, ply)
+
+		local sources = setting.sources
+		for i = 1, #sources do
+			local source = sources[i]
+			SendSettingCreation(setting, source, ply)
+			SendSetting(source, ply)
+		end
+	end
+
+	local function SendNamespace(namespace, ply)
+		local children = namespace.children
+		local settings = namespace.settings
+		for i = 1, #children do
+			local child = children[i]
+			SendNamespaceCreation(namespace, child, ply)
+			SendNamespace(child, ply)
+		end
+		for i = 1, #settings do
+			local setting = settings[i]
+			SendSettingCreation(namespace, setting, ply)
+			SendSetting(setting, ply)
+		end
 	end
 
 	local function SendFullState(len, ply)
-		error("not yet implemented")
+		print("[PACOMAN] " .. ply:GetName() .. " requested a full state update.")
+
+		for i = 1, #game_properties do
+			SendGamePropertyCreation(game_properties[i], ply)
+		end
+
+		SendNamespace(server_settings, ply)
+		SendNamespace(client_overrides, ply)
+		net.Start("PACOMAN_FullStateSent")
+		net.Send(ply)
 	end
 	net.Receive("PACOMAN_RequestFullState", SendFullState)
+
+	OnGamePropertyRegistered = function(game_property)
+		game_property:AddCallback("update_clients", function()
+			SendGamePropertyChange(game_property)
+		end)
+
+		SendGamePropertyCreation(game_property, nil)
+	end
+
+	RegisterGameProperty("test", TYPE_STRING, "hallo")
+
 else
 	local client_settings_id = "client_settings"
 	local server_settings_id = "server_settings"
@@ -1055,6 +1149,20 @@ else
 	client_overrides.OnSettingAdded = OnClientOverrideAdded
 	client_overrides.OnSettingRemoved = OnClientOverrideRemoved
 
+	local function ReceiveGamePropertyCreation(len)
+		local id = net.ReadString()
+		local type = GetType(net.ReadString())
+		local serialized_value = net.ReadString()
+
+		if not type then return end
+
+		local value = type:Deserialize(serialized_value)
+		if not value then return end
+
+		RegisterGameProperty(id, type, value)
+	end
+	net.Receive("PACOMAN_GamePropertyCreated", ReceiveGamePropertyCreation)
+
 	local function ReceiveGamePropertyChange(len)
 		local game_property = GetGameProperty(net.ReadString())
 		if not game_property then return end
@@ -1131,10 +1239,9 @@ else
 	end
 	net.Receive("PACOMAN_SettingDependencyChanged", ReceiveSettingDependencyChange)
 
-	local function ReceiveFullState(len)
-		error("not yet implemented")
-	end
-	net.Receive("PACOMAN_SendFullState", ReceiveFullState)
+	net.Receive("PACOMAN_FullStateSent", function(len)
+		print("[PACOMAN] Full state update received.")
+	end)
 
 	hook.Add("InitPostEntity", "PACOMAN_RequestState", function()
 		net.Start("PACOMAN_RequestFullState")
