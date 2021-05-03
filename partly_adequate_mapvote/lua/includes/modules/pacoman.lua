@@ -1240,6 +1240,7 @@ else
 
 	net.Receive("PACOMAN_FullStateSent", function(len)
 		print("[PACOMAN] Full state update received.")
+		hook.Run("PacomanPostServerStateReceived")
 	end)
 
 	hook.Add("InitPostEntity", "PACOMAN_RequestState", function()
