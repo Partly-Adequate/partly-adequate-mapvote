@@ -1059,7 +1059,6 @@ if SERVER then
 	end
 
 	RegisterGameProperty("test", TYPE_STRING, "hallo")
-
 else
 	local client_settings_id = "client_settings"
 	local server_settings_id = "server_settings"
