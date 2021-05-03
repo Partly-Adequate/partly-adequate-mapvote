@@ -883,7 +883,7 @@ if SERVER then
 
 	local function OnServerSettingRemoved(self, setting)
 		-- TODO delete Setting from database
-		SendSettingRemoval(self, nil)
+		SendSettingRemoval(self, setting, nil)
 	end
 
 	local function OnChildAdded(self, child_namespace)
