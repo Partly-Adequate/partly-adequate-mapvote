@@ -308,9 +308,7 @@ function Game_Property:SetValue(new_value)
 
 	self.value = new_value
 
-	for i = 1, #self.callbacks do
-		self.callbacks[i]()
-	end
+	CallCallbacks(self.id, new_value)
 end
 
 ---
@@ -318,41 +316,14 @@ end
 -- @param function callback_func the function
 -- @return number an identifier which can be used to remove the callback
 function Game_Property:AddCallback(callback_id, callback)
-	if self.callback_indices[callback_id] then return end
-
-	local index = #self.callbacks + 1
-
-	self.callbacks[index] = callback
-
-	self.callback_ids[index] = callback_id
-	self.callback_indices[callback_id] = index
+	AddCallback(self.id, callback_id, callback)
 end
 
 ---
 -- Removes the callback with the provided id
 -- @param string callback_id the id of the callback to remove
 function Game_Property:RemoveCallback(callback_id)
-	local index = self.callback_indices[callback_id]
-	if not index then return end
-
-	local last_index = #self.callbacks
-
-	if index == last_index then
-		self.callbacks[index] = nil
-		self.callback_ids[index] = nil
-		self.callback_indices[callback_id] = nil
-		return
-	end
-
-	local last_id = callback_ids[last_index]
-
-	self.callbacks[index] = self.callbacks[last_index]
-	self.callback_ids[index] = last_id
-	self.callback_indices[callback_id] = nil
-
-	self.callbacks[last_index] = nil
-	self.callback_ids[last_index] = nil
-	self.callback_indices[last_id] = index
+	RemoveCallback(self.id, callback_id)
 end
 
 game_properties = {}
