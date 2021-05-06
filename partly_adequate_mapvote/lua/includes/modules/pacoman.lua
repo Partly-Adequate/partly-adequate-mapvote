@@ -84,14 +84,14 @@ end
 -- Calls all callbacks at the specified call_id
 -- @param string call_id the id that is used to call the callback with
 -- @local
-local function CallCallbacks(call_id, value)
+local function CallCallbacks(call_id, ...)
 	local callback_list = callback_lists[call_id]
 	if not callback_list then return end
 
 	local callbacks = callback_list.callbacks
 
 	for i = 1, #callbacks do
-		callbacks[i](value)
+		callbacks[i](...)
 	end
 end
 
