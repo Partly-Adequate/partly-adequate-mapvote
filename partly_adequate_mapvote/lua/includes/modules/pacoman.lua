@@ -12,6 +12,58 @@ local setting_separator = "."
 
 local callback_lists = {}
 
+sql.Query("CREATE TABLE IF NOT EXISTS pacoman_values (full_id TEXT PRIMARY KEY, id TEXT NOT NULL, value TEXT NOT NULL, depends_on TEXT, parent_id TEXT)")
+
+local function SaveSettingInDatabase(setting)
+	local full_id = sql.SQLStr(setting.full_id)
+	local id = sql.SQLStr(setting.id)
+	local value = sql.SQLStr(setting.type:Serialize(setting.value))
+
+	local columns = "full_id, id, value"
+	local values = full_id .. ", " .. id, ", " .. value
+
+	if setting.depends_on then
+		columns = columns .. ", depends_on"
+		values = values .. ", " .. sql.SQLStr(setting.depends_on.id)
+	end
+
+	if setting.parent then
+		columns = columns .. ", parent_id"
+		values = values .. ", " .. sql.SQLStr(setting.parent.full_id)
+	end
+
+	sql.Query("INSERT OR REPLACE INTO pacoman_values (" .. columns ..") VALUES(" .. values .. ")")
+end
+
+local function LoadSettingFromDatabase(setting)
+	local result = sql.Query("SELECT value, depends_on FROM pacoman_values WHERE full_id = " .. sql.SQLStr(setting.full_id))
+	if not result then return end
+
+	-- Set value
+	setting:SetValue(setting.type:Deserialize(result[1].value))
+
+	local depends_on = result[1].depends_on
+	if depends_on == "NULL" then return end
+
+	-- Make dependent
+	local game_property = GetGameProperty(depends_on)
+	if not game_property then return end
+
+	setting.MakeDependent(game_property)
+
+	-- Add sources
+	local sources = sql.Query("SELECT id, value FROM pacoman_values WHERE parent_id = " .. sql.SQLStr(setting.full_id))
+	if not sources then return end
+
+	for i = 1, #sources do
+		setting:AddSource(sources[i].id, setting.type:Deserialize(sources[i].value))
+	end
+end
+
+local function RemoveSettingFromDatabase(setting)
+	sql.Query("DELETE FROM pacoman_values WHERE full_id = " .. sql.SQLStr(setting.full_id))
+end
+
 ---
 -- Adds a callback to the specified call_id
 -- @param string call_id the id to call this callback with
@@ -491,17 +543,11 @@ function Setting:GetActiveValue()
 end
 
 ---
--- @return bool true when this Setting depends on a Game_Property, false otherwise
-function Setting:IsDependent()
-	return self.depends_on ~= nil
-end
-
----
 -- makes this Setting depend on a Game_Property
 -- @param Game_Property game_property the property to depend on
 -- @note In case this Setting already depends on a Game_Property it will remove the old dependency first.
 function Setting:MakeDependent(game_property)
-	if self:IsDependent() then
+	if self.depends_on then
 		self:MakeIndependent()
 	end
 
@@ -510,12 +556,14 @@ function Setting:MakeDependent(game_property)
 	game_property:AddCallback(self.full_id, function()
 		self:Update()
 	end)
+
+	self:OnDependencyChanged()
 end
 
 ---
 -- removes this Setting's dependence on a Game_Property
 function Setting:MakeIndependent()
-	if not self:IsDependent() then return end
+	if not self.depends_on then return end
 
 	-- update active value to default
 	self:SetActiveSourceID(nil)
@@ -532,6 +580,8 @@ function Setting:MakeIndependent()
 	-- remove sources
 	self.sources = {}
 	self.source_indices = {}
+
+	self:OnDependencyChanged()
 end
 
 ---
@@ -554,6 +604,9 @@ function Setting:AddSource(id, value)
 	local index = #self.sources + 1
 
 	local source_setting = Setting:Create(self.full_id, id, type, value)
+
+	if not source_setting then return end
+
 	source_setting.parent = self
 
 	self.sources[index] = source_setting
@@ -598,7 +651,7 @@ function Setting:RemoveSource(source_id)
 	source_indices[last_setting.id] = index
 
 	-- call OnSourceRemoved hook
-	self.OnSourceRemoved(source_setting)
+	self:OnSourceRemoved(source_setting)
 
 	-- update this setting when the active source got removed
 	if source_id != self.active_source_id then return end
@@ -648,17 +701,24 @@ function Setting:OnValueChanged()
 end
 
 ---
+-- Will be called whenever this Setting's dependency changes
+-- @hook
+function Setting:OnDependencyChanged()
+
+end
+
+---
 -- Will be called whenever a source is added to this Setting's sources
 -- @param Setting source_setting the added source
 -- @hook
-function Setting.OnSourceAdded(source_setting)
+function Setting:OnSourceAdded(source_setting)
 
 end
 
 ---
 -- Will be called when a source from this Setting is removed
 -- @hook
-function Setting.OnSourceRemoved(source_setting)
+function Setting:OnSourceRemoved(source_setting)
 
 end
 
@@ -707,6 +767,8 @@ function Namespace:AddChild(child_id)
 	self.children[index] = namespace
 	self.children_indices[child_id] = index
 
+	self:OnChildAdded(namespace)
+
 	return namespace
 end
 
@@ -748,6 +810,8 @@ function Namespace:AddSetting(setting_id, type, value)
 
 	setting.OnSourceAdded = self.OnSettingAdded
 	setting.OnSourceRemoved = self.OnSettingRemoved
+
+	self:OnSettingAdded(setting)
 
 	return setting
 end
@@ -792,7 +856,7 @@ function Namespace:RemoveSetting(setting_id)
 	self.setting_indices[last_setting.id] = index
 
 	-- call OnSettingRemoved hook
-	self.OnSettingRemoved(setting)
+	self:OnSettingRemoved(setting)
 end
 
 ---
@@ -836,49 +900,6 @@ if SERVER then
 	server_settings = Namespace:Create(server_settings_id, nil)
 	-- root namespace for all client overrides
 	client_overrides = Namespace:Create(client_overrides_id, nil)
-
-	local function OnServerSettingAdded(self, setting)
-		-- TODO load value from database
-
-		setting.OnValueChanged = function(self)
-			-- TODO save value in database
-			SendValueChange(self, nil)
-		end
-
-		-- TODO save value in database when it wasn't loaded
-	end
-
-	local function OnServerSettingRemoved(self, setting)
-		-- TODO delete Setting from database
-		SendSettingRemoval(self, setting, nil)
-	end
-
-	local function OnChildAdded(self, child_namespace)
-		SendNamespaceCreation(self, child_namespace, nil)
-	end
-
-	server_settings.OnSettingAdded = OnServerSettingAdded
-	server_settings.OnSettingRemoved = OnServerSettingRemoved
-	server_settings.OnChildAdded = OnChildAdded
-
-	local function OnClientOverrideAdded(self, setting)
-		setting.OnValueChanged = function(self)
-			-- TODO save setting in database
-			SendValueChange(self, nil)
-		end
-
-		-- TODO save setting in database when it wasn't loaded
-		SendSettingCreation(self, setting, nil)
-	end
-
-	local function OnClientOverrideRemoved(self, setting)
-		-- TODO delete Setting from database
-		SendSettingRemoval(self, setting, nil)
-	end
-
-	client_overrides.OnSettingAdded = OnClientOverrideAdded
-	client_overrides.OnSettingRemoved = OnClientOverrideRemoved
-	client_overrides.OnChildAdded = OnChildAdded
 
 	-- networking
 	util.AddNetworkString("PACOMAN_GamePropertyCreated")
@@ -975,6 +996,66 @@ if SERVER then
 		end
 	end
 
+	-- helper functions
+	local function OnServerSettingAdded(self, setting)
+		LoadSettingFromDatabase(setting)
+
+		setting.OnValueChanged = function(self)
+			SaveSettingInDatabase(self)
+			SendValueChange(self, nil)
+		end
+
+		setting.OnDependencyChanged = function(self)
+			SaveSettingInDatabase(self)
+			SendSettingDependencyChange(self, nil)
+		end
+
+		SaveSettingInDatabase(setting)
+		SendSettingCreation(self, setting, nil)
+	end
+
+	local function OnServerSettingRemoved(self, setting)
+		RemoveSettingFromDatabase(setting)
+		SendSettingRemoval(self, setting, nil)
+	end
+
+	local function OnChildAdded(self, child_namespace)
+		SendNamespaceCreation(self, child_namespace, nil)
+	end
+
+	-- server_settings namespace functionality
+	server_settings.OnSettingAdded = OnServerSettingAdded
+	server_settings.OnSettingRemoved = OnServerSettingRemoved
+	server_settings.OnChildAdded = OnChildAdded
+
+	-- helper functions
+	local function OnClientOverrideAdded(self, setting)
+		setting.OnValueChanged = function(self)
+			SaveSettingInDatabase(self)
+			SendValueChange(self, nil)
+		end
+
+		setting.OnDependencyChanged = function(self)
+			SaveSettingInDatabase(self)
+			SendSettingDependencyChange(self, nil)
+		end
+
+		SaveSettingInDatabase(setting)
+		SendSettingCreation(self, setting, nil)
+	end
+
+	local function OnClientOverrideRemoved(self, setting)
+		RemoveSettingFromDatabase(setting)
+		SendSettingRemoval(self, setting, nil)
+	end
+
+	-- client_overrides namespace functionality
+	client_overrides.OnSettingAdded = OnClientOverrideAdded
+	client_overrides.OnSettingRemoved = OnClientOverrideRemoved
+	client_overrides.OnChildAdded = OnChildAdded
+
+	-- TODO Restore all current client_overrides from database
+
 	local function SendSetting(setting, ply)
 		local game_property = setting.depends_on
 		if not game_property then return end
@@ -1024,8 +1105,6 @@ if SERVER then
 
 		SendGamePropertyCreation(game_property, nil)
 	end
-
-	RegisterGameProperty("test", TYPE_STRING, "hallo")
 else
 	local client_settings_id = "client_settings"
 	local server_settings_id = "server_settings"
@@ -1050,10 +1129,14 @@ else
 	end
 
 	local function OnClientSettingAdded(self, setting)
-		-- TODO load Setting from database
+		LoadSettingFromDatabase(setting)
 
 		setting.OnValueChanged = function(self)
-			-- TODO save setting in database
+			SaveSettingInDatabase(self)
+		end
+
+		setting.OnDependencyChanged = function(self)
+			SaveSettingInDatabase(self)
 		end
 
 		setting.GetActiveValue = function(self)
@@ -1073,11 +1156,11 @@ else
 			CallCallbacks(full_id, self.active_value)
 		end
 
-		-- TODO save setting in database when it wasn't loaded before
+		SaveSettingInDatabase(setting)
 	end
 
 	local function OnClientSettingRemoved(self, setting)
-		-- TODO delete Setting in database
+		RemoveSettingFromDatabase(setting)
 	end
 
 	client_settings.OnSettingAdded = OnClientSettingAdded
