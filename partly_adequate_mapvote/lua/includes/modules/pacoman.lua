@@ -149,11 +149,7 @@ end
 -- @return bool true if this <code>Type</code> is comparable, false if it's not
 -- @realm shared
 function Type:IsComparable()
-	if self.compare_values then
-		return true
-	end
-
-	return false
+	return self.compare_values != nil
 end
 
 ---
