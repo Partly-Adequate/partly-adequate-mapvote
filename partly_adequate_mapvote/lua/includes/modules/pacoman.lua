@@ -12,11 +12,16 @@ local setting_separator = "."
 
 local callback_lists = {}
 
-sql.Query("CREATE TABLE IF NOT EXISTS pacoman_values (full_id TEXT PRIMARY KEY, id TEXT NOT NULL, value TEXT NOT NULL, depends_on TEXT, parent_id TEXT)")
+sql.Query("CREATE TABLE IF NOT EXISTS pacoman_values (full_id TEXT PRIMARY KEY, id TEXT NOT NULL, type TEXT NOT NULL, value TEXT NOT NULL, depends_on TEXT, parent_id TEXT)")
 
 local function SaveSettingInDatabase(setting)
-	local columns = "full_id, id, value"
-	local values = sql.SQLStr(setting.full_id) .. ", " .. sql.SQLStr(setting.id) .. ", " .. sql.SQLStr(setting.type:Serialize(setting.value))
+	local type = setting.type
+
+	local columns = "full_id, id, type, value"
+	local values = sql.SQLStr(setting.full_id) .. ", " ..
+		sql.SQLStr(setting.id) .. ", " ..
+		sql.SQLStr(type.id) .. ", " ..
+		sql.SQLStr(type:Serialize(setting.value))
 
 	if setting.depends_on then
 		columns = columns .. ", depends_on"
@@ -151,6 +156,55 @@ end
 local function PrepareString(str)
 	local tmp = string.Replace(str, namespace_separator, namespace_separator .. namespace_separator)
 	return string.Replace(tmp, setting_separator, setting_separator .. setting_separator)
+end
+
+---
+-- Converts a setting's full_id to a table of strings and an id
+-- @param string full_id the full_id to get the path from
+-- @return table the path
+-- @return string the id
+-- @note full_ids of source_settings return the path and the id of the parent setting
+-- @local
+local function FullIDToPath(full_id)
+	local namespace_split = string.Split(full_id, namespace_separator)
+	local path = {namespace_split[1]}
+	local keep = false
+	for i = 2, #namespace_split do
+		local current = namespace_split[i]
+		if keep then
+			path[#path] = path[#path] .. current
+			keep = false
+			continue
+		end
+		if current == "" then
+			path[#path] = path[#path] .. namespace_separator
+			keep = true
+			continue
+		end
+		path[#path + 1] = current
+	end
+
+	local setting_split = string.Split(path[#path], setting_separator)
+	local tmp = {setting_split[1]}
+	keep = false
+	for i = 2, #setting_split do
+		local current = setting_split[i]
+		if keep then
+			tmp[#tmp] = tmp[#tmp] .. current
+			keep = false
+			continue
+		end
+		if current == "" then
+			tmp[#tmp] = tmp[#tmp] .. setting_separator
+			keep = true
+			continue
+		end
+		tmp[#tmp + 1] = current
+	end
+
+	path[#path] = tmp[1]
+
+	return path, tmp[2]
 end
 
 -- TODO documentation for Type class
@@ -1102,6 +1156,34 @@ if SERVER then
 
 		SendGamePropertyCreation(game_property, nil)
 	end
+
+	local function LoadClientOverrides()
+		local overrides = sql.Query("SELECT full_id, id, type, value FROM pacoman_values WHERE parent_id ISNULL AND full_id LIKE '" .. client_overrides_id .. "%'")
+		if not overrides then return end
+
+		for i = 1, #overrides do
+			local full_id = overrides[i].full_id
+			local type = GetType(overrides[i].type)
+			if not type then continue end
+
+			local value = type:Deserialize(overrides[i].value)
+			if not value then continue end
+
+			local path, id = FullIDToPath(full_id)
+
+			local namespace = client_overrides
+
+			for i = 2, #path do
+				namespace = namespace:AddChild(path[i])
+			end
+
+			namespace:AddSetting(id, type, value)
+		end
+
+		print("[PACOMAN] Client overrides loaded.")
+	end
+
+	hook.Add("Initialize", "PACOMAN_LoadClientOverrides", LoadClientOverrides)
 else
 	local client_settings_id = "client_settings"
 	local server_settings_id = "server_settings"
