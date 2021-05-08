@@ -15,12 +15,8 @@ local callback_lists = {}
 sql.Query("CREATE TABLE IF NOT EXISTS pacoman_values (full_id TEXT PRIMARY KEY, id TEXT NOT NULL, value TEXT NOT NULL, depends_on TEXT, parent_id TEXT)")
 
 local function SaveSettingInDatabase(setting)
-	local full_id = sql.SQLStr(setting.full_id)
-	local id = sql.SQLStr(setting.id)
-	local value = sql.SQLStr(setting.type:Serialize(setting.value))
-
 	local columns = "full_id, id, value"
-	local values = full_id .. ", " .. id, ", " .. value
+	local values = sql.SQLStr(setting.full_id) .. ", " .. sql.SQLStr(setting.id) .. ", " .. sql.SQLStr(setting.type:Serialize(setting.value))
 
 	if setting.depends_on then
 		columns = columns .. ", depends_on"
@@ -407,6 +403,8 @@ function RegisterGameProperty(id, type, value)
 	game_property_indices[id] = index
 
 	OnGamePropertyRegistered(game_property)
+
+	return game_property
 end
 
 ---
@@ -483,7 +481,7 @@ function Setting:Remove()
 end
 
 ---
--- changes the value of this Setting and calls Setting:OnActiveValueChanged if necessary
+-- changes the value of this Setting
 -- @param any new_value the new value
 -- @note will not do anything when the new value doesn't fit this Setting's type
 function Setting:SetValue(new_value)
@@ -517,15 +515,13 @@ function Setting:SetActiveSourceID(setting_id)
 end
 
 ---
--- changes the currently active value of this Setting and calls OnActiveValueChanged
+-- changes the currently active value of this Setting
 -- @param any new_value the new active value
 -- @note won't do anything when the provided value doesn't fit the Type of this Setting
 function Setting:SetActiveValue(new_value)
 	if not self.type:IsValueValid(new_value) then return end
 
 	self.active_value = new_value
-
-	self:OnActiveValueChanged()
 
 	-- update the parent setting when this setting is a source and currently active
 	if not self.parent or not parent.active_source_id == self.id then return end
@@ -676,21 +672,22 @@ function Setting:Update()
 	end
 
 	-- search for the best fitting source by iterating over all sources
+	-- best fitting: smallest id of all ids that are greater than the current value
 	local sources = self.sources
 	local best_id = nil
-	local comparable_best_id = nil
+	local best_cmp_id = nil
 
 	for i = 1, #sources do
-		local current = sources[i]
-		local current_id = current.id
-		local comparable_id = gp_type:Deserialize(current_id)
-		if gp_type:CompareValues(comparable_id, gp_value) and (not comparable_best_id or gp_type:CompareValues(comparable_id, comparable_best_id)) then
-			best = current_id
-			comparable_best = comparable_id
+		local current_id = sources[i].id
+		local current_cmp_id = gp_type:Deserialize(current_id)
+
+		if gp_type:CompareValues(gp_value, current_cmp_id) and (not best_cmp_id or gp_type:CompareValues(current_cmp_id, best_cmp_id)) then
+			best_id = current_id
+			best_cmp_id = current_cmp_id
 		end
 	end
 
-	self:SetActiveSourceID(best)
+	self:SetActiveSourceID(best_id)
 end
 
 ---
@@ -985,9 +982,9 @@ if SERVER then
 	local function SendSettingDependencyChange(setting, ply)
 		local game_property = setting.depends_on
 		net.Start("PACOMAN_SettingDependencyChanged")
-		net.Write(setting.full_id)
+		net.WriteString(setting.full_id)
 		if game_property then
-			net.Write(game_property.id)
+			net.WriteString(game_property.id)
 		end
 		if ply then
 			net.Send(ply)
