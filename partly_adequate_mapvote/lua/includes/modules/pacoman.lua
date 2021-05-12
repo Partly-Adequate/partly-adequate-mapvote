@@ -637,9 +637,9 @@ end
 ---
 -- Adds a new Setting to this Setting's sources
 -- The new Setting will inherit this Setting's hooks
--- @param string id the id of the new source Setting
+-- @param string source_id the id of the new source Setting
 -- @param any value the value of the new source Setting
-function Setting:AddSource(id, value)
+function Setting:AddSource(source_id, value)
 	-- return when this setting doesn't depend on a game property
 	local game_property = self.depends_on
 	if not game_property then return end
@@ -647,13 +647,13 @@ function Setting:AddSource(id, value)
 	local gp_type = game_property.type
 	local type = self.type
 
-	-- return when the value isn't valid or when the id can't be deserialised by the game properties type
-	if not type:IsValueValid(value) or not gp_type:Deserialize(id) then return end
+	-- return when the value isn't valid or when the source_id can't be deserialised by the game properties type
+	if not type:IsValueValid(value) or not gp_type:Deserialize(source_id) then return end
 
 	-- add new source
 	local index = #self.sources + 1
 
-	local source_setting = Setting:Create(self.full_id, id, type, value)
+	local source_setting = Setting:Create(self.full_id, source_id, type, value)
 
 	if not source_setting then return end
 
@@ -953,18 +953,18 @@ if SERVER then
 	client_overrides = Namespace:Create(client_overrides_id, nil)
 
 	-- networking
-	util.AddNetworkString("PACOMAN_GamePropertyCreated")
-	util.AddNetworkString("PACOMAN_NamespaceCreated")
-	util.AddNetworkString("PACOMAN_SettingCreated")
-	util.AddNetworkString("PACOMAN_GamePropertyChanged")
-	util.AddNetworkString("PACOMAN_ValueChanged")
-	util.AddNetworkString("PACOMAN_SettingDependencyChanged")
-	util.AddNetworkString("PACOMAN_SettingRemoved")
-	util.AddNetworkString("PACOMAN_RequestFullState")
-	util.AddNetworkString("PACOMAN_FullStateSent")
+	util.AddNetworkString("PACOMAN_StateUpdate")
+	util.AddNetworkString("PACOMAN_StateRequest")
+	util.AddNetworkString("PACOMAN_ChangeRequest")
 
+	---
+	-- Cteates a Game_Property on all clients/the specified client
+	-- @param Game_Property game_property the Game_Property to create
+	-- @param player ply the client to create the Game_Property on (nil to create it on all players)
+	-- @local
 	local function SendGamePropertyCreation(game_property, ply)
-		net.Start("PACOMAN_GamePropertyCreated")
+		net.Start("PACOMAN_StateUpdate")
+		net.WriteUInt(0, 3)
 		net.WriteString(game_property.id)
 		net.WriteString(game_property.type.id)
 		net.WriteString(game_property.type:Serialize(game_property.value))
@@ -975,8 +975,14 @@ if SERVER then
 		end
 	end
 
+	---
+	-- Changes the value of a Game_Property on all clients/the specified client
+	-- @param Game_Property game_property the Game_Property to change the value of
+	-- @param player ply the client to send the change to (nil to send it to all players)
+	-- @local
 	local function SendGamePropertyChange(game_property, ply)
-		net.Start("PACOMAN_GamePropertyChanged")
+		net.Start("PACOMAN_StateUpdate")
+		net.WriteUInt(1, 3)
 		net.WriteString(game_property.id)
 		net.WriteString(game_property.type:Serialize(game_property.value))
 		if ply then
@@ -986,30 +992,15 @@ if SERVER then
 		end
 	end
 
-	local function SendValueChange(setting, ply)
-		net.Start("PACOMAN_ValueChanged")
-		net.WriteString(setting.full_id)
-		net.WriteString(setting.type:Serialize(setting.value))
-		if ply then
-			net.Send(ply)
-		else
-			net.Broadcast()
-		end
-	end
-
-	local function SendSettingRemoval(parent, setting, ply)
-		net.Start("PACOMAN_SettingRemoved")
-		net.WriteString(parent.full_id)
-		net.WriteString(setting.id)
-		if ply then
-			net.Send(ply)
-		else
-			net.Broadcast()
-		end
-	end
-
+	---
+	-- Creates a Namespace on all clients/the specified client
+	-- @param Namespace parent the parent Namespace to create the child in
+	-- @param Namespace child the Namespace to create
+	-- @param player ply the client to create the Namespace on (nil to create it on all players)
+	-- @local
 	local function SendNamespaceCreation(parent, child, ply)
-		net.Start("PACOMAN_NamespaceCreated")
+		net.Start("PACOMAN_StateUpdate")
+		net.WriteUInt(2, 3)
 		net.WriteString(parent.full_id)
 		net.WriteString(child.id)
 		if ply then
@@ -1019,9 +1010,17 @@ if SERVER then
 		end
 	end
 
+	---
+	-- Creates a Setting on all clients/the specified client
+	-- @param Namespace parent the parent namespace to create the setting in
+	-- @param Setting setting the Setting to create
+	-- @param player ply the client to create the Setting on (nil to create it on all players)
+	-- @note the parent can also be a Setting. The Setting will be created as a source of the parent setting then
+	-- @local
 	local function SendSettingCreation(parent, setting, ply)
 		local type = setting.type
-		net.Start("PACOMAN_SettingCreated")
+		net.Start("PACOMAN_StateUpdate")
+		net.WriteUInt(3, 3)
 		net.WriteString(parent.full_id)
 		net.WriteString(setting.id)
 		net.WriteString(type.id)
@@ -1033,9 +1032,51 @@ if SERVER then
 		end
 	end
 
+	---
+	-- Removes a Setting from all clients/the specified client
+	-- @param Namespace parent the parent namespace to remove the setting from
+	-- @param Setting setting the Setting to remove
+	-- @param player ply the client to remove the Setting from (nil to remove it from all players)
+	-- @note the parent can also be a Setting. The Setting will be removed as a source from the parent setting then
+	-- @local
+	local function SendSettingRemoval(parent, setting, ply)
+		net.Start("PACOMAN_StateUpdate")
+		net.WriteUInt(4, 3)
+		net.WriteString(parent.full_id)
+		net.WriteString(setting.id)
+		if ply then
+			net.Send(ply)
+		else
+			net.Broadcast()
+		end
+	end
+
+	---
+	-- Changes the value of a Setting on all clients/the specified client
+	-- @param Setting setting the Setting to change the value of
+	-- @param player ply the client to send the change to (nil to send it to all players)
+	-- @local
+	local function SendSettingValueChange(setting, ply)
+		net.Start("PACOMAN_StateUpdate")
+		net.WriteUInt(5, 3)
+		net.WriteString(setting.full_id)
+		net.WriteString(setting.type:Serialize(setting.value))
+		if ply then
+			net.Send(ply)
+		else
+			net.Broadcast()
+		end
+	end
+
+	---
+	-- Changes the dependency of a Setting on all clients/the specified client
+	-- @param Setting setting the Setting to change the dependency of
+	-- @param player ply the client to send the change to (nil to send it to all players)
+	-- @local
 	local function SendSettingDependencyChange(setting, ply)
 		local game_property = setting.depends_on
-		net.Start("PACOMAN_SettingDependencyChanged")
+		net.Start("PACOMAN_StateUpdate")
+		net.WriteUInt(6, 3)
 		net.WriteString(setting.full_id)
 		if game_property then
 			net.WriteString(game_property.id)
@@ -1053,7 +1094,7 @@ if SERVER then
 
 		setting.OnValueChanged = function(self)
 			SaveSettingInDatabase(self)
-			SendValueChange(self, nil)
+			SendSettingValueChange(self, nil)
 		end
 
 		setting.OnDependencyChanged = function(self)
@@ -1083,7 +1124,7 @@ if SERVER then
 	local function OnClientOverrideAdded(self, setting)
 		setting.OnValueChanged = function(self)
 			SaveSettingInDatabase(self)
-			SendValueChange(self, nil)
+			SendSettingValueChange(self, nil)
 		end
 
 		setting.OnDependencyChanged = function(self)
@@ -1105,8 +1146,12 @@ if SERVER then
 	client_overrides.OnSettingRemoved = OnClientOverrideRemoved
 	client_overrides.OnChildAdded = OnChildAdded
 
-	-- TODO Restore all current client_overrides from database
-
+	---
+	-- Sends a setting (and all it's sources)
+	-- to the requesting client
+	-- @param table setting the setting to send
+	-- @param player ply the player who initiated the request
+	-- @local
 	local function SendSetting(setting, ply)
 		local game_property = setting.depends_on
 		if not game_property then return end
@@ -1120,6 +1165,12 @@ if SERVER then
 		end
 	end
 
+	---
+	-- Sends a namespace (all children and settings)
+	-- to the requesting client
+	-- @param table namespace the namespace to send
+	-- @param player ply the player who initiated the request
+	-- @local
 	local function SendNamespace(namespace, ply)
 		local children = namespace.children
 		local settings = namespace.settings
@@ -1135,7 +1186,14 @@ if SERVER then
 		end
 	end
 
+	---
+	-- Sends the full state (all game properties and settings)
+	-- to the requesting client
+	-- @param number len the length of the requesting netmessage
+	-- @param player ply the player who initiated the request
+	-- @local
 	local function SendFullState(len, ply)
+		-- TODO make sure the same player doesn't request the full state more than once
 		print("[PACOMAN] " .. ply:GetName() .. " requested a full state update.")
 
 		for i = 1, #game_properties do
@@ -1144,12 +1202,17 @@ if SERVER then
 
 		SendNamespace(server_settings, ply)
 		SendNamespace(client_overrides, ply)
-		net.Start("PACOMAN_FullStateSent")
+		net.Start("PACOMAN_StateRequest")
 		net.Send(ply)
 	end
-	net.Receive("PACOMAN_RequestFullState", SendFullState)
+	net.Receive("PACOMAN_StateRequest", SendFullState)
 
-	OnGamePropertyRegistered = function(game_property)
+	---
+	-- Gets called whenever a Game_Property is registered
+	-- Sends the required information to the client and adds change callbacks
+	-- @param game_property the Game_Property that was registered
+	-- @local
+	local function OnServerGamePropertyRegistered(game_property)
 		game_property:AddCallback("update_clients", function()
 			SendGamePropertyChange(game_property)
 		end)
@@ -1157,6 +1220,12 @@ if SERVER then
 		SendGamePropertyCreation(game_property, nil)
 	end
 
+	OnGamePropertyRegistered = OnServerGamePropertyRegistered
+
+	---
+	-- loads all stored client_overrides settings from the database
+	-- and restores them in the client_overrides namespace
+	-- This function is called on Initialize to automatically restore the client_overrides namespace
 	local function LoadClientOverrides()
 		local overrides = sql.Query("SELECT full_id, id, type, value FROM pacoman_values WHERE parent_id ISNULL AND full_id LIKE '" .. client_overrides_id .. "%'")
 		if not overrides then return end
@@ -1182,8 +1251,156 @@ if SERVER then
 
 		print("[PACOMAN] Client overrides loaded.")
 	end
-
 	hook.Add("Initialize", "PACOMAN_LoadClientOverrides", LoadClientOverrides)
+
+	---
+	-- Processes an override addition request
+	-- It creates a new setting in client_overrides when successful
+	-- @param len the remaining length of the netmessage
+	-- @param ply the player who initiated the request
+	-- @local
+	local function ReceiveOverrideAdditionRequest(len, ply)
+		local full_id = net.ReadString()
+		local type = GetType(net.ReadString())
+		if not type then return end
+
+		local value = type:Deserialize(net.ReadString())
+		if not value then return end
+
+		local path, id = FullIDToPath(full_id)
+
+		local namespace = client_overrides
+		for i = 2, #path do
+			namespace = namespace:AddChild(path[i])
+		end
+
+		namespace:AddSetting(id, type, value)
+	end
+
+	---
+	-- Processes an override removal request
+	-- It removes a setting from the client_overrides when successful
+	-- @param len the remaining length of the netmessage
+	-- @param ply the player who initiated the request
+	-- @local
+	local function ReceiveOverrideRemovalRequest(len, ply)
+		local full_id = net.ReadString()
+
+		local path, id = FullIDToPath(full_id)
+
+		local namespace = client_overrides
+		for i = 2, #path do
+			namespace = namespace:GetChild(path[i])
+			if not namespace then return end
+		end
+
+		namespace:RemoveSetting(id)
+	end
+
+	---
+	-- Processes a value change request
+	-- It changes the value of a setting when successful
+	-- @param len the remaining length of the netmessage
+	-- @param ply the player who initiated the request
+	-- @local
+	local function ReceiveValueChangeRequest(len, ply)
+		local full_id = net.ReadString()
+		local serialized_value = net.ReadString()
+
+		local setting = all_settings[full_id]
+		if not setting then return end
+
+		local value = setting.type:Deserialize(serialized_value)
+		if not value then return end
+
+		setting:SetValue(value)
+	end
+
+	---
+	-- Processes a dependency change request
+	-- It changes the dependency of a setting when successful
+	-- @param len the remaining length of the netmessage
+	-- @param ply the player who initiated the request
+	-- @local
+	local function ReceiveDependencyChangeRequest(len, ply)
+		local setting = all_settings[net.ReadString()]
+		local game_property
+		if len == 2 then
+			game_property = GetGameProperty(net.ReadString())
+			if not game_property then return end
+		end
+
+		if not setting then return end
+
+		if game_property then
+			setting:MakeDependent(game_property)
+		else
+			setting:MakeIndependent()
+		end
+	end
+
+	---
+	-- Processes a source addition request
+	-- It adds a source to a setting when successful
+	-- @param len the remaining length of the netmessage
+	-- @param ply the player who initiated the request
+	-- @local
+	local function ReceiveSourceAdditionRequest(len, ply)
+		local parent_setting = all_settings[net.ReadString()]
+		local source_id = net.ReadString()
+		local serialized_value = net.ReadString()
+
+		if not parent_setting then return end
+
+		local value = parent_setting.type:Deserialize(serialized_value)
+		if not value then return end
+
+		parent_setting:AddSource(source_id, value)
+	end
+
+	---
+	-- Processes a source removal request
+	-- It removes a source of a setting when successful
+	-- @param len the remaining length of the netmessage
+	-- @param ply the player who initiated the request
+	-- @local
+	local function ReceiveSourceRemovalRequest(len, ply)
+		local parent_setting = all_settings[net.ReadString()]
+		local source_id = net.ReadString()
+
+		if not parent_setting then return end
+
+		parent_setting:RemoveSource(source_id)
+	end
+
+	local request_processors = {
+		ReceiveOverrideAdditionRequest,
+		ReceiveOverrideRemovalRequest,
+		ReceiveValueChangeRequest,
+		ReceiveDependencyChangeRequest,
+		ReceiveSourceAdditionRequest,
+		ReceiveSourceRemovalRequest,
+	}
+
+	---
+	-- Processes any change request
+	-- It checks if the player who initiated the request has sufficient permissions
+	-- It determines the type of change
+	-- and calls the applicable processing function.
+	-- @param len the length of the netmessage
+	-- @param ply the player who initiated the request
+	-- @local
+	local function ReceiveChangeRequest(len, ply)
+		-- TODO Permission checks
+
+		local request_type = net.ReadUInt(3)
+		local request_processor = request_processors[request_type]
+		if not request_processor then return end
+
+		request_processor(len - 1)
+	end
+
+	net.Receive("PACOMAN_ChangeRequest", ReceiveChangeRequest)
 else
 	local client_settings_id = "client_settings"
 	local server_settings_id = "server_settings"
@@ -1199,12 +1416,13 @@ else
 	-- root namespace for a copy of all client overrides
 	client_overrides = Namespace:Create(client_overrides_id, nil)
 
-	local function OverrideIDToClientSettingID(override_id)
-		return client_settings_id .. string.sub(override_id, #client_overrides_id + 1, -1)
+	-- helper functions
+	local function OverrideIDToClientSettingID(full_id)
+		return client_settings_id .. string.sub(full_id, #client_overrides_id + 1, -1)
 	end
 
-	local function ClientSettingIDToOverrideID(override_id)
-		return client_overrides_id .. string.sub(override_id, #client_settings_id + 1, -1)
+	local function ClientSettingIDToOverrideID(full_id)
+		return client_overrides_id .. string.sub(full_id, #client_settings_id + 1, -1)
 	end
 
 	local function OnClientSettingAdded(self, setting)
@@ -1277,6 +1495,94 @@ else
 	client_overrides.OnSettingAdded = OnClientOverrideAdded
 	client_overrides.OnSettingRemoved = OnClientOverrideRemoved
 
+	---
+	-- Requests the server to add a client_override
+	-- @param Setting setting the Setting to create an override for
+	-- @note should only be used for client_settings.
+	function RequestOverrideAddition(setting)
+		net.Start("PACOMAN_ChangeRequest")
+		net.WriteUInt(0, 3)
+		net.WriteString(ClientSettingIDToOverrideID(setting.full_id))
+		net.WriteString(setting.type.id)
+		net.WriteString(setting.type:Serialize(setting.value))
+		net.SendToServer()
+	end
+
+	---
+	-- Requests the server to remove a client_override
+	-- @param Setting setting the Setting to remove as an override
+	-- @note should only be used for client_settings.
+	function RequestOverrideRemoval(setting)
+		net.Start("PACOMAN_ChangeRequest")
+		net.WriteUInt(1, 3)
+		net.WriteString(ClientSettingIDToOverrideID(setting.full_id))
+		net.SendToServer()
+	end
+
+	---
+	-- Requests the server to change the value of a setting
+	-- @param Setting setting the Setting to change the value of
+	-- @param any value the value to change it to (needs to fit the setting's type)
+	function RequestValueChange(setting, value)
+		local type = setting.type
+		if not type:IsValueValid(value) then return end
+
+		net.Start("PACOMAN_ChangeRequest")
+		net.WriteUInt(2, 3)
+		net.WriteString(setting.full_id)
+		net.WriteString(type:Serialize(value))
+		net.SendToServer()
+	end
+
+	---
+	-- Requests the server to change the dependency of a setting
+	-- @param Setting setting the Setting to change the dependency of
+	-- @param Game_Property game_property the Game_Property to make it depend on (nil to remove any dependency)
+	function RequestDependencyChange(setting, game_property)
+		net.Start("PACOMAN_ChangeRequest")
+		net.WriteUInt(3, 3)
+		net.WriteString(setting.full_id)
+		if game_property then
+			net.WriteString(game_property.id)
+		end
+		net.SendToServer()
+	end
+
+	---
+	-- Requests the server to add a source to a Setting
+	-- @param Setting setting the Setting to add a source to
+	-- @param string id the id of the source
+	-- @param any value the value of the source (needs to fit the setting's type)
+	-- @note the setting needs to depend on something for sources to be created.
+	function RequestSourceAddition(setting, id, value)
+		local type = setting.type
+		if not type:IsValueValid(value) then return end
+
+		net.Start("PACOMAN_ChangeRequest")
+		net.WriteUInt(4, 3)
+		net.WriteString(setting.full_id)
+		net.WriteString(id)
+		net.WriteString(type:Serialize(value))
+		net.SendToServer()
+	end
+
+	---
+	-- Requests the server to remove a source from a Setting
+	-- @param Setting setting the Setting to remove the source from
+	-- @param string id the id of the source to remove
+	function RequestSourceRemoval(setting, id)
+		net.Start("PACOMAN_ChangeRequest")
+		net.WriteUInt(5, 3)
+		net.WriteString(setting.full_id)
+		net.WriteString(id)
+		net.SendToServer()
+	end
+
+	---
+	-- Processes a Game_Property creation
+	-- Registers a new Game_Property on success
+	-- @param number len the remaining length of the netmessage
+	-- @local
 	local function ReceiveGamePropertyCreation(len)
 		local id = net.ReadString()
 		local type = GetType(net.ReadString())
@@ -1289,47 +1595,35 @@ else
 
 		RegisterGameProperty(id, type, value)
 	end
-	net.Receive("PACOMAN_GamePropertyCreated", ReceiveGamePropertyCreation)
 
+	---
+	-- Processes a Game_Property change
+	-- Changes the value of an existing Game_Property on success
+	-- @param number len the remaining length of the netmessage
+	-- @local
 	local function ReceiveGamePropertyChange(len)
 		local game_property = GetGameProperty(net.ReadString())
 		if not game_property then return end
 
 		game_property:SetValue(game_property.type:Deserialize(net.ReadString()))
 	end
-	net.Receive("PACOMAN_GamePropertyChanged", ReceiveGamePropertyChange)
 
-	local function ReceiveValueChange(len)
-		local setting = all_settings[net.ReadString()]
-		if not setting then return end
-
-		setting:SetValue(setting.type:Deserialize(net.ReadString))
-	end
-	net.Receive("PACOMAN_ValueChanged", ReceiveValueChange)
-
-	local function ReceiveSettingRemoval(len)
-		local full_parent_id = net.ReadString()
-		local child_id = net.ReadString()
-		local parent = all_namespaces[full_parent_id]
-		if parent then
-			parent:RemoveSetting(child_id)
-			return
-		end
-
-		parent = all_settings[full_parent_id]
-		if not parent then return end
-
-		parent.RemoveSource(child_id)
-	end
-	net.Receive("PACOMAN_SettingRemoved", ReceiveSettingRemoval)
-
+	---
+	-- Processes a Namespace creation
+	-- Creates a new Namespace on success
+	-- @param number len the remaining length of the netmessage
+	-- @local
 	local function ReceiveNamespaceCreation(len)
 		local parent = all_namespaces[net.ReadString()]
 		if not parent then return end
 		parent:AddChild(net.ReadString())
 	end
-	net.Receive("PACOMAN_NamespaceCreated", ReceiveNamespaceCreation)
 
+	---
+	-- Processes a Setting creation
+	-- Creates a new Setting on success
+	-- @param number len the remaining length of the netmessage
+	-- @local
 	local function ReceiveSettingCreation(len)
 		local full_parent_id = net.ReadString()
 		local id = net.ReadString()
@@ -1350,8 +1644,44 @@ else
 
 		parent:AddSource(id, value)
 	end
-	net.Receive("PACOMAN_SettingCreated", ReceiveSettingCreation)
 
+	---
+	-- Processes a Setting removal
+	-- Removes a Setting on success
+	-- @param number len the remaining length of the netmessage
+	-- @local
+	local function ReceiveSettingRemoval(len)
+		local full_parent_id = net.ReadString()
+		local child_id = net.ReadString()
+		local parent = all_namespaces[full_parent_id]
+		if parent then
+			parent:RemoveSetting(child_id)
+			return
+		end
+
+		parent = all_settings[full_parent_id]
+		if not parent then return end
+
+		parent.RemoveSource(child_id)
+	end
+
+	---
+	-- Processes a Setting change
+	-- Changes the value of a Setting on success
+	-- @param number len the remaining length of the netmessage
+	-- @local
+	local function ReceiveSettingValueChange(len)
+		local setting = all_settings[net.ReadString()]
+		if not setting then return end
+
+		setting:SetValue(setting.type:Deserialize(net.ReadString))
+	end
+
+	---
+	-- Processes a Setting dependency change
+	-- Changes the dependency of a Setting on success
+	-- @param number len the remaining length of the netmessage
+	-- @local
 	local function ReceiveSettingDependencyChange(len)
 		local setting = all_settings[net.ReadString()]
 		if not setting then return end
@@ -1365,15 +1695,49 @@ else
 
 		setting:MakeDependent(game_property)
 	end
-	net.Receive("PACOMAN_SettingDependencyChanged", ReceiveSettingDependencyChange)
 
-	net.Receive("PACOMAN_FullStateSent", function(len)
+	local update_processors = {
+		ReceiveGamePropertyCreation,
+		ReceiveGamePropertyChange,
+		ReceiveNamespaceCreation,
+		ReceiveSettingCreation,
+		ReceiveSettingRemoval,
+		ReceiveSettingValueChange,
+		ReceiveSettingDependencyChange
+	}
+
+	---
+	-- Processes any state update the server sends
+	-- It determines the type of update
+	-- and calls the applicable processing function.
+	-- @param number len the remaining length of the netmessage
+	-- @local
+	local function ReceiveStateUpdate(len)
+		local update_type = net.ReadUInt(3)
+		local update_processor = update_processors[update_type]
+		if not update_processor then return end
+
+		update_processor(len - 1)
+	end
+	net.Receive("PACOMAN_StateUpdate", ReceiveStateUpdate)
+
+	---
+	-- Called when the server sent the full state
+	-- Runs the "PacomanPostServerStateReceived" hook
+	-- which can be used by addons that work with server settings or client_overrides
+	-- @local
+	local function FullStateReceived(len)
 		print("[PACOMAN] Full state update received.")
 		hook.Run("PacomanPostServerStateReceived")
-	end)
+	end
+	net.Receive("PACOMAN_StateRequest", FullStateReceived)
 
-	hook.Add("InitPostEntity", "PACOMAN_RequestState", function()
-		net.Start("PACOMAN_RequestFullState")
+	---
+	-- Requests the server to send the full state (all Game_Properties and Settings)
+	-- @local
+	local function RequestFullState()
+		net.Start("PACOMAN_StateRequest")
 		net.SendToServer()
-	end)
+	end
+	hook.Add("InitPostEntity", "PACOMAN_StateRequest", RequestFullState)
 end
