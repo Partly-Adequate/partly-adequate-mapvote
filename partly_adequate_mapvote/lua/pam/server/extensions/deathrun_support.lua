@@ -1,8 +1,7 @@
-local extension = {}
-extension.name = "deathrun_support"
-extension.enabled = true
+PAM_EXTENSION.name = "deathrun_support"
+PAM_EXTENSION.enabled = true
 
-function extension.OnInitialize()
+function PAM_EXTENSION:OnInitialize()
 	if GAMEMODE_NAME ~= "deathrun" then return end
 
 	-- Arizard/deathrun
@@ -51,5 +50,3 @@ function extension.OnInitialize()
 		return
 	end
 end
-
-PAM.extension_handler.RegisterExtension(extension)

@@ -1,8 +1,7 @@
-local extension = {}
-extension.name = "special_icons"
-extension.enabled = true
+PAM_EXTENSION.name = "special_icons"
+PAM_EXTENSION.enabled = true
 
-function extension.GetIconMaterial(option)
+function PAM_EXTENSION:GetIconMaterial(option)
 	if not option.is_special then return end
 
 	local option_name = "img_" .. option.name
@@ -11,5 +10,3 @@ function extension.GetIconMaterial(option)
         return Material("vgui/pam/" .. option_name .. ".vmt")
     end
 end
-
-PAM.extension_handler.RegisterExtension(extension)

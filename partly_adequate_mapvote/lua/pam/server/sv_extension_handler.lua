@@ -3,14 +3,14 @@ function PAM.extension_handler.RegisterOptions()
 		local extension = PAM.extensions[i]
 
 		if extension.enabled and extension.RegisterSpecialOptions then
-			extension.RegisterSpecialOptions()
+			extension:RegisterSpecialOptions()
 		end
 	end
 
 	for i = 1, #PAM.extensions do
 		local extension = PAM.extensions[i]
 		if extension.enabled and extension.RegisterOptions then
-			extension.RegisterOptions()
+			extension:RegisterOptions()
 		end
 	end
 end
@@ -20,7 +20,7 @@ function PAM.extension_handler.GetWinningKey(vote_results)
 		local extension = PAM.extensions[i]
 
 		if extension.enabled and extension.GetWinningKey then
-			return extension.GetWinningKey(vote_results)
+			return extension:GetWinningKey(vote_results)
 		end
 	end
 end
@@ -32,7 +32,7 @@ function PAM.extension_handler.GetVotePower(steam_id)
 		local extension = PAM.extensions[i]
 
 		if extension.enabled and extension.GetVotePowerMultiplier then
-			vote_power = vote_power * extension.GetVotePowerMultiplier(steam_id)
+			vote_power = vote_power * extension:GetVotePowerMultiplier(steam_id)
 		end
 	end
 
@@ -44,7 +44,7 @@ function PAM.extension_handler.OnOptionRegistered(option_id)
 		local extension = PAM.extensions[i]
 
 		if extension.enabled and extension.OnOptionRegistered then
-			extension.OnOptionRegistered(option_id)
+			extension:OnOptionRegistered(option_id)
 		end
 	end
 end
@@ -54,7 +54,7 @@ function PAM.extension_handler.OnGamemodeChanged(gamemode_name)
 		local extension = PAM.extensions[i]
 
 		if extension.enabled and extension.OnGamemodeChanged then
-			extension.OnGamemodeChanged(gamemode_name)
+			extension:OnGamemodeChanged(gamemode_name)
 		end
 	end
 end
@@ -64,7 +64,7 @@ function PAM.extension_handler.PreMapChanged(map_name)
 		local extension = PAM.extensions[i]
 
 		if extension.enabled and extension.PreMapChanged then
-			extension.PreMapChanged(map_name)
+			extension:PreMapChanged(map_name)
 		end
 	end
 end
@@ -74,7 +74,7 @@ function PAM.extension_handler.OnVoteCanceled()
 		local extension = PAM.extensions[i]
 
 		if extension.enabled and extension.OnVoteCanceled then
-			extension.OnVoteCanceled()
+			extension:OnVoteCanceled()
 		end
 	end
 end
@@ -84,7 +84,7 @@ function PAM.extension_handler.OnVoterAdded(ply, option_id)
 		local extension = PAM.extensions[i]
 
 		if extension.enabled and extension.OnVoterAdded then
-			extension.OnVoterAdded(ply,option_id)
+			extension:OnVoterAdded(ply,option_id)
 		end
 	end
 end
@@ -94,7 +94,7 @@ function PAM.extension_handler.OnVoterRemoved(ply)
 		local extension = PAM.extensions[i]
 
 		if extension.enabled and extension.OnVoterRemoved then
-			extension.OnVoterRemoved(ply)
+			extension:OnVoterRemoved(ply)
 		end
 	end
 end
@@ -104,7 +104,7 @@ function PAM.extension_handler.OnRTVVoterAdded(ply)
 		local extension = PAM.extensions[i]
 
 		if extension.enabled and extension.OnRTVVoterAdded then
-			extension.OnRTVVoterAdded(ply)
+			extension:OnRTVVoterAdded(ply)
 		end
 	end
 end
@@ -114,7 +114,7 @@ function PAM.extension_handler.OnRTVVoterRemoved(ply)
 		local extension = PAM.extensions[i]
 
 		if extension.enabled and extension.OnRTVVoterRemoved then
-			extension.OnRTVVoterRemoved(ply)
+			extension:OnRTVVoterRemoved(ply)
 		end
 	end
 end
@@ -124,7 +124,7 @@ function PAM.extension_handler.OnOptionWon(option)
 		local extension = PAM.extensions[i]
 
 		if extension.enabled and extension.OnOptionWon then
-			extension.OnOptionWon(option)
+			extension:OnOptionWon(option)
 		end
 	end
 end

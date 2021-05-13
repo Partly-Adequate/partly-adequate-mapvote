@@ -1,8 +1,7 @@
-local extension = {}
-extension.name = "terrortown_support"
-extension.enabled = true
+PAM_EXTENSION.name = "terrortown_support"
+PAM_EXTENSION.enabled = true
 
-function extension.OnInitialize()
+function PAM_EXTENSION:OnInitialize()
 	-- terrortown support
 	if GAMEMODE_NAME ~= "terrortown" then return end
 
@@ -36,5 +35,3 @@ function extension.OnInitialize()
 		end
 	end
 end
-
-PAM.extension_handler.RegisterExtension(extension)

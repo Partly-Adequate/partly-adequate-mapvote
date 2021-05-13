@@ -1,8 +1,7 @@
-local extension = {}
-extension.name = "map_icons"
-extension.enabled = true
+PAM_EXTENSION.name = "map_icons"
+PAM_EXTENSION.enabled = true
 
-function extension.GetIconMaterial(option)
+function PAM_EXTENSION:GetIconMaterial(option)
 	if PAM.vote_type ~= "map" then return end
 	if option.is_special then return end
 
@@ -14,5 +13,3 @@ function extension.GetIconMaterial(option)
         return Material("maps/" .. map_name .. ".png")
     end
 end
-
-PAM.extension_handler.RegisterExtension(extension)

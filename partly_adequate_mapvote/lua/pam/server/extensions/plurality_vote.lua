@@ -1,9 +1,6 @@
-local extension = {}
-extension.name = "plurality_voting"
-extension.enabled = true
+PAM_EXTENSION.name = "plurality_voting"
+PAM_EXTENSION.enabled = true
 
-function extension.GetWinningKey(vote_results)
+function PAM_EXTENSION:GetWinningKey(vote_results)
 	return table.GetWinningKey(vote_results)
 end
-
-PAM.extension_handler.RegisterExtension(extension)

@@ -1,12 +1,14 @@
-local extension = {}
-extension.name = "map_provider"
-extension.enabled = true
+local name = "map_provider"
+PAM_EXTENSION.name = name
+PAM_EXTENSION.enabled = true
 
-local prefixes = ""
-local blacklist = ""
-local whitelist = ""
-local limit = 20
-local cooldown = 0
+local setting_namespace = PAM.setting_namespace:AddChild(name)
+
+local prefixes_setting  = setting_namespace:AddSetting("prefixes", pacoman.TYPE_STRING, "")
+local blacklist_setting = setting_namespace:AddSetting("blacklist", pacoman.TYPE_STRING, "")
+local whitelist_setting = setting_namespace:AddSetting("whitelist", pacoman.TYPE_STRING, "")
+local limit_setting     = setting_namespace:AddSetting("limit", pacoman.TYPE_INTEGER, 20)
+local cooldown_setting  = setting_namespace:AddSetting("cooldown", pacoman.TYPE_INTEGER, 3)
 
 -- cooldown stuff
 if not sql.TableExists("pam_map_cooldowns") then
@@ -30,13 +32,17 @@ local function SetMapCooldown(mapname, cooldown)
 	end
 end
 
-function extension.RegisterOptions()
+function PAM_EXTENSION:RegisterOptions()
 	if PAM.vote_type ~= "map" then return end
 
 	local all_maps = file.Find("maps/*.bsp", "GAME")
 	local starting_option_count = PAM.option_count
 
-	local prefixes = string.Split(prefixes, ",")
+	local prefixes = string.Split(prefixes_setting:GetActiveValue(), ",")
+	local blacklist = blacklist_setting:GetActiveValue()
+	local whitelist = whitelist_setting:GetActiveValue()
+	local limit = limit_setting:GetActiveValue()
+	local cooldown = cooldown_setting:GetActiveValue()
 
 	for _, map in RandomPairs(all_maps) do
 		map = map:sub(1, -5)
@@ -78,7 +84,7 @@ function extension.RegisterOptions()
 	end
 end
 
-function extension.OnWinnerAnnounced(vote_type, option)
+function PAM_EXTENSION:OnWinnerAnnounced(vote_type, option)
 	if vote_type ~= "map" then return end
 	if option.is_special then return end
 
@@ -92,38 +98,5 @@ function extension.OnWinnerAnnounced(vote_type, option)
 	end
 
 	-- set/reset the cooldown of the winning map
-	SetMapCooldown(winning_map, cooldown)
+	SetMapCooldown(winning_map, cooldown_setting:GetActiveValue())
 end
-
-PAM.extension_handler.RegisterExtension(extension)
-
--- Settings
-local setting_namespace = PAM.setting_namespace:AddChild(extension.name)
-
-local prefixes_setting = setting_namespace:AddSetting("prefixes", pacoman.TYPE_STRING, prefixes)
-local blacklist_setting = setting_namespace:AddSetting("blacklist", pacoman.TYPE_STRING, blacklist)
-local whitelist_setting = setting_namespace:AddSetting("whitelist", pacoman.TYPE_STRING, whitelist)
-local limit_setting = setting_namespace:AddSetting("limit", pacoman.TYPE_INTEGER, limit)
-local cooldown_setting = setting_namespace:AddSetting("cooldown", pacoman.TYPE_INTEGER, cooldown)
-
-prefixes = prefixes_setting:GetActiveValue()
-blacklist = blacklist_setting:GetActiveValue()
-whitelist = whitelist_setting:GetActiveValue()
-limit = limit_setting:GetActiveValue()
-cooldown = cooldown_setting:GetActiveValue()
-
-prefixes_setting:AddCallback("default", function(new_value)
-	prefixes = new_value
-end)
-blacklist_setting:AddCallback("default", function(new_value)
-	blacklist = new_value
-end)
-whitelist_setting:AddCallback("default", function(new_value)
-	whitelist = new_value
-end)
-limit_setting:AddCallback("default", function(new_value)
-	limit = new_value
-end)
-cooldown_setting:AddCallback("default", function(new_value)
-	cooldown = new_value
-end)
