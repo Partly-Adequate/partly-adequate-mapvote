@@ -542,7 +542,6 @@ function Setting:SetValue(new_value)
 	if not self.type:IsValueValid(new_value) then return end
 
 	self.value = new_value
-
 	self:OnValueChanged()
 
 	-- if this setting has a source setting that overrides the active value it should not change it's active value
@@ -577,11 +576,12 @@ function Setting:SetActiveValue(new_value)
 
 	self.active_value = new_value
 
+	self:CallCallbacks()
+
 	-- update the parent setting when this setting is a source and currently active
 	if not self.parent or not parent.active_source_id == self.id then return end
 
 	parent:SetActiveValue(new_value)
-	self.CallCallbacks()
 end
 
 ---
@@ -1236,7 +1236,7 @@ if SERVER then
 			if not type then continue end
 
 			local value = type:Deserialize(overrides[i].value)
-			if not value then continue end
+			if value == nil then continue end
 
 			local path, id = FullIDToPath(full_id)
 
@@ -1265,7 +1265,7 @@ if SERVER then
 		if not type then return end
 
 		local value = type:Deserialize(net.ReadString())
-		if not value then return end
+		if value == nil then return end
 
 		local path, id = FullIDToPath(full_id)
 
@@ -1311,7 +1311,7 @@ if SERVER then
 		if not setting then return end
 
 		local value = setting.type:Deserialize(serialized_value)
-		if not value then return end
+		if value == nil then return end
 
 		setting:SetValue(value)
 	end
@@ -1353,7 +1353,7 @@ if SERVER then
 		if not parent_setting then return end
 
 		local value = parent_setting.type:Deserialize(serialized_value)
-		if not value then return end
+		if value == nil then return end
 
 		parent_setting:AddSource(source_id, value)
 	end
@@ -1591,7 +1591,7 @@ else
 		if not type then return end
 
 		local value = type:Deserialize(serialized_value)
-		if not value then return end
+		if value == nil then return end
 
 		RegisterGameProperty(id, type, value)
 	end
@@ -1631,7 +1631,7 @@ else
 		if not type then return end
 
 		local value = type:Deserialize(net.ReadString())
-		if not value then return end
+		if value == nil then return end
 
 		local parent = all_namespaces[full_parent_id]
 		if parent then
