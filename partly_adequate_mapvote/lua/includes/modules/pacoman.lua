@@ -947,6 +947,8 @@ if SERVER then
 	local server_settings_id = "server_settings"
 	local client_overrides_id = "client_overrides"
 
+	local synced_clients = {}
+
 	-- root namespace for all server settings
 	server_settings = Namespace:Create(server_settings_id, nil)
 	-- root namespace for all client overrides
@@ -1193,8 +1195,9 @@ if SERVER then
 	-- @param player ply the player who initiated the request
 	-- @local
 	local function SendFullState(len, ply)
-		-- TODO make sure the same player doesn't request the full state more than once
-		print("[PACOMAN] " .. ply:GetName() .. " requested a full state update.")
+		local steam_id = ply:SteamID64()
+		-- block new state request for players who are already synced
+		if synced_clients[steam_id] then return end
 
 		for i = 1, #game_properties do
 			SendGamePropertyCreation(game_properties[i], ply)
@@ -1204,8 +1207,16 @@ if SERVER then
 		SendNamespace(client_overrides, ply)
 		net.Start("PACOMAN_StateRequest")
 		net.Send(ply)
+
+		-- mark player as synced
+		synced_clients[steam_id] = true
 	end
 	net.Receive("PACOMAN_StateRequest", SendFullState)
+
+	-- allows players who left and then joined again to also request the state again.
+	hook.Add("PlayerDisconnected", "PACOMAN_AllowNewStateRequest", function(ply)
+		synced_clients[ply:SteamID64()] = false
+	end)
 
 	---
 	-- Gets called whenever a Game_Property is registered
