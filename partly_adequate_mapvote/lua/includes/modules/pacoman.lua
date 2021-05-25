@@ -1393,7 +1393,7 @@ if SERVER then
 	local function ReceiveChangeRequest(len, ply)
 		-- TODO Permission checks
 
-		local request_type = net.ReadUInt(3)
+		local request_type = net.ReadUInt(3) + 1
 		local request_processor = request_processors[request_type]
 		if not request_processor then return end
 
@@ -1713,7 +1713,7 @@ else
 	-- @param number len the remaining length of the netmessage
 	-- @local
 	local function ReceiveStateUpdate(len)
-		local update_type = net.ReadUInt(3)
+		local update_type = net.ReadUInt(3) + 1
 		local update_processor = update_processors[update_type]
 		if not update_processor then return end
 
