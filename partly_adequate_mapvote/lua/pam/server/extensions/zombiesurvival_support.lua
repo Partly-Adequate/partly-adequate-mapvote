@@ -1,8 +1,7 @@
-local extension = {}
-extension.name = "zombiesurvival_support"
-extension.enabled = true
+PAM_EXTENSION.name = "zombiesurvival_support"
+PAM_EXTENSION.enabled = true
 
-function extension.OnInitialize()
+function PAM_EXTENSION:OnInitialize()
 	if GAMEMODE_NAME ~= "zombiesurvival" then return end
 
 	hook.Add("LoadNextMap", "PAM_Autostart_ZombieSurvival", function()
@@ -14,5 +13,3 @@ function extension.OnInitialize()
 		PAM.CheckForDelayedRTV()
 	end)
 end
-
-PAM.extension_handler.RegisterExtension(extension)

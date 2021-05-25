@@ -1,16 +1,17 @@
-local extension = {}
-extension.name = "gamemode"
-extension.settings = {
-	vote_length = 20,
-	blacklist = "base"
-}
+local name = "gamemode"
+PAM_EXTENSION.name = name
+PAM_EXTENSION.enabled = false
 
-function extension.RegisterSpecialOptions()
+local setting_namespace = PAM.setting_namespace:AddChild(name)
+local vote_length_setting = setting_namespace:AddSetting("vote_length", pacoman.TYPE_INTEGER, 30)
+local blacklist_setting = setting_namespace:AddSetting("blacklist", pacoman.TYPE_STRING, "base")
+
+function PAM_EXTENSION:RegisterSpecialOptions()
 	if PAM.vote_type ~= "map" then return end
 
 	PAM.RegisterOption("change_gamemode", function()
 		PAM.Cancel()
-		PAM.Start("gamemode", extension.settings.vote_length, function(option)
+		PAM.Start("gamemode", vote_length, function(option)
 			PAM.ChangeGamemode(option)
 			PAM.Cancel()
 			PAM.Start()
@@ -18,13 +19,11 @@ function extension.RegisterSpecialOptions()
 	end)
 end
 
-function extension.RegisterOptions()
+function PAM_EXTENSION:RegisterOptions()
 	if PAM.vote_type ~= "gamemode" then return end
 
 	local all_gamemodes = engine.GetGamemodes()
 	local gamemode_amount = 0
-
-	local blacklist = extension.settings.blacklist
 
 	for _, gamemode_table in ipairs(all_gamemodes) do
 		-- don't add blacklisted gamemodes
@@ -35,5 +34,3 @@ function extension.RegisterOptions()
 		PAM.RegisterOption(gamemode_table.name)
 	end
 end
-
-PAM.extension_handler.RegisterExtension(extension)

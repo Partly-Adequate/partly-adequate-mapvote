@@ -1,63 +1,64 @@
-local extension = {}
-local panel = nil
-extension.name = "default_votescreen"
-extension.enabled = true
-extension.settings = {
-	scale = 100
-}
+local name = "default_votescreen"
+PAM_EXTENSION.name = name
+PAM_EXTENSION.enabled = true
 
-function extension.OnVoteStarted()
+local panel = nil
+
+local scale_setting = PAM.setting_namespace:AddChild(name):AddSetting("scale", pacoman.TYPE_INTEGER, 100)
+
+function PAM_EXTENSION:OnVoteStarted()
 	panel = vgui.Create("pam_default_votescreen")
 end
 
-function extension.OnVoteCanceled()
+function PAM_EXTENSION:OnVoteCanceled()
 	panel:Remove()
 end
 
-function extension.OnVoterAdded(ply, map_id)
+function PAM_EXTENSION:OnVoterAdded(ply, map_id)
 	panel:AddVoter(ply, map_id)
 end
 
-function extension.OnVoterRemoved(ply)
+function PAM_EXTENSION:OnVoterRemoved(ply)
 	panel:RemoveVoter(ply)
 end
 
-function extension.OnWinnerAnnounced()
+function PAM_EXTENSION:OnWinnerAnnounced()
 	panel:AnnounceWinner()
 end
 
-function extension.ToggleVisibility()
+function PAM_EXTENSION:ToggleVisibility()
 	panel:SetVisible(not panel:IsVisible())
 end
 
-function extension.OnEnable()
+function PAM_EXTENSION:OnEnable()
 	if PAM.state != PAM.STATE_DISABLED then
-		extension.OnVoteStarted()
+		self:OnVoteStarted()
 		for steam_id, option_id in pairs(PAM.votes) do
-			extension.OnVoterAdded(player.GetBySteamID(steam_id), option_id)
+			self:OnVoterAdded(player.GetBySteamID(steam_id), option_id)
 		end
 	end
 	if PAM.state == PAM.STATE_FINISHED then
-		extension.OnWinnerAnnounced()
+		self:OnWinnerAnnounced()
 	end
 end
 
-function extension.OnDisable()
+function PAM_EXTENSION:OnDisable()
 	if PAM.state != PAM.STATE_DISABLED then
 		panel:Remove()
 	end
 end
 
-function extension.OnSettingChanged(setting)
-	if setting != "scale" then return end
+
+function PAM_EXTENSION:OnInitialize()
+	local function ScaleChanged(new_scale)
+		include("pam/client/extensions/default_votescreen_panel.lua")
+		if not self.enabled then return end
+
+		self:OnDisable()
+		self:OnEnable()
+	end
+
+	scale_setting:AddCallback("default", ScaleChanged)
 
 	include("pam/client/extensions/default_votescreen_panel.lua")
-	if extension.enabled then
-		extension.OnDisable()
-		extension.OnEnable()
-	end
 end
-
-PAM.extension_handler.RegisterExtension(extension)
-
-include("pam/client/extensions/default_votescreen_panel.lua")

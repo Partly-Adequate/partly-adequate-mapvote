@@ -1,10 +1,7 @@
 local PANEL = {}
 
-local scale = PAM.extension_handler.GetSetting("default_votescreen", "scale")
-
-if not scale then
-	scale = 100
-end
+local setting_namespace = PAM.setting_namespace:GetChild("default_votescreen")
+local scale = setting_namespace and setting_namespace:GetSetting("scale"):GetActiveValue() or 100
 
 scale = scale / 100
 

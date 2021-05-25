@@ -1,8 +1,7 @@
-local extension = {}
-extension.name = "guesswho_support"
-extension.enabled = true
+PAM_EXTENSION.name = "guesswho_support"
+PAM_EXTENSION.enabled = true
 
-function extension.OnInitialize()
+function PAM_EXTENSION:OnInitialize()
 	if GAMEMODE_NAME ~= "guesswho" then return end
 
 	-- lolleko/guesswho
@@ -15,5 +14,3 @@ function extension.OnInitialize()
 		PAM.CheckForDelayedRTV()
 	end)
 end
-
-PAM.extension_handler.RegisterExtension(extension)

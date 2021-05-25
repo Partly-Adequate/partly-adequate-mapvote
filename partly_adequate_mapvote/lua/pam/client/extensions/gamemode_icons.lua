@@ -1,8 +1,7 @@
-local extension = {}
-extension.name = "gamemode_icons"
-extension.enabled = true
+PAM_EXTENSION.name = "gamemode_icons"
+PAM_EXTENSION.enabled = true
 
-function extension.GetIconMaterial(option)
+function PAM_EXTENSION:GetIconMaterial(option)
 	if PAM.vote_type ~= "gamemode" then return end
 	if option.is_special then return end
 
@@ -12,5 +11,3 @@ function extension.GetIconMaterial(option)
 		return Material("gamemodes/" .. gamemode_name .. "/icon24.png")
 	end
 end
-
-PAM.extension_handler.RegisterExtension(extension)

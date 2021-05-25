@@ -1,8 +1,7 @@
-local extension = {}
-extension.name = "murder_support"
-extension.enabled = true
+PAM_EXTENSION.name = "murder_support"
+PAM_EXTENSION.enabled = true
 
-function extension.OnInitialize()
+function PAM_EXTENSION:OnInitialize()
 	if GAMEMODE_NAME ~= "murder" then
 		-- Reconstructing MiRe's MapVote api, because murder supports only their addon natively
 		MapVote = {}
@@ -17,5 +16,3 @@ function extension.OnInitialize()
 		return
 	end
 end
-
-PAM.extension_handler.RegisterExtension(extension)

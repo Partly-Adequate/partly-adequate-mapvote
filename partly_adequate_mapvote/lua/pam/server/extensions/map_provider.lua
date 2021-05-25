@@ -1,25 +1,48 @@
-local extension = {}
-extension.name = "map"
-extension.enabled = true
-extension.gamemode_dependent = true
-extension.settings = {
-	prefixes = "",
-	blacklist = "",
-	whitelist = "",
-	limit = 20,
-	cooldown = 0
-}
+local name = "map_provider"
+PAM_EXTENSION.name = name
+PAM_EXTENSION.enabled = true
 
-function extension.RegisterOptions()
+local setting_namespace = PAM.setting_namespace:AddChild(name)
+
+local prefixes_setting  = setting_namespace:AddSetting("prefixes", pacoman.TYPE_STRING, "")
+local blacklist_setting = setting_namespace:AddSetting("blacklist", pacoman.TYPE_STRING, "")
+local whitelist_setting = setting_namespace:AddSetting("whitelist", pacoman.TYPE_STRING, "")
+local limit_setting     = setting_namespace:AddSetting("limit", pacoman.TYPE_INTEGER, 20)
+local cooldown_setting  = setting_namespace:AddSetting("cooldown", pacoman.TYPE_INTEGER, 3)
+
+-- cooldown stuff
+if not sql.TableExists("pam_map_cooldowns") then
+	sql.Query("CREATE TABLE pam_map_cooldowns(id TEXT NOT NULL PRIMARY KEY, heat INTEGER NOT NULL)")
+end
+
+local function GetMapCooldown(mapname)
+	local data = sql.Query("SELECT heat FROM pam_map_cooldowns WHERE id IS " .. sql.SQLStr(mapname))
+	if data then
+		return tonumber(data[1]["heat"])
+	else
+		return 0
+	end
+end
+
+local function SetMapCooldown(mapname, cooldown)
+	if(cooldown <= 0) then
+		sql.Query("DELETE FROM pam_map_cooldowns WHERE id IS " .. sql.SQLStr(mapname))
+	else
+		sql.Query("INSERT OR REPLACE INTO pam_map_cooldowns VALUES( " .. sql.SQLStr(mapname) .. ", " .. cooldown .. ")")
+	end
+end
+
+function PAM_EXTENSION:RegisterOptions()
 	if PAM.vote_type ~= "map" then return end
 
 	local all_maps = file.Find("maps/*.bsp", "GAME")
 	local starting_option_count = PAM.option_count
 
-	local prefixes = string.Split(extension.settings.prefixes, ",")
-	local limit = extension.settings.limit
-	local blacklist = extension.settings.blacklist
-	local whitelist = extension.settings.whitelist
+	local prefixes = string.Split(prefixes_setting:GetActiveValue(), ",")
+	local blacklist = blacklist_setting:GetActiveValue()
+	local whitelist = whitelist_setting:GetActiveValue()
+	local limit = limit_setting:GetActiveValue()
+	local cooldown = cooldown_setting:GetActiveValue()
 
 	for _, map in RandomPairs(all_maps) do
 		map = map:sub(1, -5)
@@ -30,7 +53,7 @@ function extension.RegisterOptions()
 		end
 
 		-- don't add maps which were played recently
-		if PAM.GetMapCooldown(map) > 0 then
+		if GetMapCooldown(map) > 0 then
 			continue
 		end
 
@@ -61,7 +84,7 @@ function extension.RegisterOptions()
 	end
 end
 
-function extension.OnWinnerAnnounced(vote_type, option)
+function PAM_EXTENSION:OnWinnerAnnounced(vote_type, option)
 	if vote_type ~= "map" then return end
 	if option.is_special then return end
 
@@ -70,34 +93,10 @@ function extension.OnWinnerAnnounced(vote_type, option)
 	if data then
 		for _, heat_info in ipairs(data) do
 			local mapname = heat_info["id"]
-			PAM.SetMapCooldown(mapname, PAM.GetMapCooldown(mapname) - 1)
+			SetMapCooldown(mapname, GetMapCooldown(mapname) - 1)
 		end
 	end
 
 	-- set/reset the cooldown of the winning map
-	PAM.SetMapCooldown(winning_map, GetConVar("pam_map_cooldown"):GetInt())
-end
-
-PAM.extension_handler.RegisterExtension(extension)
-
--- cooldown stuff
-if not sql.TableExists("pam_map_cooldowns") then
-	sql.Query("CREATE TABLE pam_map_cooldowns(id TEXT NOT NULL PRIMARY KEY, heat INTEGER NOT NULL)")
-end
-
-function PAM.GetMapCooldown(mapname)
-	local data = sql.Query("SELECT heat FROM pam_map_cooldowns WHERE id IS " .. sql.SQLStr(mapname))
-	if data then
-		return tonumber(data[1]["heat"])
-	else
-		return 0
-	end
-end
-
-function PAM.SetMapCooldown(mapname, cooldown)
-	if(cooldown <= 0) then
-		sql.Query("DELETE FROM pam_map_cooldowns WHERE id IS " .. sql.SQLStr(mapname))
-	else
-		sql.Query("INSERT OR REPLACE INTO pam_map_cooldowns VALUES( " .. sql.SQLStr(mapname) .. ", " .. cooldown .. ")")
-	end
+	SetMapCooldown(winning_map, cooldown_setting:GetActiveValue())
 end
