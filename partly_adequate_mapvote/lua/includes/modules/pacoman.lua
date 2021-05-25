@@ -1391,7 +1391,8 @@ if SERVER then
 	-- @param ply the player who initiated the request
 	-- @local
 	local function ReceiveChangeRequest(len, ply)
-		-- TODO Permission checks
+		-- TODO more flexible permission checks
+		if not ply:IsSuperAdmin() then return end
 
 		local request_type = net.ReadUInt(3) + 1
 		local request_processor = request_processors[request_type]
