@@ -407,6 +407,7 @@ function Game_Property:SetValue(new_value)
 	self.value = new_value
 
 	CallCallbacks(self.id, new_value)
+	hook.Run("PACOMAN_GamePropertyValueChanged", self)
 end
 
 ---
@@ -542,12 +543,15 @@ function Setting:SetValue(new_value)
 	if not self.type:IsValueValid(new_value) then return end
 
 	self.value = new_value
+
 	self:OnValueChanged()
+	hook.Run("PACOMAN_SettingValueChanged", self)
 
 	-- if this setting has a source setting that overrides the active value it should not change it's active value
 	if self.active_source_id then return end
 
 	self:SetActiveValue(new_value)
+	hook.Run("PACOMAN_SettingActiveValueChanged", self)
 end
 
 ---
@@ -608,6 +612,7 @@ function Setting:MakeDependent(game_property)
 	end)
 
 	self:OnDependencyChanged()
+	hook.Run("PACOMAN_SettingMadeDependent", self)
 end
 
 ---
@@ -632,6 +637,7 @@ function Setting:MakeIndependent()
 	self.source_indices = {}
 
 	self:OnDependencyChanged()
+	hook.Run("PACOMAN_SettingMadeIndependent", self)
 end
 
 ---
@@ -663,6 +669,7 @@ function Setting:AddSource(source_id, value)
 	self.source_indices[source_setting.id] = index
 
 	self:OnSourceAdded(source_setting)
+	hook.Run("PACOMAN_SettingSourceAdded", self, source_setting)
 
 	-- check if the new setting should be the active setting
 	self:Update()
@@ -702,6 +709,7 @@ function Setting:RemoveSource(source_id)
 
 	-- call OnSourceRemoved hook
 	self:OnSourceRemoved(source_setting)
+	hook.Run("PACOMAN_SettingSourceRemoved", self, source_setting)
 
 	-- update this setting when the active source got removed
 	if source_id != self.active_source_id then return end
@@ -819,6 +827,7 @@ function Namespace:AddChild(child_id)
 	self.children_indices[child_id] = index
 
 	self:OnChildAdded(namespace)
+	hook.Run("PACOMAN_NamespaceChildAdded", self, namespace)
 
 	return namespace
 end
@@ -863,6 +872,7 @@ function Namespace:AddSetting(setting_id, type, value)
 	setting.OnSourceRemoved = self.OnSettingRemoved
 
 	self:OnSettingAdded(setting)
+	hook.Run("PACOMAN_NamespaceSettingAdded", self, setting)
 
 	return setting
 end
@@ -908,6 +918,7 @@ function Namespace:RemoveSetting(setting_id)
 
 	-- call OnSettingRemoved hook
 	self:OnSettingRemoved(setting)
+	hook.Run("PACOMAN_NamespaceSettingRemoved", self, setting)
 end
 
 ---
