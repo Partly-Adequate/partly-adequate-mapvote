@@ -2,28 +2,138 @@
 local col_base = {r = 40, g = 40, b = 40, a = 255}
 local col_base_darker = {r = 30, g = 30, b = 30, a = 255}
 local col_base_darkest = {r = 20, g = 20, b = 20, a = 255}
-local col_text = {r = 150, g = 150, b = 150, a = 255}
+local col_text = {r = 200, g = 200, b = 200, a = 255}
 
-local PANEL = {}
+local TITLE_BAR_HEIGHT = 25
+local HEADER_HEIGHT = 25
+local INDENTATION = 15
+local TREE_WIDTH = 300
+local TREE_HEIGHT = 400
 
 surface.CreateFont("PACOMAN_default_font", {
 	font = "Trebuchet MS",
 	size = 25
 })
 
-local function AddSetting(parent_node, setting)
-	local node = parent_node:AddNode(setting.id)
+local PANEL_LIST = {}
+
+function PANEL_LIST:Init()
+	self:SetBackgroundColor(col_base)
 end
 
-local function AddNamespace(parent_node, namespace)
-	local node = parent_node:AddNode(namespace.id)
-	for i = 1, #namespace.children do
-		AddNamespace(node, namespace.children[i])
+function PANEL_LIST:Paint(w, h)
+	surface.SetDrawColor(col_base)
+	surface.DrawRect(0, 0, w, h)
+	surface.SetDrawColor(col_base_darkest)
+	surface.DrawRect(INDENTATION - 5, 0, 5, h - 2)
+end
+
+function PANEL_LIST:PerformLayout()
+	local current_width, current_height = self:GetSize()
+	local new_height = 0
+
+	for _, panel in ipairs(self:GetChildren()) do
+		if not panel:IsMarkedForDeletion() then
+			-- change position
+			panel:SetPos(INDENTATION, new_height)
+			panel:SetWidth(current_width - INDENTATION)
+
+			-- update current height
+			if panel:IsVisible() then
+				local _, h = panel:GetSize()
+				new_height = new_height + h
+			end
+		end
 	end
-	for i = 1, #namespace.settings do
-		AddSetting(node, namespace.settings[i])
+
+	if new_height != current_height then
+		self:SetSize(current_width, new_height)
+		return
 	end
 end
+
+derma.DefineControl("pacoman_panel_list", "", PANEL_LIST, "DPanel")
+
+local TREE_NODE = {}
+
+function TREE_NODE:Init()
+	self.header = vgui.Create("DButton", self)
+	self.header:SetIsToggle(true)
+	self.header:SetToggle(false)
+	self.header:SetHeight(HEADER_HEIGHT)
+	self.header:SetPos(0, 0)
+	self.header:SetTextColor(col_text)
+	self.header:SetContentAlignment(4)
+
+	self.header.Paint = function(s, w, h)
+		surface.SetDrawColor(col_base_darkest)
+		surface.DrawRect(0, 0, w - 1, h - 2)
+	end
+
+	self.Paint = function(s, w, h)
+		surface.SetDrawColor(col_base)
+		surface.DrawRect(0, 0, w, h)
+	end
+
+	self.children = vgui.Create("pacoman_panel_list", self)
+	self.children:SetPos(0, HEADER_HEIGHT)
+	self.children:SetVisible(false)
+
+	self.header.OnToggled = function(header, state)
+		self.children:SetVisible(state)
+		self:InvalidateLayout()
+	end
+end
+
+function TREE_NODE:PerformLayout()
+	local w, old_h = self:GetSize()
+	self.header:SetWidth(w)
+	self.children:SetWidth(w)
+
+	local new_h = HEADER_HEIGHT
+	if self.children:IsVisible() then
+		local _, children_h = self.children:GetSize()
+		new_h = new_h + children_h
+	end
+
+	if new_h != old_h then
+		self:SetSize(w, new_h)
+	end
+end
+
+derma.DefineControl("pacoman_tree_node", "", TREE_NODE, "DPanel")
+
+local all_nodes = {}
+
+local function AddSettingPanel(parent_panel, setting)
+	local setting_panel = vgui.Create("pacoman_tree_node", parent_panel)
+	setting_panel.header:SetText(setting.id)
+	setting_panel.setting = setting
+	all_nodes[setting.full_id] = setting_panel
+	for i = 1, #setting.sources do
+		AddSettingPanel(setting_panel.children, setting.sources[i])
+	end
+
+	return setting_panel
+end
+
+local function AddNamespacePanel(parent_panel, namespace)
+	local namespace_panel = vgui.Create("pacoman_tree_node", parent_panel)
+	namespace_panel.header:SetText(namespace.id)
+	namespace_panel.namespace = namespace
+	all_nodes[namespace.full_id] = namespace_panel
+	for i = 1, #namespace.children do
+		AddNamespacePanel(namespace_panel.children, namespace.children[i])
+	end
+
+	for i = 1, #namespace.settings do
+		AddSettingPanel(namespace_panel.children, namespace.settings[i])
+	end
+
+	return namespace_panel
+end
+
+local PANEL = {}
 
 function PANEL:Init()
 	local width = ScrW() * 0.5
@@ -37,18 +147,48 @@ function PANEL:Init()
 
 	self.Paint = function(s, w, h)
 		surface.SetDrawColor(col_base_darkest)
-		surface.DrawRect(0, 0, w, 25)
+		surface.DrawRect(0, 0, w, TITLE_BAR_HEIGHT)
 		surface.SetDrawColor(col_base)
-		surface.DrawRect(0, 25, w, h - 25)
+		surface.DrawRect(0, TITLE_BAR_HEIGHT, w, h - TITLE_BAR_HEIGHT)
 	end
 
-	local tree = vgui.Create("DTree", self)
-	tree:SetPos(0, 25)
-	tree:SetSize(width / 2, height - 25)
+	local tree_container = vgui.Create("DScrollPanel", self)
+	tree_container:SetPos(0, TITLE_BAR_HEIGHT)
+	tree_container:SetSize(TREE_WIDTH + 15, height - TITLE_BAR_HEIGHT)
+	tree_container.Paint = function(s, w, h)
+		surface.SetDrawColor(col_base_darker)
+		surface.DrawRect(0, 0, w, h)
+		surface.SetDrawColor(col_base_darkest)
+		surface.DrawRect(w - 15, 0, 15, h)
+	end
 
-	AddNamespace(tree, pacoman.client_settings)
-	AddNamespace(tree, pacoman.server_settings)
-	AddNamespace(tree, pacoman.client_overrides)
+	local scroll_bar = tree_container:GetVBar()
+	function scroll_bar:Paint(w, h)
+
+	end
+
+	function scroll_bar.btnUp:Paint(w, h)
+		surface.SetDrawColor(col_base)
+		surface.DrawRect(2, 2, w - 4, h - 4)
+	end
+
+	function scroll_bar.btnGrip:Paint(w, h)
+		surface.SetDrawColor(col_base)
+		surface.DrawRect(2, 2, w - 4, h - 4)
+	end
+
+	function scroll_bar.btnDown:Paint(w, h)
+		surface.SetDrawColor(col_base)
+		surface.DrawRect(2, 2, w - 4, h - 4)
+	end
+
+	local tree_list = vgui.Create("pacoman_panel_list", tree_container)
+	tree_list:SetBackgroundColor(col_base_darkest)
+	tree_list:SetWidth(TREE_WIDTH)
+
+	self.client_settings_panel = AddNamespacePanel(tree_list, pacoman.client_settings)
+	self.client_overrides_panel = AddNamespacePanel(tree_list, pacoman.client_overrides)
+	self.server_settings_panel = AddNamespacePanel(tree_list, pacoman.server_settings)
 
 	self:MakePopup()
 	self:SetKeyboardInputEnabled(false)
