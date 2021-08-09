@@ -8,7 +8,6 @@ local TITLE_BAR_HEIGHT = 25
 local HEADER_HEIGHT = 25
 local INDENTATION = 15
 local TREE_WIDTH = 300
-local TREE_HEIGHT = 400
 
 surface.CreateFont("PACOMAN_default_font", {
 	font = "Trebuchet MS",
@@ -101,41 +100,84 @@ function TREE_NODE:PerformLayout()
 	end
 end
 
+function TREE_NODE:OnClicked()
+
+end
+
 derma.DefineControl("pacoman_tree_node", "", TREE_NODE, "DPanel")
 
 local all_nodes = {}
 
-local function AddSettingPanel(parent_panel, setting)
+local function AddSettingPanel(parent_panel, setting, on_selected)
 	local setting_panel = vgui.Create("pacoman_tree_node", parent_panel)
+	setting_panel.OnClicked = on_selected
 	setting_panel.header:SetText(setting.id)
+	setting_panel.header.DoClick = function(self)
+		setting_panel:OnClicked()
+	end
 	setting_panel.setting = setting
+
 	all_nodes[setting.full_id] = setting_panel
 	for i = 1, #setting.sources do
-		AddSettingPanel(setting_panel.children, setting.sources[i])
+		AddSettingPanel(setting_panel.children, setting.sources[i], on_selected)
 	end
 
 	return setting_panel
 end
 
-local function AddNamespacePanel(parent_panel, namespace)
+local function AddNamespacePanel(parent_panel, namespace, on_selected)
 	local namespace_panel = vgui.Create("pacoman_tree_node", parent_panel)
 	namespace_panel.header:SetText(namespace.id)
+
 	namespace_panel.namespace = namespace
 	all_nodes[namespace.full_id] = namespace_panel
 	for i = 1, #namespace.children do
-		AddNamespacePanel(namespace_panel.children, namespace.children[i])
+		AddNamespacePanel(namespace_panel.children, namespace.children[i], on_selected)
 	end
 
 	for i = 1, #namespace.settings do
-		AddSettingPanel(namespace_panel.children, namespace.settings[i])
+		AddSettingPanel(namespace_panel.children, namespace.settings[i], on_selected)
 	end
 
 	return namespace_panel
 end
 
-local PANEL = {}
+local VALUE_PANEL = {}
 
-function PANEL:Init()
+local SETTING_PANEL = {}
+
+function SETTING_PANEL:Init()
+	local width, height = self:GetSize()
+
+	self.lbl_name = vgui.Create("DLabel", self)
+	self.lbl_name:SetText("")
+	self.lbl_name:SetPos(0, 0)
+	self.lbl_name:SetSize(width, HEADER_HEIGHT)
+	self.lbl_name.Paint = function(s, w, h)
+		surface.SetDrawColor(col_base_darker)
+		surface.DrawRect(0, 0, w, h)
+	end
+end
+
+function SETTING_PANEL:SetSetting(setting)
+	local width, height = self:GetSize()
+	self.setting = setting
+	self.lbl_name:SetText(setting and setting.full_id or "")
+	self.lbl_name:SetSize(width, HEADER_HEIGHT)
+end
+
+function SETTING_PANEL:Paint(w, h)
+	surface.SetDrawColor(col_base)
+	surface.DrawRect(0, 0, w, h)
+	surface.SetDrawColor(col_base_darkest)
+	surface.DrawRect(0, 0, w, HEADER_HEIGHT)
+end
+
+derma.DefineControl("pacoman_setting_panel", "", SETTING_PANEL, "DPanel")
+
+local DEFAULT_SETTING_SCREEN = {}
+
+function DEFAULT_SETTING_SCREEN:Init()
 	local width = ScrW() * 0.5
 	local height = ScrH() * 0.75
 
@@ -151,6 +193,10 @@ function PANEL:Init()
 		surface.SetDrawColor(col_base)
 		surface.DrawRect(0, TITLE_BAR_HEIGHT, w, h - TITLE_BAR_HEIGHT)
 	end
+
+	local setting_panel = vgui.Create("pacoman_setting_panel", self)
+	setting_panel:SetPos(TREE_WIDTH + 15, TITLE_BAR_HEIGHT)
+	setting_panel:SetSize(width - TREE_WIDTH, height)
 
 	local tree_container = vgui.Create("DScrollPanel", self)
 	tree_container:SetPos(0, TITLE_BAR_HEIGHT)
@@ -185,16 +231,19 @@ function PANEL:Init()
 	local tree_list = vgui.Create("pacoman_panel_list", tree_container)
 	tree_list:SetBackgroundColor(col_base_darkest)
 	tree_list:SetWidth(TREE_WIDTH)
+	local function OnSelected(self)
+		setting_panel:SetSetting(self.setting)
+	end
 
-	self.client_settings_panel = AddNamespacePanel(tree_list, pacoman.client_settings)
-	self.client_overrides_panel = AddNamespacePanel(tree_list, pacoman.client_overrides)
-	self.server_settings_panel = AddNamespacePanel(tree_list, pacoman.server_settings)
+	self.client_settings_panel = AddNamespacePanel(tree_list, pacoman.client_settings, OnSelected)
+	self.client_overrides_panel = AddNamespacePanel(tree_list, pacoman.client_overrides, OnSelected)
+	self.server_settings_panel = AddNamespacePanel(tree_list, pacoman.server_settings, OnSelected)
 
 	self:MakePopup()
 	self:SetKeyboardInputEnabled(false)
 end
 
-derma.DefineControl("pacoman_default_setting_screen", "", PANEL, "DFrame")
+derma.DefineControl("pacoman_default_setting_screen", "", DEFAULT_SETTING_SCREEN, "DFrame")
 
 local panel = nil
 
