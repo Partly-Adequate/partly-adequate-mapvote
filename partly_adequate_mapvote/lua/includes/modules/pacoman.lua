@@ -1207,8 +1207,9 @@ if SERVER then
 	-- @local
 	local function SendFullState(len, ply)
 		local steam_id = ply:SteamID64()
+
 		-- block new state request for players who are already synced
-		if synced_clients[steam_id] then return end
+		if steam_id and synced_clients[steam_id] then return end
 
 		for i = 1, #game_properties do
 			SendGamePropertyCreation(game_properties[i], ply)
@@ -1220,7 +1221,9 @@ if SERVER then
 		net.Send(ply)
 
 		-- mark player as synced
-		synced_clients[steam_id] = true
+		if steam_id then
+			synced_clients[steam_id] = true
+		end
 	end
 	net.Receive("PACOMAN_StateRequest", SendFullState)
 
