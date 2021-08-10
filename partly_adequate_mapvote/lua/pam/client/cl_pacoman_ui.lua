@@ -45,7 +45,7 @@ function PANEL_LIST:PerformLayout()
 		end
 	end
 
-	if new_height != current_height then
+	if new_height ~= current_height then
 		self:SetSize(current_width, new_height)
 		return
 	end
@@ -95,7 +95,7 @@ function TREE_NODE:PerformLayout()
 		new_h = new_h + children_h
 	end
 
-	if new_h != old_h then
+	if new_h ~= old_h then
 		self:SetSize(w, new_h)
 	end
 end
@@ -149,28 +149,56 @@ local SETTING_PANEL = {}
 function SETTING_PANEL:Init()
 	local width, height = self:GetSize()
 
+	self.setting = nil
+	self.is_server_setting = false
+
 	self.lbl_name = vgui.Create("DLabel", self)
 	self.lbl_name:SetText("")
 	self.lbl_name:SetPos(0, 0)
 	self.lbl_name:SetSize(width, HEADER_HEIGHT)
-	self.lbl_name.Paint = function(s, w, h)
-		surface.SetDrawColor(col_base_darker)
-		surface.DrawRect(0, 0, w, h)
+	self.lbl_name:SetPaintBackground(false)
+	self.txt_value = vgui.Create("DTextEntry", self)
+	self.txt_value:SetText("")
+	self.txt_value:SetPos(0, HEADER_HEIGHT)
+	self.txt_value:SetSize(width, HEADER_HEIGHT)
+	self.txt_value:SetPaintBackground(false)
+	self.txt_value:SetContentAlignment(7)
+	self.txt_value:SetTextColor(col_text)
+	self.txt_value:SetCursorColor(col_text)
+	self.txt_value:SetPlaceholderColor(col_text)
+	self.txt_value.OnEnter = function(s, value)
+		if not self.setting then return end
+
+		local value = self.setting.type:Deserialize(value)
+		if self.is_server_setting then
+			pacoman.RequestValueChange(self.setting, value)
+		else
+			self.setting:SetValue(value)
+		end
 	end
+
+	hook.Add("PACOMAN_SettingValueChanged", "pacoman_default_ui_update", function(setting)
+		if self.setting ~= setting then return end
+
+		self.txt_value:SetText(setting.type:Serialize(setting.value))
+	end)
 end
 
-function SETTING_PANEL:SetSetting(setting)
+function SETTING_PANEL:SetSetting(setting, is_server_setting)
 	local width, height = self:GetSize()
 	self.setting = setting
+	self.is_server_setting = is_server_setting
 	self.lbl_name:SetText(setting and setting.full_id or "")
 	self.lbl_name:SetSize(width, HEADER_HEIGHT)
+	self.txt_value:SetSize(width, height - HEADER_HEIGHT)
+	self.txt_value:SetText(self.setting.type:Serialize(setting.value))
 end
 
 function SETTING_PANEL:Paint(w, h)
-	surface.SetDrawColor(col_base)
-	surface.DrawRect(0, 0, w, h)
-	surface.SetDrawColor(col_base_darkest)
+	surface.SetDrawColor(col_base_darker)
 	surface.DrawRect(0, 0, w, HEADER_HEIGHT)
+	surface.SetDrawColor(col_base)
+	surface.DrawRect(0, HEADER_HEIGHT, w, HEADER_HEIGHT)
 end
 
 derma.DefineControl("pacoman_setting_panel", "", SETTING_PANEL, "DPanel")
@@ -196,7 +224,7 @@ function DEFAULT_SETTING_SCREEN:Init()
 
 	local setting_panel = vgui.Create("pacoman_setting_panel", self)
 	setting_panel:SetPos(TREE_WIDTH + 15, TITLE_BAR_HEIGHT)
-	setting_panel:SetSize(width - TREE_WIDTH, height)
+	setting_panel:SetSize(width - TREE_WIDTH, 2 * HEADER_HEIGHT)
 
 	local tree_container = vgui.Create("DScrollPanel", self)
 	tree_container:SetPos(0, TITLE_BAR_HEIGHT)
@@ -231,16 +259,19 @@ function DEFAULT_SETTING_SCREEN:Init()
 	local tree_list = vgui.Create("pacoman_panel_list", tree_container)
 	tree_list:SetBackgroundColor(col_base_darkest)
 	tree_list:SetWidth(TREE_WIDTH)
-	local function OnSelected(self)
-		setting_panel:SetSetting(self.setting)
+	local function OnClientSettingSelected(self)
+		setting_panel:SetSetting(self.setting, false)
 	end
 
-	self.client_settings_panel = AddNamespacePanel(tree_list, pacoman.client_settings, OnSelected)
-	self.client_overrides_panel = AddNamespacePanel(tree_list, pacoman.client_overrides, OnSelected)
-	self.server_settings_panel = AddNamespacePanel(tree_list, pacoman.server_settings, OnSelected)
+	local function OnServerSettingSelected(self)
+		setting_panel:SetSetting(self.setting, true)
+	end
+
+	self.client_settings_panel = AddNamespacePanel(tree_list, pacoman.client_settings, OnClientSettingSelected)
+	self.client_overrides_panel = AddNamespacePanel(tree_list, pacoman.client_overrides, OnServerSettingSelected)
+	self.server_settings_panel = AddNamespacePanel(tree_list, pacoman.server_settings, OnServerSettingSelected)
 
 	self:MakePopup()
-	self:SetKeyboardInputEnabled(false)
 end
 
 derma.DefineControl("pacoman_default_setting_screen", "", DEFAULT_SETTING_SCREEN, "DFrame")
