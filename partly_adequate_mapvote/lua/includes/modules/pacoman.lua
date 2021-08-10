@@ -1700,7 +1700,7 @@ else
 		local setting = all_settings[net.ReadString()]
 		if not setting then return end
 
-		setting:SetValue(setting.type:Deserialize(net.ReadString))
+		setting:SetValue(setting.type:Deserialize(net.ReadString()))
 	end
 
 	---
