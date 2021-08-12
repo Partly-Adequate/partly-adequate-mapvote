@@ -113,6 +113,11 @@ function PAM.ChangeGamemode(option)
 
 	hook.Run("PAM_OnGamemodeChanged", gamemode_name)
 
+	local gp_gamemode = pacoman.GetGameProperty("gamemode")
+	if gp_gamemode then
+		gp_gamemode:SetValue(gamemode_name)
+	end
+
 	PAM.extension_handler.OnGamemodeChanged(gamemode_name)
 end
 
