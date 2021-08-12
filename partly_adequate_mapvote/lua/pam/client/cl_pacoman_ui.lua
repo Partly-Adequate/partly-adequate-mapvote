@@ -283,7 +283,6 @@ function DEFAULT_SETTING_SCREEN:SetSetting(setting, is_server_setting)
 		local depends_on = self.setting.depends_on
 
 		if depends_on then
-			print(depends_on.id)
 			self.cb_setting_dependency:ChooseOptionID(pacoman.game_property_indices[depends_on.id] + 1)
 		else
 			self.cb_setting_dependency:ChooseOptionID(1)
