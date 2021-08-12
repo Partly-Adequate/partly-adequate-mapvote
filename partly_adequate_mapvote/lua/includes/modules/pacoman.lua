@@ -1454,8 +1454,6 @@ else
 	end
 
 	local function OnClientSettingAdded(self, setting)
-		LoadSettingFromDatabase(setting)
-
 		setting.OnValueChanged = function(self)
 			SaveSettingInDatabase(self)
 		end
@@ -1480,8 +1478,6 @@ else
 
 			CallCallbacks(full_id, self.active_value)
 		end
-
-		SaveSettingInDatabase(setting)
 	end
 
 	local function OnClientSettingRemoved(self, setting)
@@ -1758,6 +1754,26 @@ else
 	-- which can be used by addons that work with server settings or client_overrides
 	-- @local
 	local function FullStateReceived(len)
+		-- stack creation
+		local to_load = {client_settings}
+		local to_load_count = 1
+		while to_load_count > 0 do
+			-- pop
+			local namespace = to_load[to_load_count]
+			to_load[to_load_count] = nil
+			to_load_count = to_load_count - 1
+
+			for i = 1, #namespace.settings do
+				LoadSettingFromDatabase(namespace.settings[i])
+			end
+			for i = 1, #namespace.children do
+				-- push
+				to_load[to_load_count + i] = namespace.children[i]
+			end
+			-- update count
+			to_load_count = to_load_count + #namespace.children
+		end
+
 		print("[PACOMAN] Full state update received.")
 		hook.Run("PacomanPostServerStateReceived")
 	end
