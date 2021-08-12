@@ -116,9 +116,9 @@ local function RemoveCallback(call_id, id)
 	local last_index = #callbacks
 
 	if index == last_index then
+		callbacks[index] = nil
 		callback_ids[index] = nil
 		callback_indices[id] = nil
-		callbacks[id] = nil
 		return
 	end
 
