@@ -402,7 +402,7 @@ end
 -- @note new_value has to be valid in regards to the Type of this Game_Property
 -- @note this will call all callbacks that were added previously
 function Game_Property:SetValue(new_value)
-	if not self.type:IsValueValid(new_value) then return end
+	if self.value == new_value or not self.type:IsValueValid(new_value) then return end
 
 	self.value = new_value
 
@@ -540,7 +540,7 @@ end
 -- @param any new_value the new value
 -- @note will not do anything when the new value doesn't fit this Setting's type
 function Setting:SetValue(new_value)
-	if not self.type:IsValueValid(new_value) then return end
+	if self.value == new_value or not self.type:IsValueValid(new_value) then return end
 
 	self.value = new_value
 
