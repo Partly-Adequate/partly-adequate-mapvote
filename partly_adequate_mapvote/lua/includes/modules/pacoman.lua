@@ -50,7 +50,7 @@ local function LoadSettingFromDatabase(setting)
 	local game_property = GetGameProperty(depends_on)
 	if not game_property then return end
 
-	setting.MakeDependent(game_property)
+	setting:MakeDependent(game_property)
 
 	-- Add sources
 	local sources = sql.Query("SELECT id, value FROM pacoman_values WHERE parent_id = " .. sql.SQLStr(setting.full_id))
@@ -605,6 +605,8 @@ function Setting:MakeDependent(game_property)
 		self:MakeIndependent()
 	end
 
+	if not game_property then return end
+
 	self.depends_on = game_property
 
 	game_property:AddCallback(self.full_id, function()
@@ -1092,8 +1094,12 @@ if SERVER then
 		net.WriteUInt(6, 3)
 		net.WriteString(setting.full_id)
 		if game_property then
+			net.WriteBool(true)
 			net.WriteString(game_property.id)
+		else
+			net.WriteBool(false)
 		end
+
 		if ply then
 			net.Send(ply)
 		else
@@ -1350,18 +1356,14 @@ if SERVER then
 	local function ReceiveDependencyChangeRequest(len, ply)
 		local setting = all_settings[net.ReadString()]
 		local game_property
-		if len == 2 then
+		if net.ReadBool() then
 			game_property = GetGameProperty(net.ReadString())
 			if not game_property then return end
 		end
 
 		if not setting then return end
 
-		if game_property then
-			setting:MakeDependent(game_property)
-		else
-			setting:MakeIndependent()
-		end
+		setting:MakeDependent(game_property)
 	end
 
 	---
@@ -1423,7 +1425,7 @@ if SERVER then
 		local request_processor = request_processors[request_type]
 		if not request_processor then return end
 
-		request_processor(len - 1)
+		request_processor(len - 3)
 	end
 
 	net.Receive("PACOMAN_ChangeRequest", ReceiveChangeRequest)
@@ -1569,8 +1571,12 @@ else
 		net.WriteUInt(3, 3)
 		net.WriteString(setting.full_id)
 		if game_property then
+			net.WriteBool(true)
 			net.WriteString(game_property.id)
+		else
+			net.WriteBool(false)
 		end
+
 		net.SendToServer()
 	end
 
@@ -1712,12 +1718,11 @@ else
 		local setting = all_settings[net.ReadString()]
 		if not setting then return end
 
-		setting:MakeIndependent()
-
-		if len == 1 then return end
-
-		local game_property = GetGameProperty(net.ReadString())
-		if not game_property then return end
+		local game_property
+		if net.ReadBool() then
+			game_property = GetGameProperty(net.ReadString())
+			if not game_property then return end
+		end
 
 		setting:MakeDependent(game_property)
 	end
