@@ -191,6 +191,16 @@ function DEFAULT_SETTING_SCREEN:Init()
 	self.cb_setting_dependency:SetSize(setting_width * 0.75, HEADER_HEIGHT)
 	self.cb_setting_dependency:SetText("Nothing")
 
+	self.cb_setting_dependency:AddChoice("Nothing", nil, true)
+	for i = 1, #pacoman.game_properties do
+		local game_property = pacoman.game_properties[i]
+		self.cb_setting_dependency:AddChoice(game_property.id, game_property)
+	end
+
+	self.cb_setting_dependency.OnSelect = function(s, index, gp_id, game_property)
+		self:AttemptDependencyChange(game_property)
+	end
+
 	local lbl_setting_value = vgui.Create("DLabel", self)
 	lbl_setting_value:SetPos(setting_pos_x, HEADER_HEIGHT * 3)
 	lbl_setting_value:SetSize(setting_width * 0.25, HEADER_HEIGHT)
@@ -270,6 +280,15 @@ function DEFAULT_SETTING_SCREEN:SetSetting(setting, is_server_setting)
 		self.setting = setting
 		self.is_server_setting = is_server_setting
 		self.cb_setting_dependency:SetDisabled(false)
+		local depends_on = self.setting.depends_on
+
+		if depends_on then
+			print(depends_on.id)
+			self.cb_setting_dependency:ChooseOptionID(pacoman.game_property_indices[depends_on.id] + 1)
+		else
+			self.cb_setting_dependency:ChooseOptionID(1)
+		end
+
 		self.cb_setting_dependency:SetText(setting.depends_on and setting.depends_on.id or "Nothing")
 		self.lbl_setting_name:SetText(setting.full_id)
 		self.txt_setting_value:SetText(setting.type:Serialize(setting.value))
@@ -277,13 +296,31 @@ function DEFAULT_SETTING_SCREEN:SetSetting(setting, is_server_setting)
 	end
 	self.setting = nil
 	self.is_server_setting = false
+	self.cb_setting_dependency:ChooseOptionID(1)
 	self.cb_setting_dependency:SetDisabled(true)
 	self.cb_setting_dependency:SetText("Nothing")
 	self.lbl_setting_name:SetText("")
 	self.txt_setting_value:SetText("")
 end
 
+function DEFAULT_SETTING_SCREEN:AttemptDependencyChange(game_property)
+	if not self.setting or self.setting.depends_on == game_property then return end
+
+	if self.is_server_setting then
+		pacoman.RequestDependencyChange(self.setting, game_property)
+		return
+	end
+
+	if game_property then
+		self.setting:MakeDependent(game_property)
+	else
+		self.setting:MakeIndependent()
+	end
+end
+
 function DEFAULT_SETTING_SCREEN:AttemptValueChange(value)
+	if not self.setting then return end
+
 	if value == nil then
 		self.txt_setting_value:SetText(self.setting.type:Serialize(self.setting.value))
 		return
