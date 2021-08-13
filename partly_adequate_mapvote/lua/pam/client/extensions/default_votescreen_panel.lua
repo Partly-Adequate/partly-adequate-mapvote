@@ -19,7 +19,7 @@ local avatar_space = option_image_size / avatars_per_row
 local col_base = {r = 40, g = 40, b = 40, a = 255}
 local col_base_darker = {r = 30, g = 30, b = 30, a = 255}
 local col_base_darkest = {r = 20, g = 20, b = 20, a = 255}
-local col_text = {r = 150, g = 150, b = 150, a = 255}
+local col_text = {r = 255, g = 255, b = 255, a = 255}
 
 -- images and icons
 local ic_favorite = Material("vgui/pam/ic_favorite")
@@ -28,6 +28,11 @@ local ic_voted_on = Material("vgui/pam/ic_selected")
 local ic_not_voted_on = Material("vgui/pam/ic_not_selected")
 
 local mat_missing_option = Material("vgui/pam/img_missing")
+
+surface.CreateFont("PAM_TitleFont", {
+	font = "Trebuchet MS",
+	size = 16
+})
 
 surface.CreateFont("PAM_NameFont", {
 	font = "Trebuchet MS",
@@ -57,7 +62,7 @@ function PANEL:Init()
 	self:SetSize(width, height)
 	self:SetPos((ScrW() - width) * 0.5, (ScrH() - height) * 0.5)
 	self:SetZPos(-100)
-	self:SetTitle("Partly Adequate Mapvote")
+	self:SetTitle("")
 	self:SetDeleteOnClose(false)
 
 	self.Paint = function(s, w, h)
@@ -66,6 +71,15 @@ function PANEL:Init()
 		surface.SetDrawColor(col_base)
 		surface.DrawRect(0, 25, w, h - 25)
 	end
+
+	local lbl_title = vgui.Create("DLabel", self)
+	lbl_title:SetPos(0, 0)
+	lbl_title:SetSize(width, 25)
+	lbl_title:SetFont("PAM_TitleFont")
+	lbl_title:SetTextColor(col_text)
+	lbl_title:SetContentAlignment(5)
+	lbl_title:SetPaintBackground(false)
+	lbl_title:SetText("Partly Adequate Mapvote")
 
 	self.search_term = ""
 	self.show_favorites = false
