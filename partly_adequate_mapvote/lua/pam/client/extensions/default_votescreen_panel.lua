@@ -92,8 +92,8 @@ function PANEL:Init()
 	container:SetPos(0, 25)
 	container.Paint = function(s, w, h) end
 
-	self:InitSettings(container, 0, 0, width, settings_height * 3)
-	self:InitOptionList(container, 0, settings_height * 3, width, height - 25 - settings_height * 3)
+	self:InitSettings(container, 0, 0, width, settings_height * 3 + 4)
+	self:InitOptionList(container, 0, settings_height * 3 + 4, width, height - 25 - settings_height * 3 - 4)
 
 	self:MakePopup()
 	self:SetKeyboardInputEnabled(false)
@@ -106,10 +106,10 @@ function PANEL:InitSettings(parent, pos_x, pos_y, width, height)
 	pnl_vote_settings.Paint = function(s, w, h) end
 
 	self:InitCountDown(pnl_vote_settings, 0, 0, width, settings_height)
-	self:InitSearchArea(pnl_vote_settings, 0, settings_height, width / 2, settings_height)
-	self:InitFavorites(pnl_vote_settings, width / 2, settings_height, width / 2, settings_height)
-	self:InitVotedOn(pnl_vote_settings, width / 2, 2 * settings_height, width / 2, settings_height)
-	self:InitSortBox(pnl_vote_settings, 0, 2 * settings_height, width / 2, settings_height)
+	self:InitSearchArea(pnl_vote_settings, 0, settings_height, width * 0.5, settings_height)
+	self:InitFavorites(pnl_vote_settings, width * 0.5, settings_height, width * 0.5, settings_height)
+	self:InitVotedOn(pnl_vote_settings, width * 0.5, 2 * settings_height, width * 0.5, settings_height)
+	self:InitSortBox(pnl_vote_settings, 0, 2 * settings_height, width * 0.5, settings_height)
 end
 
 function PANEL:InitCountDown(parent, pos_x, pos_y, width, height)
@@ -120,10 +120,8 @@ function PANEL:InitCountDown(parent, pos_x, pos_y, width, height)
 	lbl_countdown:SetSize(width, height)
 	lbl_countdown:SetPos(pos_x, pos_y)
 	lbl_countdown.Paint = function(s, w, h)
-		surface.SetDrawColor(col_base_darkest)
-		surface.DrawRect(0, 0, w, h)
 		surface.SetDrawColor(col_base)
-		surface.DrawRect(2, 2, w - 4, h - 4)
+		surface.DrawRect(0, 0, w, h)
 	end
 	lbl_countdown.Think = function()
 		local time_left = math.Round(math.max(PAM.ends_at - CurTime(), 0))
@@ -138,8 +136,6 @@ function PANEL:InitSearchArea(parent, pos_x, pos_y, width, height)
 	pnl_container.Paint = function(s, w, h)
 		surface.SetDrawColor(col_base_darkest)
 		surface.DrawRect(0, 0, w, h)
-		surface.SetDrawColor(col_base)
-		surface.DrawRect(2, 2, w - 4, h - 4)
 	end
 
 	local txt_search = vgui.Create("DTextEntry", pnl_container)
@@ -187,8 +183,6 @@ function PANEL:InitSortBox(parent, pos_x, pos_y, width, height)
 	cb_sort_by.Paint = function(s, w, h)
 		surface.SetDrawColor(col_base_darkest)
 		surface.DrawRect(0, 0, w, h)
-		surface.SetDrawColor(col_base)
-		surface.DrawRect(2, 2, w - 4, h - 4)
 	end
 	cb_sort_by:SetTextColor(col_text)
 	cb_sort_by:SetFont("PAM_SettingsFont")
@@ -228,8 +222,6 @@ function PANEL:InitFavorites(parent, pos_x, pos_y, width, height)
 	btn_toggle_favorites.Paint = function(s, w, h)
 		surface.SetDrawColor(col_base_darkest)
 		surface.DrawRect(0, 0, w, h)
-		surface.SetDrawColor(col_base)
-		surface.DrawRect(2, 2, w - 4, h - 4)
 	end
 
 	local icon = vgui.Create("DImage", btn_toggle_favorites)
@@ -250,7 +242,7 @@ end
 
 function PANEL:InitVotedOn(parent, pos_x, pos_y, width, height)
 	local btn_toggle_voted_on = vgui.Create("DButton", parent)
-	btn_toggle_voted_on:SetText("Show options being voted on")
+	btn_toggle_voted_on:SetText("Show desired options")
 	btn_toggle_voted_on:SetSize(width, height)
 	btn_toggle_voted_on:SetPos(pos_x, pos_y)
 	btn_toggle_voted_on:SetTextColor(col_text)
@@ -258,8 +250,6 @@ function PANEL:InitVotedOn(parent, pos_x, pos_y, width, height)
 	btn_toggle_voted_on.Paint = function(s, w, h)
 		surface.SetDrawColor(col_base_darkest)
 		surface.DrawRect(0, 0, w, h)
-		surface.SetDrawColor(col_base)
-		surface.DrawRect(2, 2, w - 4, h - 4)
 	end
 
 	local icon = vgui.Create("DImage", btn_toggle_voted_on)
@@ -442,13 +432,6 @@ function PANEL:InitOptionButtons()
 		option_image:SetSize(option_image_size, option_image_size)
 		option_image:SetPos(option_button_label_size, option_button_label_size)
 
-		local image_border = vgui.Create("DPanel", option_image)
-		image_border:SetSize(option_image_size, option_image_size)
-		image_border.Paint = function(s, w, h)
-			surface.SetDrawColor(col_base_darkest)
-			surface.DrawOutlinedRect(0, 0, option_image_size, option_image_size)
-		end
-
 		-- option-name label
 		local lbl_option_name = vgui.Create("DLabel", option_button)
 		lbl_option_name:SetPos(0, 0)
@@ -497,17 +480,12 @@ function PANEL:InitOptionButtons()
 
 		-- override default texture
 		option_button.Paint = function(s, w, h)
-			surface.SetDrawColor(col_base)
-			surface.DrawRect(0, 0, option_button_size, option_button_size);
-			surface.SetDrawColor(col_base_darker)
-			surface.DrawRect(option_button_label_size, option_button_label_size, option_image_size, option_image_size);
 			surface.SetDrawColor(col_base_darkest)
-			surface.DrawRect(0, 0, option_button_size, option_button_label_size);
-
-			surface.DrawOutlinedRect(0, 0, option_button_size, option_button_size);
-			surface.DrawOutlinedRect(option_button_label_size - 1, option_button_label_size - 1, option_image_size + 2, option_image_size + 2)
-			surface.DrawLine(0, option_button_label_size, option_button_size, option_button_label_size);
-			surface.DrawLine(0, option_button_label_size - 1, option_button_size, option_button_label_size - 1);
+			surface.DrawRect(0, 0, option_button_size, option_button_size);
+			surface.SetDrawColor(col_base)
+			surface.DrawRect(2, option_button_label_size, option_button_size - 4, option_button_label_size + option_image_size - 2);
+			surface.SetDrawColor(col_base_darkest)
+			surface.DrawRect(option_button_label_size, option_button_label_size, option_image_size, option_image_size);
 		end
 
 		table.insert(self.option_buttons, option_button)
