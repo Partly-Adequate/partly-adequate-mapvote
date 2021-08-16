@@ -103,6 +103,49 @@ end
 derma.DefineControl("pacoman_type_boolean", "", BOOLEAN_TYPE_PANEL, "pacoman_type_base")
 RegisterTypePanel(pacoman.TYPE_BOOLEAN.id, "pacoman_type_boolean")
 
+
+local PERCENTAGE_TYPE_PANEL = {}
+
+function PERCENTAGE_TYPE_PANEL:Init()
+	self:SetPaintBackground(false)
+	self.sld_setting_value = vgui.Create("DNumSlider", self)
+	self.sld_setting_value:Dock(FILL)
+	self.sld_setting_value:DockMargin(0, 0, 5, 0)
+	self.sld_setting_value:SetMax(100)
+	self.sld_setting_value:SetDecimals(2)
+	self.sld_setting_value.OnValueChanged = function(s, value)
+		self.setting_panel:AttemptValueChange()
+	end
+
+	self.sld_setting_value:GetChild(2):Dock(RIGHT)
+	self.sld_setting_value:GetChild(0):Dock(LEFT)
+
+	self.txt_setting_value = self.sld_setting_value:GetTextArea()
+	self.txt_setting_value:SetTextColor(col_text)
+	self.txt_setting_value:SetCursorColor(col_text)
+	self.txt_setting_value.OnGetFocus = function(s)
+		self.setting_panel:SetKeyboardInputEnabled(true)
+	end
+	self.txt_setting_value.OnLoseFocus = function(s)
+		self.setting_panel:SetKeyboardInputEnabled(false)
+	end
+	self.txt_setting_value.OnEnter = function(s, serialized_value)
+		self.setting_panel:AttemptValueChange()
+	end
+end
+
+function PERCENTAGE_TYPE_PANEL:SetValue(value)
+	self.sld_setting_value:SetValue(value * 100)
+end
+
+function PERCENTAGE_TYPE_PANEL:GetValue()
+	return self.sld_setting_value:GetValue() / 100
+end
+
+derma.DefineControl("pacoman_type_percentage", "", PERCENTAGE_TYPE_PANEL, "pacoman_type_base")
+RegisterTypePanel(pacoman.TYPE_PERCENTAGE.id, "pacoman_type_percentage")
+
+
 local PANEL_LIST = {}
 
 function PANEL_LIST:Init()
