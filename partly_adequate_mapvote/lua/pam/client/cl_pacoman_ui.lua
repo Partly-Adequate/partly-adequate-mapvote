@@ -434,7 +434,7 @@ function DEFAULT_SETTING_SCREEN:SetSetting(setting, is_server_setting)
 		end
 
 		self.cb_setting_dependency:SetText(setting.depends_on and setting.depends_on.id or "Nothing")
-		self.lbl_setting_id:SetText(setting.id)
+		self.lbl_setting_id:SetText(setting.full_id)
 		return
 	end
 	self.setting = nil
