@@ -11,6 +11,106 @@ local TREE_WIDTH = 300
 
 local pacoman_ui = nil
 
+local type_panel_ids = {}
+
+local function RegisterTypePanel(id, panel_id)
+	type_panel_ids[id] = panel_id
+end
+
+local TYPE_PANEL_BASE = {}
+
+function TYPE_PANEL_BASE:Init()
+	self.setting_panel = nil
+end
+
+function TYPE_PANEL_BASE:SetSettingPanel(setting_panel)
+	self.setting_panel = setting_panel
+	self.type = setting_panel.setting.type
+	self:SetValue(self.setting_panel.setting.value)
+end
+
+function TYPE_PANEL_BASE:SetValue()
+
+end
+
+function TYPE_PANEL_BASE:GetValue()
+
+end
+
+derma.DefineControl("pacoman_type_base", "", TYPE_PANEL_BASE, "DPanel")
+
+
+local ANY_TYPE_PANEL = {}
+
+function ANY_TYPE_PANEL:Init()
+	self:SetPaintBackground(false)
+	self.txt_setting_value = vgui.Create("DTextEntry", self)
+	self.txt_setting_value:SetText("")
+	self.txt_setting_value:Dock(FILL)
+	self.txt_setting_value:DockPadding(0, 0, 0, 0)
+	self.txt_setting_value:DockMargin(0, 0, 0, 0)
+	self.txt_setting_value:SetTextColor(col_text)
+	self.txt_setting_value:SetCursorColor(col_text)
+	self.txt_setting_value:SetPaintBackground(false)
+	self.txt_setting_value.OnGetFocus = function(s)
+		if not self.setting_panel then return end
+
+		self.setting_panel:SetKeyboardInputEnabled(true)
+	end
+	self.txt_setting_value.OnLoseFocus = function(s)
+		if not self.setting_panel then return end
+
+		self.setting_panel:SetKeyboardInputEnabled(false)
+	end
+	self.txt_setting_value.OnEnter = function(s, serialized_value)
+		if not self.setting_panel then return end
+		self.setting_panel:AttemptValueChange()
+	end
+end
+
+function ANY_TYPE_PANEL:SetValue(value)
+	self.txt_setting_value:SetText(self.type:Serialize(value))
+end
+
+function ANY_TYPE_PANEL:GetValue()
+	return self.type:Deserialize(self.txt_setting_value:GetText())
+end
+
+derma.DefineControl("pacoman_type_any", "", ANY_TYPE_PANEL, "pacoman_type_base")
+
+
+local BOOLEAN_TYPE_PANEL = {}
+
+function BOOLEAN_TYPE_PANEL:Init()
+	self:SetPaintBackground(false)
+	self.btn_setting_value = vgui.Create("DButton", self)
+	self.btn_setting_value:SetText("")
+	self.btn_setting_value:Dock(FILL)
+	self.btn_setting_value:DockPadding(0, 0, 0, 0)
+	self.btn_setting_value:DockMargin(0, 0, 0, 0)
+	self.btn_setting_value:SetTextColor(col_text)
+	self.btn_setting_value:SetContentAlignment(4)
+	self.btn_setting_value:SetIsToggle(true)
+	self.btn_setting_value:SetPaintBackground(false)
+	self.btn_setting_value.OnToggled = function(s, toggle_state)
+		if not self.setting_panel then return end
+		self.btn_setting_value:SetText(" " .. tostring(toggle_state))
+		self.setting_panel:AttemptValueChange()
+	end
+end
+
+function BOOLEAN_TYPE_PANEL:SetValue(value)
+	self.btn_setting_value:SetToggle(value)
+	self.btn_setting_value:SetText(" " .. tostring(value))
+end
+
+function BOOLEAN_TYPE_PANEL:GetValue()
+	return self.btn_setting_value:GetToggle()
+end
+
+derma.DefineControl("pacoman_type_boolean", "", BOOLEAN_TYPE_PANEL, "pacoman_type_base")
+RegisterTypePanel(pacoman.TYPE_BOOLEAN.id, "pacoman_type_boolean")
+
 local PANEL_LIST = {}
 
 function PANEL_LIST:Init()
@@ -47,6 +147,7 @@ function PANEL_LIST:PerformLayout()
 end
 
 derma.DefineControl("pacoman_panel_list", "", PANEL_LIST, "DPanel")
+
 
 local TREE_NODE = {}
 
@@ -139,13 +240,14 @@ local function AddNamespacePanel(parent_panel, namespace, on_selected)
 	return namespace_panel
 end
 
+
 local DEFAULT_SETTING_SCREEN = {}
 
 function DEFAULT_SETTING_SCREEN:Init()
 	local width = ScrW() * 0.5
 	local height = ScrH() * 0.75
-	local setting_pos_x = TREE_WIDTH
-	local setting_width = width - TREE_WIDTH
+	self.setting_pos_x = TREE_WIDTH
+	self.setting_width = width - TREE_WIDTH
 
 	self:SetSize(width, height)
 	self:SetPos((ScrW() - width) * 0.5, (ScrH() - height) * 0.5)
@@ -159,9 +261,9 @@ function DEFAULT_SETTING_SCREEN:Init()
 		surface.SetDrawColor(col_base_darkest)
 		surface.DrawRect(0, 0, w, TITLE_BAR_HEIGHT)
 		surface.SetDrawColor(col_base_darker)
-		surface.DrawRect(setting_pos_x, HEADER_HEIGHT, setting_width, HEADER_HEIGHT * 3)
+		surface.DrawRect(self.setting_pos_x, HEADER_HEIGHT, self.setting_width, HEADER_HEIGHT * 3)
 		surface.SetDrawColor(col_base_darkest)
-		surface.DrawRect(setting_pos_x + 0.25 * setting_width, HEADER_HEIGHT * 2, setting_width * 0.75, HEADER_HEIGHT)
+		surface.DrawRect(self.setting_pos_x + 0.25 * self.setting_width, HEADER_HEIGHT * 2, self.setting_width * 0.75, HEADER_HEIGHT)
 	end
 
 	local lbl_title = vgui.Create("DLabel", self)
@@ -176,53 +278,34 @@ function DEFAULT_SETTING_SCREEN:Init()
 	self.is_server_setting = false
 
 	local lbl_setting_name = vgui.Create("DLabel", self)
-	lbl_setting_name:SetPos(setting_pos_x, HEADER_HEIGHT)
-	lbl_setting_name:SetSize(setting_width * 0.25, HEADER_HEIGHT)
+	lbl_setting_name:SetPos(self.setting_pos_x, HEADER_HEIGHT)
+	lbl_setting_name:SetSize(self.setting_width * 0.25, HEADER_HEIGHT)
 	lbl_setting_name:SetText(" Name:")
 	lbl_setting_name:SetTextColor(col_text)
 	lbl_setting_name:SetPaintBackground(false)
 
 	self.lbl_setting_id = vgui.Create("DLabel", self)
-	self.lbl_setting_id:SetPos(setting_pos_x + setting_width * 0.25, HEADER_HEIGHT)
-	self.lbl_setting_id:SetSize(setting_width * 0.75, HEADER_HEIGHT)
+	self.lbl_setting_id:SetPos(self.setting_pos_x + self.setting_width * 0.25, HEADER_HEIGHT)
+	self.lbl_setting_id:SetSize(self.setting_width * 0.75, HEADER_HEIGHT)
 	self.lbl_setting_id:SetContentAlignment(4)
 	self.lbl_setting_id:SetText("")
 	self.lbl_setting_id:SetTextColor(col_text)
 
 	local lbl_setting_value = vgui.Create("DLabel", self)
-	lbl_setting_value:SetPos(setting_pos_x, HEADER_HEIGHT * 2)
-	lbl_setting_value:SetSize(setting_width * 0.25, HEADER_HEIGHT)
+	lbl_setting_value:SetPos(self.setting_pos_x, HEADER_HEIGHT * 2)
+	lbl_setting_value:SetSize(self.setting_width * 0.25, HEADER_HEIGHT)
 	lbl_setting_value:SetText(" Value: ")
 	lbl_setting_value:SetTextColor(col_text)
 
-	self.txt_setting_value = vgui.Create("DTextEntry", self)
-	self.txt_setting_value:SetText("")
-	self.txt_setting_value:SetPos(setting_pos_x + setting_width * 0.25 + 4, HEADER_HEIGHT * 2)
-	self.txt_setting_value:SetSize(setting_width * 0.75 - 4, HEADER_HEIGHT)
-	self.txt_setting_value:SetTextColor(col_text)
-	self.txt_setting_value:SetCursorColor(col_text)
-	self.txt_setting_value:SetPaintBackground(false)
-	self.txt_setting_value.OnGetFocus = function(s)
-		self:SetKeyboardInputEnabled(true)
-	end
-	self.txt_setting_value.OnLoseFocus = function(s)
-		self:SetKeyboardInputEnabled(false)
-	end
-	self.txt_setting_value.OnEnter = function(s, serialized_value)
-		local value = self.setting.type:Deserialize(serialized_value)
-
-		self:AttemptValueChange(value)
-	end
-
 	local lbl_setting_dependency = vgui.Create("DLabel", self)
-	lbl_setting_dependency:SetPos(setting_pos_x, HEADER_HEIGHT * 3)
-	lbl_setting_dependency:SetSize(setting_width * 0.25, HEADER_HEIGHT)
+	lbl_setting_dependency:SetPos(self.setting_pos_x, HEADER_HEIGHT * 3)
+	lbl_setting_dependency:SetSize(self.setting_width * 0.25, HEADER_HEIGHT)
 	lbl_setting_dependency:SetText(" Depends on: ")
 	lbl_setting_dependency:SetTextColor(col_text)
 
 	self.cb_setting_dependency = vgui.Create("DComboBox", self)
-	self.cb_setting_dependency:SetPos(setting_pos_x + setting_width * 0.25, HEADER_HEIGHT * 3)
-	self.cb_setting_dependency:SetSize(setting_width * 0.75, HEADER_HEIGHT)
+	self.cb_setting_dependency:SetPos(self.setting_pos_x + self.setting_width * 0.25, HEADER_HEIGHT * 3)
+	self.cb_setting_dependency:SetSize(self.setting_width * 0.75, HEADER_HEIGHT)
 	self.cb_setting_dependency:SetText("Nothing")
 	self.cb_setting_dependency:SetTextColor(col_text)
 	self.cb_setting_dependency:AddChoice("Nothing", nil, true)
@@ -293,9 +376,22 @@ function DEFAULT_SETTING_SCREEN:Init()
 end
 
 function DEFAULT_SETTING_SCREEN:SetSetting(setting, is_server_setting)
+	local type_id = setting.type.id
+	local panel_id = type_panel_ids[type_id] or "pacoman_type_any"
+
+	if self.pnl_setting_value then
+		self.pnl_setting_value:Remove()
+	end
+
 	if setting then
 		self.setting = setting
 		self.is_server_setting = is_server_setting
+
+		self.pnl_setting_value = vgui.Create(panel_id, self)
+		self.pnl_setting_value:SetPos(self.setting_pos_x + self.setting_width * 0.25 + 4, HEADER_HEIGHT * 2)
+		self.pnl_setting_value:SetSize(self.setting_width * 0.75 - 4, HEADER_HEIGHT)
+		self.pnl_setting_value:SetSettingPanel(self)
+
 		self.cb_setting_dependency:SetDisabled(false)
 		local depends_on = self.setting.depends_on
 
@@ -307,7 +403,6 @@ function DEFAULT_SETTING_SCREEN:SetSetting(setting, is_server_setting)
 
 		self.cb_setting_dependency:SetText(setting.depends_on and setting.depends_on.id or "Nothing")
 		self.lbl_setting_id:SetText(setting.id)
-		self.txt_setting_value:SetText(setting.type:Serialize(setting.value))
 		return
 	end
 	self.setting = nil
@@ -316,7 +411,6 @@ function DEFAULT_SETTING_SCREEN:SetSetting(setting, is_server_setting)
 	self.cb_setting_dependency:SetDisabled(true)
 	self.cb_setting_dependency:SetText("Nothing")
 	self.lbl_setting_id:SetText("")
-	self.txt_setting_value:SetText("")
 end
 
 function DEFAULT_SETTING_SCREEN:AttemptDependencyChange(game_property)
@@ -334,11 +428,12 @@ function DEFAULT_SETTING_SCREEN:AttemptDependencyChange(game_property)
 	end
 end
 
-function DEFAULT_SETTING_SCREEN:AttemptValueChange(value)
+function DEFAULT_SETTING_SCREEN:AttemptValueChange()
 	if not self.setting then return end
 
+	local value = self.pnl_setting_value:GetValue()
 	if value == nil then
-		self.txt_setting_value:SetText(self.setting.type:Serialize(self.setting.value))
+		self.pnl_setting_value:SetValue(self.setting.value)
 		return
 	end
 
@@ -346,6 +441,7 @@ function DEFAULT_SETTING_SCREEN:AttemptValueChange(value)
 		pacoman.RequestValueChange(self.setting, value)
 		return
 	end
+
 	self.setting:SetValue(value)
 end
 
