@@ -47,23 +47,17 @@ function ANY_TYPE_PANEL:Init()
 	self.txt_setting_value = vgui.Create("DTextEntry", self)
 	self.txt_setting_value:SetText("")
 	self.txt_setting_value:Dock(FILL)
-	self.txt_setting_value:DockPadding(0, 0, 0, 0)
 	self.txt_setting_value:DockMargin(0, 0, 0, 0)
 	self.txt_setting_value:SetTextColor(col_text)
 	self.txt_setting_value:SetCursorColor(col_text)
 	self.txt_setting_value:SetPaintBackground(false)
 	self.txt_setting_value.OnGetFocus = function(s)
-		if not self.setting_panel then return end
-
 		self.setting_panel:SetKeyboardInputEnabled(true)
 	end
 	self.txt_setting_value.OnLoseFocus = function(s)
-		if not self.setting_panel then return end
-
 		self.setting_panel:SetKeyboardInputEnabled(false)
 	end
 	self.txt_setting_value.OnEnter = function(s, serialized_value)
-		if not self.setting_panel then return end
 		self.setting_panel:AttemptValueChange()
 	end
 end
@@ -86,22 +80,20 @@ function BOOLEAN_TYPE_PANEL:Init()
 	self.btn_setting_value = vgui.Create("DButton", self)
 	self.btn_setting_value:SetText("")
 	self.btn_setting_value:Dock(FILL)
-	self.btn_setting_value:DockPadding(0, 0, 0, 0)
-	self.btn_setting_value:DockMargin(0, 0, 0, 0)
+	self.btn_setting_value:DockMargin(5, 0, 5, 0)
 	self.btn_setting_value:SetTextColor(col_text)
 	self.btn_setting_value:SetContentAlignment(4)
 	self.btn_setting_value:SetIsToggle(true)
 	self.btn_setting_value:SetPaintBackground(false)
 	self.btn_setting_value.OnToggled = function(s, toggle_state)
-		if not self.setting_panel then return end
-		self.btn_setting_value:SetText(" " .. tostring(toggle_state))
+		self.btn_setting_value:SetText(tostring(toggle_state))
 		self.setting_panel:AttemptValueChange()
 	end
 end
 
 function BOOLEAN_TYPE_PANEL:SetValue(value)
 	self.btn_setting_value:SetToggle(value)
-	self.btn_setting_value:SetText(" " .. tostring(value))
+	self.btn_setting_value:SetText(tostring(value))
 end
 
 function BOOLEAN_TYPE_PANEL:GetValue()
@@ -204,7 +196,6 @@ end
 
 derma.DefineControl("pacoman_tree_node", "", TREE_NODE, "DPanel")
 
-local all_nodes = {}
 
 local function AddSettingPanel(parent_panel, setting, on_selected)
 	local setting_panel = vgui.Create("pacoman_tree_node", parent_panel)
@@ -215,7 +206,6 @@ local function AddSettingPanel(parent_panel, setting, on_selected)
 	end
 	setting_panel.setting = setting
 
-	all_nodes[setting.full_id] = setting_panel
 	for i = 1, #setting.sources do
 		AddSettingPanel(setting_panel.children, setting.sources[i], on_selected)
 	end
@@ -228,7 +218,6 @@ local function AddNamespacePanel(parent_panel, namespace, on_selected)
 	namespace_panel.header:SetText(" " .. namespace.id)
 
 	namespace_panel.namespace = namespace
-	all_nodes[namespace.full_id] = namespace_panel
 	for i = 1, #namespace.children do
 		AddNamespacePanel(namespace_panel.children, namespace.children[i], on_selected)
 	end
