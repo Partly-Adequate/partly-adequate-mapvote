@@ -37,6 +37,10 @@ function TYPE_PANEL_BASE:GetValue()
 
 end
 
+function TYPE_PANEL_BASE:OnValueChanged(new_value)
+
+end
+
 derma.DefineControl("pacoman_type_base", "", TYPE_PANEL_BASE, "DPanel")
 
 
@@ -58,7 +62,7 @@ function ANY_TYPE_PANEL:Init()
 		self.setting_panel:SetKeyboardInputEnabled(false)
 	end
 	self.txt_setting_value.OnEnter = function(s, serialized_value)
-		self.setting_panel:AttemptValueChange()
+		self:OnValueChanged(self:GetValue())
 	end
 end
 
@@ -87,7 +91,7 @@ function BOOLEAN_TYPE_PANEL:Init()
 	self.btn_setting_value:SetPaintBackground(false)
 	self.btn_setting_value.OnToggled = function(s, toggle_state)
 		self.btn_setting_value:SetText(tostring(toggle_state))
-		self.setting_panel:AttemptValueChange()
+		self:OnValueChanged(self:GetValue())
 	end
 end
 
@@ -113,8 +117,12 @@ function PERCENTAGE_TYPE_PANEL:Init()
 	self.sld_setting_value:DockMargin(0, 0, 5, 0)
 	self.sld_setting_value:SetMax(100)
 	self.sld_setting_value:SetDecimals(2)
+
+	self.changed_externally = false
 	self.sld_setting_value.OnValueChanged = function(s, value)
-		self.setting_panel:AttemptValueChange()
+		if self.changed_externally then return end
+
+		self:OnValueChanged(self:GetValue())
 	end
 
 	self.sld_setting_value:GetChild(2):Dock(RIGHT)
@@ -129,17 +137,16 @@ function PERCENTAGE_TYPE_PANEL:Init()
 	self.txt_setting_value.OnLoseFocus = function(s)
 		self.setting_panel:SetKeyboardInputEnabled(false)
 	end
-	self.txt_setting_value.OnEnter = function(s, serialized_value)
-		self.setting_panel:AttemptValueChange()
-	end
 end
 
 function PERCENTAGE_TYPE_PANEL:SetValue(value)
+	self.changed_externally = true
 	self.sld_setting_value:SetValue(value * 100)
+	self.changed_externally = false
 end
 
 function PERCENTAGE_TYPE_PANEL:GetValue()
-	return self.sld_setting_value:GetValue() / 100
+	return self.sld_setting_value:GetValue() * 0.01
 end
 
 derma.DefineControl("pacoman_type_percentage", "", PERCENTAGE_TYPE_PANEL, "pacoman_type_base")
@@ -403,6 +410,12 @@ function DEFAULT_SETTING_SCREEN:Init()
 	self.client_overrides_panel = AddNamespacePanel(tree_list, pacoman.client_overrides, OnServerSettingSelected)
 	self.server_settings_panel = AddNamespacePanel(tree_list, pacoman.server_settings, OnServerSettingSelected)
 
+	hook.Add("PACOMAN_SettingValueChanged", "PACOMAN_UI_value_changed", function(setting)
+		if self.setting == setting then
+			self.pnl_setting_value:SetValue(setting.value)
+		end
+	end)
+
 	self:MakePopup()
 	self:SetKeyboardInputEnabled(false)
 end
@@ -423,6 +436,9 @@ function DEFAULT_SETTING_SCREEN:SetSetting(setting, is_server_setting)
 		self.pnl_setting_value:SetPos(self.setting_pos_x + self.setting_width * 0.25 + 4, HEADER_HEIGHT * 2)
 		self.pnl_setting_value:SetSize(self.setting_width * 0.75 - 4, HEADER_HEIGHT)
 		self.pnl_setting_value:SetSettingPanel(self)
+		self.pnl_setting_value.OnValueChanged = function(s, value)
+			self:AttemptValueChange(value)
+		end
 
 		self.cb_setting_dependency:SetDisabled(false)
 		local depends_on = self.setting.depends_on
@@ -460,10 +476,9 @@ function DEFAULT_SETTING_SCREEN:AttemptDependencyChange(game_property)
 	end
 end
 
-function DEFAULT_SETTING_SCREEN:AttemptValueChange()
+function DEFAULT_SETTING_SCREEN:AttemptValueChange(value)
 	if not self.setting then return end
 
-	local value = self.pnl_setting_value:GetValue()
 	if value == nil then
 		self.pnl_setting_value:SetValue(self.setting.value)
 		return
