@@ -4,6 +4,10 @@ local col_base_darker = {r = 30, g = 30, b = 30, a = 255}
 local col_base_darkest = {r = 20, g = 20, b = 20, a = 255}
 local col_text = {r = 255, g = 255, b = 255, a = 200}
 
+-- images and icons
+local ic_setting = Material("vgui/pam/ic_setting")
+local ic_namespace = Material("vgui/pam/ic_namespace")
+
 local TITLE_BAR_HEIGHT = 25
 local HEADER_HEIGHT = 25
 local INDENTATION = 15
@@ -199,8 +203,15 @@ function TREE_NODE:Init()
 	self.header:SetToggle(false)
 	self.header:SetHeight(HEADER_HEIGHT)
 	self.header:SetPos(0, 0)
-	self.header:SetTextColor(col_text)
+	self.header:SetText("")
 	self.header:SetContentAlignment(4)
+
+	self.header.lbl_text = vgui.Create("DLabel", self.header)
+	self.header.lbl_text:SetPos(HEADER_HEIGHT, 0)
+
+	self.header.img_icon = vgui.Create("DImage", self.header)
+	self.header.img_icon:SetPos(4, 3)
+	self.header.img_icon:SetSize(HEADER_HEIGHT - 8, HEADER_HEIGHT - 8)
 
 	self.header.Paint = function(s, w, h)
 		surface.SetDrawColor(col_base_darker)
@@ -227,6 +238,7 @@ end
 function TREE_NODE:PerformLayout()
 	local w, old_h = self:GetSize()
 	self.header:SetWidth(w)
+	self.header.lbl_text:SetWidth(w - HEADER_HEIGHT)
 	self.children:SetWidth(w)
 
 	local new_h = HEADER_HEIGHT
@@ -250,7 +262,8 @@ derma.DefineControl("pacoman_tree_node", "", TREE_NODE, "DPanel")
 local function AddSettingPanel(parent_panel, setting, on_selected)
 	local setting_panel = vgui.Create("pacoman_tree_node", parent_panel)
 	setting_panel.OnClicked = on_selected
-	setting_panel.header:SetText(" " .. setting.id)
+	setting_panel.header.lbl_text:SetText(setting.id)
+	setting_panel.header.img_icon:SetMaterial(ic_setting)
 	setting_panel.header.DoClick = function(self)
 		setting_panel:OnClicked()
 	end
@@ -265,8 +278,8 @@ end
 
 local function AddNamespacePanel(parent_panel, namespace, on_selected)
 	local namespace_panel = vgui.Create("pacoman_tree_node", parent_panel)
-	namespace_panel.header:SetText(" " .. namespace.id)
-
+	namespace_panel.header.lbl_text:SetText(namespace.id)
+	namespace_panel.header.img_icon:SetMaterial(ic_namespace)
 	namespace_panel.namespace = namespace
 	for i = 1, #namespace.children do
 		AddNamespacePanel(namespace_panel.children, namespace.children[i], on_selected)

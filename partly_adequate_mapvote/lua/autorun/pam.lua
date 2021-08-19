@@ -26,6 +26,8 @@ if SERVER then
 	resource.AddFile("materials/vgui/pam/ic_not_favorite.vmt")
 	resource.AddFile("materials/vgui/pam/ic_selected.vmt")
 	resource.AddFile("materials/vgui/pam/ic_not_selected.vmt")
+	resource.AddFile("materials/vgui/pam/ic_setting.vmt")
+	resource.AddFile("materials/vgui/pam/ic_namespace.vmt")
 else
 	include("pam/sh_init.lua")
 	include("pam/client/cl_init.lua")
