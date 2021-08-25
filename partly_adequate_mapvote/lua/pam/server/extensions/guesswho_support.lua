@@ -6,8 +6,13 @@ function PAM_EXTENSION:OnInitialize()
 
 	-- lolleko/guesswho
 	-- Reconstructing MiRe's MapVote api, because guesswho supports only their addon natively
-	MapVote = {}
-	MapVote.Start = PAM.Start
+	MapVote = MapVote or {}
+	MapVote.Start = function()
+		PAM.Start()
+	end
+	MapVote.Cancel = function()
+		PAM.Cancel()
+	end
 
 	-- Check for delayed RTV when the round ends
 	hook.Add("GWOnRoundEnd", "PAM_Autostart_Delayed_RTV_Guesswho", function()

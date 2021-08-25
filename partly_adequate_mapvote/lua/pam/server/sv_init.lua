@@ -26,6 +26,8 @@ if not sql.TableExists("pam_pickcounts") then
 	sql.Query("CREATE TABLE pam_pickcounts(id TEXT NOT NULL PRIMARY KEY, pickcount INTEGER NOT NULL)")
 end
 
+pacoman.RegisterGameProperty("gamemode", pacoman.TYPE_STRING, engine.ActiveGamemode())
+
 local setting_namespace = pacoman.server_settings:AddChild("pam")
 local rtv_namespace = setting_namespace:AddChild("rtv")
 

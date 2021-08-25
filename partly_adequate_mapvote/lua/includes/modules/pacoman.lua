@@ -50,7 +50,7 @@ local function LoadSettingFromDatabase(setting)
 	local game_property = GetGameProperty(depends_on)
 	if not game_property then return end
 
-	setting.MakeDependent(game_property)
+	setting:MakeDependent(game_property)
 
 	-- Add sources
 	local sources = sql.Query("SELECT id, value FROM pacoman_values WHERE parent_id = " .. sql.SQLStr(setting.full_id))
@@ -116,9 +116,9 @@ local function RemoveCallback(call_id, id)
 	local last_index = #callbacks
 
 	if index == last_index then
+		callbacks[index] = nil
 		callback_ids[index] = nil
 		callback_indices[id] = nil
-		callbacks[id] = nil
 		return
 	end
 
@@ -402,7 +402,7 @@ end
 -- @note new_value has to be valid in regards to the Type of this Game_Property
 -- @note this will call all callbacks that were added previously
 function Game_Property:SetValue(new_value)
-	if not self.type:IsValueValid(new_value) then return end
+	if self.value == new_value or not self.type:IsValueValid(new_value) then return end
 
 	self.value = new_value
 
@@ -540,7 +540,7 @@ end
 -- @param any new_value the new value
 -- @note will not do anything when the new value doesn't fit this Setting's type
 function Setting:SetValue(new_value)
-	if not self.type:IsValueValid(new_value) then return end
+	if self.value == new_value or not self.type:IsValueValid(new_value) then return end
 
 	self.value = new_value
 
@@ -604,6 +604,8 @@ function Setting:MakeDependent(game_property)
 	if self.depends_on then
 		self:MakeIndependent()
 	end
+
+	if not game_property then return end
 
 	self.depends_on = game_property
 
@@ -1092,8 +1094,12 @@ if SERVER then
 		net.WriteUInt(6, 3)
 		net.WriteString(setting.full_id)
 		if game_property then
+			net.WriteBool(true)
 			net.WriteString(game_property.id)
+		else
+			net.WriteBool(false)
 		end
+
 		if ply then
 			net.Send(ply)
 		else
@@ -1207,8 +1213,9 @@ if SERVER then
 	-- @local
 	local function SendFullState(len, ply)
 		local steam_id = ply:SteamID64()
+
 		-- block new state request for players who are already synced
-		if synced_clients[steam_id] then return end
+		if steam_id and synced_clients[steam_id] then return end
 
 		for i = 1, #game_properties do
 			SendGamePropertyCreation(game_properties[i], ply)
@@ -1220,7 +1227,9 @@ if SERVER then
 		net.Send(ply)
 
 		-- mark player as synced
-		synced_clients[steam_id] = true
+		if steam_id then
+			synced_clients[steam_id] = true
+		end
 	end
 	net.Receive("PACOMAN_StateRequest", SendFullState)
 
@@ -1347,18 +1356,14 @@ if SERVER then
 	local function ReceiveDependencyChangeRequest(len, ply)
 		local setting = all_settings[net.ReadString()]
 		local game_property
-		if len == 2 then
+		if net.ReadBool() then
 			game_property = GetGameProperty(net.ReadString())
 			if not game_property then return end
 		end
 
 		if not setting then return end
 
-		if game_property then
-			setting:MakeDependent(game_property)
-		else
-			setting:MakeIndependent()
-		end
+		setting:MakeDependent(game_property)
 	end
 
 	---
@@ -1420,7 +1425,7 @@ if SERVER then
 		local request_processor = request_processors[request_type]
 		if not request_processor then return end
 
-		request_processor(len - 1)
+		request_processor(len - 3)
 	end
 
 	net.Receive("PACOMAN_ChangeRequest", ReceiveChangeRequest)
@@ -1449,8 +1454,6 @@ else
 	end
 
 	local function OnClientSettingAdded(self, setting)
-		LoadSettingFromDatabase(setting)
-
 		setting.OnValueChanged = function(self)
 			SaveSettingInDatabase(self)
 		end
@@ -1475,8 +1478,6 @@ else
 
 			CallCallbacks(full_id, self.active_value)
 		end
-
-		SaveSettingInDatabase(setting)
 	end
 
 	local function OnClientSettingRemoved(self, setting)
@@ -1566,8 +1567,12 @@ else
 		net.WriteUInt(3, 3)
 		net.WriteString(setting.full_id)
 		if game_property then
+			net.WriteBool(true)
 			net.WriteString(game_property.id)
+		else
+			net.WriteBool(false)
 		end
+
 		net.SendToServer()
 	end
 
@@ -1697,7 +1702,7 @@ else
 		local setting = all_settings[net.ReadString()]
 		if not setting then return end
 
-		setting:SetValue(setting.type:Deserialize(net.ReadString))
+		setting:SetValue(setting.type:Deserialize(net.ReadString()))
 	end
 
 	---
@@ -1709,12 +1714,11 @@ else
 		local setting = all_settings[net.ReadString()]
 		if not setting then return end
 
-		setting:MakeIndependent()
-
-		if len == 1 then return end
-
-		local game_property = GetGameProperty(net.ReadString())
-		if not game_property then return end
+		local game_property
+		if net.ReadBool() then
+			game_property = GetGameProperty(net.ReadString())
+			if not game_property then return end
+		end
 
 		setting:MakeDependent(game_property)
 	end
@@ -1750,6 +1754,26 @@ else
 	-- which can be used by addons that work with server settings or client_overrides
 	-- @local
 	local function FullStateReceived(len)
+		-- stack creation
+		local to_load = {client_settings}
+		local to_load_count = 1
+		while to_load_count > 0 do
+			-- pop
+			local namespace = to_load[to_load_count]
+			to_load[to_load_count] = nil
+			to_load_count = to_load_count - 1
+
+			for i = 1, #namespace.settings do
+				LoadSettingFromDatabase(namespace.settings[i])
+			end
+			for i = 1, #namespace.children do
+				-- push
+				to_load[to_load_count + i] = namespace.children[i]
+			end
+			-- update count
+			to_load_count = to_load_count + #namespace.children
+		end
+
 		print("[PACOMAN] Full state update received.")
 		hook.Run("PacomanPostServerStateReceived")
 	end
