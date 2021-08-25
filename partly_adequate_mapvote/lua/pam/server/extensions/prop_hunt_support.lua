@@ -17,6 +17,10 @@ function PAM_EXTENSION:OnInitialize()
 
 	-- overriding the rtv system to use pam's instead
 	local function ToggleRTVVoter(ply)
+		if not PAM.settings.rtv_enabled then return end
+		if PAM.state ~= PAM.STATE_DISABLED then return end
+		if not IsValid(ply) then return end
+
 		if PAM.rtv_voters[ply:SteamID()] then
 			PAM.RemoveRTVVoter(ply)
 		else
