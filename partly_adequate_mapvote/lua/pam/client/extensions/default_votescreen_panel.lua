@@ -408,13 +408,13 @@ end
 
 function PANEL:InitOptionButtons()
 	for i = 1, #PAM.options do
-		local optioninfo = PAM.options[i]
+		local option_info = PAM.options[i]
 		local option_button = vgui.Create("DButton")
 		option_button:SetSize(option_button_size, option_button_size)
 		option_button:SetText("")
 		option_button:SetPaintBackground(false)
 		option_button.voter_count = 0
-		option_button.option = optioninfo
+		option_button.option = option_info
 		option_button.DoClick = function()
 			PAM.Vote(option_button.option.id)
 		end
@@ -437,7 +437,7 @@ function PANEL:InitOptionButtons()
 		lbl_option_name:SetPos(0, 0)
 		lbl_option_name:SetSize(option_button_size, option_button_label_size)
 		lbl_option_name:SetContentAlignment(5)
-		lbl_option_name:SetText(optioninfo.name)
+		lbl_option_name:SetText(option_info.name)
 		lbl_option_name:SetTextColor(col_text)
 		lbl_option_name:SetFont("PAM_NameFont")
 
@@ -448,12 +448,12 @@ function PANEL:InitOptionButtons()
 		lbl_pick_count:SetContentAlignment(5)
 		lbl_pick_count:SetTextColor(col_text)
 		lbl_pick_count:SetFont("PAM_PickCountFont")
-		if optioninfo.pick_count == 0 then
+		if option_info.pick_count == 0 then
 			lbl_pick_count:SetText("Not picked yet")
-		elseif optioninfo.pick_count == 1 then
+		elseif option_info.pick_count == 1 then
 			lbl_pick_count:SetText("Picked once")
 		else
-			lbl_pick_count:SetText("Picked " .. optioninfo.pick_count .. " times")
+			lbl_pick_count:SetText("Picked " .. option_info.pick_count .. " times")
 		end
 
 		-- heart for favorites

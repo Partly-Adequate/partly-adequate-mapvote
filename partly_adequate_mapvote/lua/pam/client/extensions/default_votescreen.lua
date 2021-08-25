@@ -14,8 +14,8 @@ function PAM_EXTENSION:OnVoteCanceled()
 	panel:Remove()
 end
 
-function PAM_EXTENSION:OnVoterAdded(ply, map_id)
-	panel:AddVoter(ply, map_id)
+function PAM_EXTENSION:OnVoterAdded(ply, option_id)
+	panel:AddVoter(ply, option_id)
 end
 
 function PAM_EXTENSION:OnVoterRemoved(ply)
