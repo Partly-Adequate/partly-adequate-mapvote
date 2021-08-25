@@ -16,7 +16,7 @@ function PAM_EXTENSION:OnInitialize()
 		hook.Remove("PlayerSay", "CheckRTVChat")
 
 		cvars.AddChangeCallback("mapvote_rtv_ratio", function()
-			print('[PAM] This convar is no longer used. Use "pam_rtv_percentage" instead')
+			print('[PAM] This convar is no longer used')
 		end)
 
 		-- start PAM instead of MV
