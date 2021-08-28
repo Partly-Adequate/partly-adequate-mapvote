@@ -1,26 +1,28 @@
 ---
 name: Bug report
 about: Use this for reporting bugs
-title: "[BUG REPORT]"
+title: ""
 labels: bug
-assignees: ''
+assignees:
+  - Reispfannenfresser
 
 ---
 
 **Description**
-- briefly describe the bug
-  - Is it a lua error, an ui glitch, an inconsistency between client and server or something completely different?
+<!-- Briefly describe the bug -->
+<!-- Is it a lua error, an ui glitch, an inconsistency between client and server or something completely different? -->
 
 **How to reproduce**
-- please describe in full detail how this bug can be reproduced
+<!-- Please describe in full detail how this bug can be reproduced -->
 
 **Behaviour**
-- what happens when this bug appears
+<!-- What happens when this bug appears? -->
 
 **Expected Behaviour**
-- what should happen 
+<!-- What should happen instead? -->
 
 **Additional Information**
-- which version of PAM do you use?
-- what is the contents of your PAM config file?
-- what are the console logs
+<!-- Which version of PAM do you use? -->
+<!-- Which values do the involved settings have? -->
+<!-- What are the console logs? -->
+<!-- Feel free to provide screenshots or videos! -->

@@ -1,9 +1,10 @@
 ---
 name: Gamemode request
 about: Use this to request support for a specific gamemode.
-title: "[GAMEMODE REQUEST]"
-labels: enhancement
-assignees: Reispfannenfresser
+title: ""
+labels: gamemode-request
+assignees:
+  - Reispfannenfresser
 
 ---
 <!-- I need at least one of these. Both would be best though -->
