@@ -1,17 +1,15 @@
 ---
 name: Feature request
-about: Use this to request a feature
-title: "[FEATURE REQUEST]"
+about: Use this to request a new general feature or enhancements to existing ones
+title: ""
 labels: enhancement
-assignees: Reispfannenfresser
+assignees:
+  - Reispfannenfresser
 
 ---
 
-**Category**
-- categorize your feature idea (ui, client sided, server sided, qol, ...)
-
 **Description**
-- describe your idea in detail
+<!-- describe your idea in detail -->
 
 **Motivation**
-- why do you want this feature?
+<!-- why do you want this feature? -->
