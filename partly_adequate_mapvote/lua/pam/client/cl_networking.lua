@@ -25,7 +25,7 @@ net.Receive("PAM_Start", function()
 		PAM.options[index] = option
 	end
 
-	PAM.extension_handler.OnVoteStarted()
+	PAM.extension_handler.RunEvent("OnVoteStarted")
 end)
 
 net.Receive("PAM_Cancel", function()

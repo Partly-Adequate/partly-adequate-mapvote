@@ -14,7 +14,8 @@ function PAM.Start(vote_type, vote_length_override, winner_callback_override)
 	PAM.special_option_count = 0
 	PAM.rtv_voter_count = 0
 
-	PAM.extension_handler.RegisterOptions()
+	PAM.extension_handler.RunEvent("RegisterSpecialOptions")
+	PAM.extension_handler.RunEvent("RegisterOptions")
 
 	if PAM.option_count <= PAM.special_option_count then
 		print("[PAM] Failed to start. No " .. PAM.vote_type .. "s found using current settings.")
@@ -44,19 +45,25 @@ function PAM.Start(vote_type, vote_length_override, winner_callback_override)
 
 		local vote_results = {}
 
+		local function Multiplier(number1, number2)
+			return number1 * number2
+		end
+
 		for steam_id, option_id in pairs(PAM.votes) do
 			if option_id and IsValid(player.GetBySteamID(steam_id)) then
-				vote_results[option_id] = (vote_results[option_id] or 0) + PAM.extension_handler.GetVotePower(steam_id)
+				vote_results[option_id] = (vote_results[option_id] or 0) + (PAM.extension_handler.RunAvalanchingEvent("GetVotePower", Multiplier, steam_id) or 1)
 			end
 		end
 
 		local winning_option
 
 		-- select winning map
-		winning_option = PAM.options[PAM.extension_handler.GetWinningKey(vote_results)] or PAM.options[PAM.special_option_count + math.random(#PAM.options - PAM.special_option_count)]
+		winning_option = PAM.options[PAM.extension_handler.RunReturningEvent("GetWinningKey", vote_results)] or PAM.options[PAM.special_option_count + math.random(#PAM.options - PAM.special_option_count)]
 
 		PAM.MakeOptionWin(winning_option)
 	end)
+
+	PAM.extension_handler.RunEvent("OnVoteStarted")
 
 	return true
 end
@@ -76,8 +83,6 @@ function PAM.RegisterOption(option_name, option_win_callback)
 	end
 
 	PAM.options[PAM.option_count] = option
-
-	PAM.extension_handler.OnOptionRegistered(PAM.option_count)
 end
 
 function PAM.MakeOptionWin(option)
@@ -99,7 +104,7 @@ function PAM.MakeOptionWin(option)
 		end
 	end)
 
-	PAM.extension_handler.OnOptionWon(option)
+	PAM.extension_handler.RunEvent("OnOptionWon", option)
 end
 
 function PAM.ChangeGamemode(option)
@@ -111,20 +116,15 @@ function PAM.ChangeGamemode(option)
 	net.WriteString(gamemode_name)
 	net.Broadcast()
 
+	PAM.extension_handler.RunEvent("OnGamemodeChanged", gamemode_name)
 	hook.Run("PAM_OnGamemodeChanged", gamemode_name)
-
-	local gp_gamemode = pacoman.GetGameProperty("gamemode")
-	if gp_gamemode then
-		gp_gamemode:SetValue(gamemode_name)
-	end
-
-	PAM.extension_handler.OnGamemodeChanged(gamemode_name)
 end
 
 function PAM.ChangeMap(option)
-	PAM.extension_handler.PreMapChanged(option.name)
+	local map_name = option.name
+	PAM.extension_handler.RunEvent("PreMapChanged", map_name)
 
-	RunConsoleCommand("changelevel", option.name)
+	RunConsoleCommand("changelevel", map_name)
 end
 
 function PAM.Cancel()
@@ -136,7 +136,7 @@ function PAM.Cancel()
 	net.Start("PAM_Cancel")
 	net.Broadcast()
 
-	PAM.extension_handler.OnVoteCanceled()
+	PAM.extension_handler.RunEvent("OnVoteCanceled")
 end
 
 function PAM.AddVoter(ply, option_id)
@@ -147,7 +147,7 @@ function PAM.AddVoter(ply, option_id)
 	net.WriteUInt(option_id, 32)
 	net.Broadcast()
 
-	PAM.extension_handler.OnVoterAdded(ply, option_id)
+	PAM.extension_handler.RunEvent("OnVoterAdded", ply, option_id)
 end
 
 function PAM.RemoveVoter(ply)
@@ -157,7 +157,7 @@ function PAM.RemoveVoter(ply)
 	net.WriteEntity(ply)
 	net.Broadcast()
 
-	PAM.extension_handler.OnVoterRemoved(ply, option_id)
+	PAM.extension_handler.RunEvent("OnVoterRemoved", ply, option_id)
 end
 
 function PAM.AddRTVVoter(ply)
@@ -172,7 +172,7 @@ function PAM.AddRTVVoter(ply)
 		PAM.CheckForRTV()
 	end
 
-	PAM.extension_handler.OnRTVVoterAdded(ply)
+	PAM.extension_handler.RunEvent("OnRTVVoterAdded", ply)
 end
 
 function PAM.RemoveRTVVoter(ply)
@@ -183,7 +183,7 @@ function PAM.RemoveRTVVoter(ply)
 	net.WriteEntity(ply)
 	net.Broadcast()
 
-	PAM.extension_handler.OnRTVVoterRemoved(ply)
+	PAM.extension_handler.RunEvent("OnRTVVoterRemoved", ply)
 end
 
 function PAM.CheckForDelayedRTV()

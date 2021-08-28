@@ -54,6 +54,47 @@ local function RegisterExtension(extension)
 	print('[PAM] Registered extension "' .. extension_name .. '" ('.. (extension.enabled and "enabled" or "disabled") .. ")")
 end
 
+function PAM.extension_handler.RunEvent(event_name, ...)
+	for i = 1, #PAM.extensions do
+		local extension = PAM.extensions[i]
+
+		if extension.enabled and extension[event_name] then
+			extension[event_name](extension, ...)
+		end
+	end
+end
+
+function PAM.extension_handler.RunReturningEvent(event_name, ...)
+	for i = 1, #PAM.extensions do
+		local extension = PAM.extensions[i]
+
+		if extension.enabled and extension[event_name] then
+			local result = extension[event_name](extension, ...)
+
+			if result then
+				return result
+			end
+		end
+	end
+end
+
+function PAM.extension_handler.RunAvalanchingEvent(event_name, combine, ...)
+	local combined_result
+
+	for i = 1, #PAM.extensions do
+		local extension = PAM.extensions[i]
+
+		if extension.enabled and extension[event_name] then
+			local result = extension[event_name](extension, ...)
+			combined_result = combined_result and combine(combined_result, result) or result
+		end
+	end
+
+	return combined_result
+end
+
+hook.Add("Initialize", "PAM_Initialize_Extensions", PAM.extension_handler.RunEvent("OnInitialize"))
+
 if SERVER then
 	local sv_extensions, _ = file.Find("pam/server/extensions/*.lua", "LUA")
 	local cl_extensions, _ = file.Find("pam/client/extensions/*.lua", "LUA")
@@ -79,13 +120,3 @@ else
 	end
 end
 
-function PAM.extension_handler.OnInitialize()
-	for i = 1,#PAM.extensions do
-		local extension = PAM.extensions[i]
-		if extension.enabled and extension.OnInitialize  then
-			extension:OnInitialize()
-		end
-	end
-end
-
-hook.Add("Initialize", "PAM_Initialize_Extensions", PAM.extension_handler.OnInitialize)

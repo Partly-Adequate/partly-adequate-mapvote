@@ -2,7 +2,7 @@
 function PAM.Cancel()
 	PAM.state = PAM.STATE_DISABLED
 
-	PAM.extension_handler.OnVoteCanceled()
+	PAM.extension_handler.RunEvent("OnVoteCanceled")
 end
 
 -- makes the client announce a winner
@@ -10,7 +10,7 @@ function PAM.AnnounceWinner(option_id)
 	PAM.winning_option_id = option_id
 	PAM.state = PAM.STATE_FINISHED
 
-	PAM.extension_handler.OnWinnerAnnounced()
+	PAM.extension_handler.RunEvent("OnWinnerAnnounced")
 end
 
 -- voting
@@ -18,14 +18,14 @@ end
 function PAM.AddVoter(ply, option_id)
 	PAM.votes[ply:SteamID()] = option_id
 
-	PAM.extension_handler.OnVoterAdded(ply, option_id)
+	PAM.extension_handler.RunEvent("OnVoterAdded", ply, option_id)
 end
 
 -- removes a voter from the clients information
 function PAM.RemoveVoter(ply)
 	PAM.votes[ply:SteamID()] = false
 
-	PAM.extension_handler.OnVoterRemoved(ply)
+	PAM.extension_handler.RunEvent("OnVoterRemoved", ply)
 end
 
 -- makes the client vote for an option
@@ -35,8 +35,6 @@ function PAM.Vote(option_id)
 	net.Start("PAM_Vote")
 	net.WriteUInt(option_id, 32)
 	net.SendToServer()
-
-	PAM.extension_handler.OnVoted()
 end
 
 -- makes the client withdraw their vote
@@ -45,8 +43,6 @@ function PAM.UnVote()
 
 	net.Start("PAM_UnVote")
 	net.SendToServer()
-
-	PAM.extension_handler.OnUnVoted()
 end
 
 -- rtv
@@ -61,7 +57,7 @@ function PAM.AddRTVVoter(ply)
 
 	PAM.rtv_voter_count = PAM.rtv_voter_count + 1
 
-	PAM.extension_handler.OnRTVVoterAdded(ply)
+	PAM.extension_handler.RunEvent("OnRTVVoterAdded", ply)
 end
 
 -- removes an rtv voter from the clients information
@@ -70,7 +66,7 @@ function PAM.RemoveRTVVoter(ply)
 
 	PAM.rtv_voter_count = PAM.rtv_voter_count - 1
 
-	PAM.extension_handler.OnRTVVoterRemoved(ply)
+	PAM.extension_handler.RunEvent("OnRTVVoterRemoved", ply)
 end
 
 -- makes the client vote for rtv
@@ -80,8 +76,6 @@ function PAM.VoteRTV()
 
 	net.Start("PAM_VoteRTV")
 	net.SendToServer()
-
-	PAM.extension_handler.OnVotedRTV()
 end
 
 -- makes the client withdraw their vote for rtv
@@ -91,14 +85,12 @@ function PAM.UnVoteRTV()
 
 	net.Start("PAM_UnVoteRTV")
 	net.SendToServer()
-
-	PAM.extension_handler.OnUnVotedRTV()
 end
 
 -- option icons
 -- returns a material for the option name or nil when no material was found
 function PAM.GetIconMaterial(option_name)
-	return PAM.extension_handler.GetIconMaterial(option_name)
+	return PAM.extension_handler.RunReturningEvent("GetIconMaterial", option_name)
 end
 
 -- favorising
@@ -124,7 +116,7 @@ function PAM.AddToFavorites(option_name)
 
 	sql.Query( "INSERT OR REPLACE INTO pam_options VALUES( " .. sql.SQLStr(option_name) .. ", " .. 1 .. ")")
 
-	PAM.extension_handler.OnOptionFavorited(option_name)
+	PAM.extension_handler.RunEvent("OnOptionFavorited", option_name)
 end
 
 -- removes an option from favorites
@@ -133,5 +125,5 @@ function PAM.RemoveFromFavorites(option_name)
 
 	sql.Query( "INSERT OR REPLACE INTO pam_options VALUES( " .. sql.SQLStr(option_name) .. ", " .. 0 .. ")")
 
-	PAM.extension_handler.OnOptionUnFavorited(option_name)
+	PAM.extension_handler.RunEvent("OnOptionUnFavorited", option_name)
 end

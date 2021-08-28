@@ -6,7 +6,6 @@ if SERVER then
 	AddCSLuaFile("pam/client/cl_init.lua")
 	AddCSLuaFile("pam/client/cl_pam.lua")
 	AddCSLuaFile("pam/sh_extension_handler.lua")
-	AddCSLuaFile("pam/client/cl_extension_handler.lua")
 	AddCSLuaFile("pam/client/cl_networking.lua")
 	AddCSLuaFile("pam/client/cl_commands.lua")
 	AddCSLuaFile("pam/client/cl_pacoman_ui.lua")
@@ -15,7 +14,6 @@ if SERVER then
 	include("pam/server/sv_init.lua")
 	include("pam/server/sv_pam.lua")
 	include("pam/sh_extension_handler.lua")
-	include("pam/server/sv_extension_handler.lua")
 	include("pam/server/sv_networking.lua")
 
 	-- add resources
@@ -33,7 +31,6 @@ else
 	include("pam/client/cl_init.lua")
 	include("pam/client/cl_pam.lua")
 	include("pam/sh_extension_handler.lua")
-	include("pam/client/cl_extension_handler.lua")
 	include("pam/client/cl_networking.lua")
 	include("pam/client/cl_commands.lua")
 	include("pam/client/cl_pacoman_ui.lua")
