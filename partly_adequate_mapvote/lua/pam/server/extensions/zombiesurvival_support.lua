@@ -4,6 +4,7 @@ PAM_EXTENSION.enabled = true
 function PAM_EXTENSION:OnInitialize()
 	if GAMEMODE_NAME ~= "zombiesurvival" then return end
 
+	-- jetboom/zombiesurvival
 	hook.Add("LoadNextMap", "PAM_Autostart_ZombieSurvival", function()
 		PAM.Start()
 		return true

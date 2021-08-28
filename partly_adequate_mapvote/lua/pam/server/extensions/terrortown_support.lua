@@ -10,7 +10,7 @@ function PAM_EXTENSION:OnInitialize()
 		PAM.CheckForDelayedRTV()
 	end)
 
-	-- TTT2
+	-- ttt2/ttt2
 	if TTT2 then
 		hook.Add("TTT2LoadNextMap", "PAM_Autostart_TTT2", function(nextmap, rounds_left, time_left)
 			PAM.Start()
@@ -19,7 +19,7 @@ function PAM_EXTENSION:OnInitialize()
 		return
 	end
 
-	-- TTT and TOT
+	-- terrortown
 	function CheckForMapSwitch()
 		local rounds_left = math.max(0, GetGlobalInt("ttt_rounds_left", 6) - 1)
 
