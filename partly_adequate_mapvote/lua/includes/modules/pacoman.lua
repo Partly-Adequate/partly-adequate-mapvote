@@ -207,7 +207,7 @@ local function FullIDToPath(full_id)
 	return path, tmp[2]
 end
 
--- TODO documentation for Type class
+-- Type class
 local Type = {}
 Type.__index = Type
 
@@ -370,7 +370,7 @@ TYPE_PERCENTAGE = RegisterType("percentage", IsPercentage, tostring, tonumber, C
 -- @TypeText Type describes integers
 TYPE_INTEGER = RegisterType("integer", IsInteger, tostring, tonumber, CompareNumber)
 
--- TODO documentation for Game_Property class
+-- Game_Property class
 local Game_Property = {}
 Game_Property.__index = Game_Property
 
@@ -479,13 +479,13 @@ local all_settings = {}
 -- caches all namespaces (full_id -> namespace)
 local all_namespaces = {}
 
--- TODO documentation for Setting class
+-- Setting class
 local Setting = {}
 Setting.__index = Setting
 
 ---
 -- Creates a new Setting
--- @param string the full_id of the namespace this Setting is a part of
+-- @param string path_id the full_id of the namespace this Setting is a part of
 -- @param string id the name/identifier of this Setting
 -- @param Type type the Type of this Setting's value
 -- @param any value the value of this Setting
@@ -515,14 +515,24 @@ function Setting:Create(path_id, id, type, value)
 	return setting
 end
 
+---
+-- Adds a callback to this Setting
+-- @param string id a unique identifier for this callback
+-- @param function callback the callback to call
+-- @note the callback function will be called with the setting's currently active value whenever it changes
 function Setting:AddCallback(id, callback)
 	AddCallback(self.full_id, id, callback)
 end
 
+---
+-- Removes a callback from this Setting
+-- @param string id the unique identifier of the callback that should be removed
 function Setting:RemoveCallback(id)
 	RemoveCallback(self.full_id, id)
 end
 
+---
+-- Calls this Setting's callbacks with the currently active value
 function Setting:CallCallbacks()
 	CallCallbacks(self.full_id, self.active_value)
 end
@@ -782,7 +792,7 @@ function Setting:OnSourceRemoved(source_setting)
 
 end
 
--- TODO documentation for Namespace class
+-- Namespace class
 local Namespace = {}
 Namespace.__index = Namespace
 
