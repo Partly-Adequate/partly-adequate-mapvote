@@ -8,12 +8,19 @@ local col_text = {r = 255, g = 255, b = 255, a = 200}
 local ic_setting = Material("vgui/pam/ic_setting")
 local ic_namespace = Material("vgui/pam/ic_namespace")
 
+-- namespace types
+local CLIENT_SETTING = 0
+local CLIENT_OVERRIDE = 1
+local SERVER_SETTING = 2
+
 local TITLE_BAR_HEIGHT = 25
 local HEADER_HEIGHT = 25
 local INDENTATION = 15
 local TREE_WIDTH = 300
 
 local pacoman_ui = nil
+
+local full_id_to_panel = {}
 
 local type_panel_ids = {}
 
@@ -259,34 +266,39 @@ end
 derma.DefineControl("pacoman_tree_node", "", TREE_NODE, "DPanel")
 
 
-local function AddSettingPanel(parent_panel, setting, on_selected)
+local function AddSettingPanel(parent_panel, setting, namespace_type)
 	local setting_panel = vgui.Create("pacoman_tree_node", parent_panel)
-	setting_panel.OnClicked = on_selected
+	setting_panel.setting = setting
 	setting_panel.header.lbl_text:SetText(setting.id)
 	setting_panel.header.img_icon:SetMaterial(ic_setting)
+	setting_panel.namespace_type = namespace_type
 	setting_panel.header.DoClick = function(self)
-		setting_panel:OnClicked()
+		pacoman_ui:SetSetting(setting, namespace_type)
 	end
-	setting_panel.setting = setting
+
+	full_id_to_panel[setting.full_id] = setting_panel
 
 	for i = 1, #setting.sources do
-		AddSettingPanel(setting_panel.children, setting.sources[i], on_selected)
+		AddSettingPanel(setting_panel.children, setting.sources[i], namespace_type)
 	end
 
 	return setting_panel
 end
 
-local function AddNamespacePanel(parent_panel, namespace, on_selected)
+local function AddNamespacePanel(parent_panel, namespace, namespace_type)
 	local namespace_panel = vgui.Create("pacoman_tree_node", parent_panel)
 	namespace_panel.header.lbl_text:SetText(namespace.id)
 	namespace_panel.header.img_icon:SetMaterial(ic_namespace)
 	namespace_panel.namespace = namespace
+	namespace_panel.namespace_type = namespace_type
+	full_id_to_panel[namespace.full_id] = namespace_panel
+
 	for i = 1, #namespace.children do
-		AddNamespacePanel(namespace_panel.children, namespace.children[i], on_selected)
+		AddNamespacePanel(namespace_panel.children, namespace.children[i], namespace_type)
 	end
 
 	for i = 1, #namespace.settings do
-		AddSettingPanel(namespace_panel.children, namespace.settings[i], on_selected)
+		AddSettingPanel(namespace_panel.children, namespace.settings[i], namespace_type)
 	end
 
 	return namespace_panel
@@ -327,7 +339,7 @@ function DEFAULT_SETTING_SCREEN:Init()
 	lbl_title:SetText("Partly Adequate Configuration Manager")
 
 	self.setting = nil
-	self.is_server_setting = false
+	self.namespace_type = CLIENT_SETTING
 
 	local lbl_setting_name = vgui.Create("DLabel", self)
 	lbl_setting_name:SetPos(self.setting_pos_x, HEADER_HEIGHT)
@@ -411,17 +423,9 @@ function DEFAULT_SETTING_SCREEN:Init()
 	tree_list:SetBackgroundColor(col_base_darkest)
 	tree_list:SetWidth(TREE_WIDTH - 15)
 
-	local function OnClientSettingSelected(s)
-		self:SetSetting(s.setting, false)
-	end
-
-	local function OnServerSettingSelected(s)
-		self:SetSetting(s.setting, true)
-	end
-
-	self.client_settings_panel = AddNamespacePanel(tree_list, pacoman.client_settings, OnClientSettingSelected)
-	self.client_overrides_panel = AddNamespacePanel(tree_list, pacoman.client_overrides, OnServerSettingSelected)
-	self.server_settings_panel = AddNamespacePanel(tree_list, pacoman.server_settings, OnServerSettingSelected)
+	self.client_settings_panel = AddNamespacePanel(tree_list, pacoman.client_settings, CLIENT_SETTING)
+	self.client_overrides_panel = AddNamespacePanel(tree_list, pacoman.client_overrides, CLIENT_OVERRIDE)
+	self.server_settings_panel = AddNamespacePanel(tree_list, pacoman.server_settings, SERVER_SETTING)
 
 	hook.Add("PACOMAN_SettingValueChanged", "PACOMAN_UI_value_changed", function(setting)
 		if self.setting == setting then
@@ -433,7 +437,7 @@ function DEFAULT_SETTING_SCREEN:Init()
 	self:SetKeyboardInputEnabled(false)
 end
 
-function DEFAULT_SETTING_SCREEN:SetSetting(setting, is_server_setting)
+function DEFAULT_SETTING_SCREEN:SetSetting(setting, namespace_type)
 	local type_id = setting.type.id
 	local panel_id = type_panel_ids[type_id] or "pacoman_type_any"
 
@@ -443,7 +447,7 @@ function DEFAULT_SETTING_SCREEN:SetSetting(setting, is_server_setting)
 
 	if setting then
 		self.setting = setting
-		self.is_server_setting = is_server_setting
+		self.namespace_type = namespace_type
 
 		self.pnl_setting_value = vgui.Create(panel_id, self)
 		self.pnl_setting_value:SetPos(self.setting_pos_x + self.setting_width * 0.25 + 4, HEADER_HEIGHT * 2)
@@ -467,7 +471,7 @@ function DEFAULT_SETTING_SCREEN:SetSetting(setting, is_server_setting)
 		return
 	end
 	self.setting = nil
-	self.is_server_setting = false
+	self.namespace_type = false
 	self.cb_setting_dependency:ChooseOptionID(1)
 	self.cb_setting_dependency:SetDisabled(true)
 	self.cb_setting_dependency:SetText("Nothing")
@@ -477,7 +481,7 @@ end
 function DEFAULT_SETTING_SCREEN:AttemptDependencyChange(game_property)
 	if not self.setting or self.setting.depends_on == game_property then return end
 
-	if self.is_server_setting then
+	if self.namespace_type ~= CLIENT_SETTING then
 		pacoman.RequestDependencyChange(self.setting, game_property)
 		return
 	end
@@ -497,7 +501,7 @@ function DEFAULT_SETTING_SCREEN:AttemptValueChange(value)
 		return
 	end
 
-	if self.is_server_setting then
+	if self.namespace_type ~= CLIENT_SETTING then
 		pacoman.RequestValueChange(self.setting, value)
 		return
 	end
