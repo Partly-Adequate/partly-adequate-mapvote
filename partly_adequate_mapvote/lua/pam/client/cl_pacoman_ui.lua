@@ -304,6 +304,45 @@ local function AddNamespacePanel(parent_panel, namespace, namespace_type)
 	return namespace_panel
 end
 
+hook.Add("PACOMAN_NamespaceChildAdded", "PACOMAN_UI_NamespaceChildAdded", function(parent, child)
+	local parent_panel = full_id_to_panel[parent.full_id]
+	if not parent_panel then return end
+
+	AddNamespacePanel(parent_panel.children, child, parent_panel.namespace_type)
+end)
+
+hook.Add("PACOMAN_NamespaceSettingAdded", "PACOMAN_UI_NamespaceSettingAdded", function(parent, setting)
+	local parent_panel = full_id_to_panel[parent.full_id]
+	if not parent_panel then return end
+
+	AddSettingPanel(parent_panel.children, setting, parent_panel.namespace_type)
+end)
+
+hook.Add("PACOMAN_NamespaceSettingRemoved", "PACOMAN_UI_NamespaceSettingRemoved", function(parent, setting)
+	local full_id = setting.full_id
+	local setting_panel = full_id_to_panel[full_id]
+	if not setting_panel then return end
+
+	setting_panel:Remove()
+	full_id_to_panel[full_id] = nil
+end)
+
+hook.Add("PACOMAN_SettingSourceAdded", "PACOMAN_UI_SettingSourceAdded", function(parent, source)
+	local parent_panel = full_id_to_panel[parent.full_id]
+	if not parent_panel then return end
+
+	AddSettingPanel(parent_panel.children, source, parent_panel.namespace_type)
+end)
+
+hook.Add("PACOMAN_SettingSourceRemoved", "PACOMAN_UI_SettingSourceRemoved", function(parent, source)
+	local full_id = source.full_id
+	local source_panel = full_id_to_panel[full_id]
+	if not source_panel then return end
+
+	source_panel:Remove()
+	full_id_to_panel[full_id] = nil
+end)
+
 
 local DEFAULT_SETTING_SCREEN = {}
 
