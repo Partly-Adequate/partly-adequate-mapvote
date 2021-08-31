@@ -696,18 +696,17 @@ function Setting:RemoveSource(source_id)
 	if index == #self.sources then
 		self.sources[index] = nil
 		self.source_indices[source_id] = nil
-		return
+	else
+		-- remove source and reorder source list to remove potential gaps
+		local last_index = #self.sources
+		local last_setting = self.sources[last_index]
+
+		self.sources[index] = last_setting
+		source_indices[source_id] = nil
+
+		self.sources[last_index] = nil
+		source_indices[last_setting.id] = index
 	end
-
-	-- remove source and reorder source list to remove potential gaps
-	local last_index = #self.sources
-	local last_setting = self.sources[last_index]
-
-	self.sources[index] = last_setting
-	source_indices[source_id] = nil
-
-	self.sources[last_index] = nil
-	source_indices[last_setting.id] = index
 
 	-- call OnSourceRemoved hook
 	self:OnSourceRemoved(source_setting)
@@ -905,18 +904,17 @@ function Namespace:RemoveSetting(setting_id)
 	if index == #self.settings then
 		self.settings[index] = nil
 		self.setting_indices[setting_id] = nil
-		return
+	else
+		-- remove setting and reorder setting list to remove potential gaps
+		local last_index = #self.settings
+		local last_setting = self.settings[last_index]
+
+		self.settings[index] = last_setting
+		self.setting_indices[setting_id] = nil
+
+		self.settings[last_index] = nil
+		self.setting_indices[last_setting.id] = index
 	end
-
-	-- remove setting and reorder setting list to remove potential gaps
-	local last_index = #self.settings
-	local last_setting = self.settings[last_index]
-
-	self.settings[index] = last_setting
-	self.setting_indices[setting_id] = nil
-
-	self.settings[last_index] = nil
-	self.setting_indices[last_setting.id] = index
 
 	-- call OnSettingRemoved hook
 	self:OnSettingRemoved(setting)
