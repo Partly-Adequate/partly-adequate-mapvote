@@ -265,6 +265,58 @@ end
 
 derma.DefineControl("pacoman_tree_node", "", TREE_NODE, "DPanel")
 
+local function StringFitsSearchTerm(to_test, search_term)
+	if not search_term or search_term == "" then return true end
+	if #search_term > #to_test then return false end
+
+	local i = 1
+	for j = 1, #to_test do
+		if to_test:sub(j, j):lower() == search_term:sub(i, i):lower() then
+			if i >= #search_term then
+				return true
+			end
+			i = i + 1
+		end
+	end
+
+	return false
+end
+
+local function SettingPanelSearch(self, search_term)
+	fits = StringFitsSearchTerm(self.setting.full_id, search_term)
+
+	if self.header:GetToggle() then
+		self.header:Toggle()
+	else
+		self.children:InvalidateLayout()
+	end
+	self:InvalidateLayout()
+
+	self:SetVisible(fits)
+
+	return fits
+end
+
+local function NamespacePanelSearch(self, search_term)
+	local fits = false
+	for _, child in pairs(self.children:GetChildren()) do
+		fits = child:Search(search_term) or fits
+	end
+
+	if search_term == "" then
+		fits = false
+	end
+
+	if self.header:GetToggle() != fits then
+		self.header:Toggle()
+	else
+		self.children:InvalidateLayout()
+	end
+	self:InvalidateLayout()
+
+	return fits
+end
+
 
 local function AddSettingPanel(parent_panel, setting, namespace_type)
 	local setting_panel = vgui.Create("pacoman_tree_node", parent_panel)
@@ -276,6 +328,7 @@ local function AddSettingPanel(parent_panel, setting, namespace_type)
 		pacoman_ui:SetSetting(setting, namespace_type)
 	end
 
+	setting_panel.Search = SettingPanelSearch
 	full_id_to_panel[setting.full_id] = setting_panel
 
 	for i = 1, #setting.sources do
@@ -291,6 +344,7 @@ local function AddNamespacePanel(parent_panel, namespace, namespace_type)
 	namespace_panel.header.img_icon:SetMaterial(ic_namespace)
 	namespace_panel.namespace = namespace
 	namespace_panel.namespace_type = namespace_type
+	namespace_panel.Search = NamespacePanelSearch
 	full_id_to_panel[namespace.full_id] = namespace_panel
 
 	for i = 1, #namespace.children do
@@ -363,6 +417,7 @@ function DEFAULT_SETTING_SCREEN:Init()
 		surface.DrawRect(0, 0, w, h)
 		surface.SetDrawColor(col_base_darkest)
 		surface.DrawRect(0, 0, w, TITLE_BAR_HEIGHT)
+		surface.DrawRect(0, TITLE_BAR_HEIGHT, TREE_WIDTH, HEADER_HEIGHT)
 		surface.SetDrawColor(col_base_darker)
 		surface.DrawRect(self.setting_pos_x, HEADER_HEIGHT, self.setting_width, HEADER_HEIGHT * 3)
 		surface.SetDrawColor(col_base_darkest)
@@ -429,8 +484,8 @@ function DEFAULT_SETTING_SCREEN:Init()
 	end
 
 	local tree_container = vgui.Create("DScrollPanel", self)
-	tree_container:SetPos(0, TITLE_BAR_HEIGHT)
-	tree_container:SetSize(TREE_WIDTH, height - TITLE_BAR_HEIGHT)
+	tree_container:SetPos(0, TITLE_BAR_HEIGHT  + HEADER_HEIGHT)
+	tree_container:SetSize(TREE_WIDTH, height - TITLE_BAR_HEIGHT - HEADER_HEIGHT)
 	tree_container.Paint = function(s, w, h)
 		surface.SetDrawColor(col_base)
 		surface.DrawRect(0, 0, w, h)
@@ -472,8 +527,33 @@ function DEFAULT_SETTING_SCREEN:Init()
 		end
 	end)
 
+	local txt_search = vgui.Create("DTextEntry", self)
+	txt_search:SetPos(0, TITLE_BAR_HEIGHT)
+	txt_search:SetSize(TREE_WIDTH, HEADER_HEIGHT)
+	txt_search:DockMargin(0, 0, 0, 0)
+	txt_search:SetTextColor(col_text)
+	txt_search:SetCursorColor(col_text)
+	txt_search:SetPlaceholderText("Search for settings...")
+	txt_search:SetPaintBackground(false)
+	txt_search.OnGetFocus = function(s)
+		self:SetKeyboardInputEnabled(true)
+	end
+	txt_search.OnLoseFocus = function(s)
+		self:SetKeyboardInputEnabled(false)
+	end
+	txt_search.OnChange = function(s)
+		self:Search(s:GetValue())
+		tree_list:InvalidateLayout()
+	end
+
 	self:MakePopup()
 	self:SetKeyboardInputEnabled(false)
+end
+
+function DEFAULT_SETTING_SCREEN:Search(search_term)
+	self.client_settings_panel:Search(search_term)
+	self.client_overrides_panel:Search(search_term)
+	self.server_settings_panel:Search(search_term)
 end
 
 function DEFAULT_SETTING_SCREEN:SetSetting(setting, namespace_type)
