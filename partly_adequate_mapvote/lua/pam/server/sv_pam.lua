@@ -4,7 +4,7 @@ function PAM.Start(vote_type, vote_length_override, winner_callback_override)
 	PAM.vote_type = vote_type or "map"
 	PAM.winner_callback = winner_callback_override or PAM.ChangeMap
 
-	local vote_length = vote_length_override or PAM.settings.vote_length
+	local vote_length = vote_length_override or PAM.vote_length:GetActiveValue()
 
 	table.Empty(PAM.options)
 	table.Empty(PAM.votes)
