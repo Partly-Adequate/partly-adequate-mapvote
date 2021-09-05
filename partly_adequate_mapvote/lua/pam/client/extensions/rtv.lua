@@ -64,7 +64,6 @@ net.Receive("PAM_ResetRTV", function(len)
 end)
 
 function PAM_EXTENSION:OnRTVVoterAdded(ply)
-	print("callback called")
 	local players_needed = math.ceil((rtv_percentage_setting and rtv_percentage_setting:GetActiveValue() or 0) * player.GetCount())
 	chat.AddText(col_prefix, "[PAM] ", col_bright, ply:GetName(), col_darker, " wants to rock the vote! (", col_bright, tostring(rtv_voter_count or "0"), col_darker, "/", col_bright , tostring(players_needed), col_darker, ")")
 end
@@ -74,7 +73,7 @@ function PAM_EXTENSION:OnRTVVoterRemoved(ply)
 	chat.AddText(col_prefix, "[PAM] ", col_bright, ply:GetName(), col_darker, " no longer wants to rock the vote! (", col_bright, tostring(rtv_voter_count or "0"), col_darker , "/", col_bright , tostring(players_needed), col_darker, ")")
 end
 
-function PAM_EXTENSION:OnInitialize()
+function PAM_EXTENSION:Initialize()
 	hook.Add("OnPlayerChat", "PAM_RTV_Chat_Commands", function(ply, text)
 		if !self.enabled then return end
 		if not rtv_enabled_setting or not rtv_enabled_setting:GetActiveValue() then return end

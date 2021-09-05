@@ -34,10 +34,8 @@ end
 
 -- make a player rock the vote
 local function AddRTVVoter(self, ply)
-	print("received request")
 	if not self.enabled or PAM.state ~= PAM.STATE_DISABLED or not IsValid(ply) or WantsRTV(ply) then return end
 
-	print("request is valid")
 	rtv_voters[ply:SteamID()] = true
 	rtv_voter_count = rtv_voter_count + 1
 
