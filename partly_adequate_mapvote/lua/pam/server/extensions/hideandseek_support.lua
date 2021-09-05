@@ -10,8 +10,9 @@ function PAM_EXTENSION:OnInitialize()
 		return true
 	end)
 
-	-- Check for delayed RTV when the round ends
-	hook.Add("HASRoundEnded", "PAM_Autostart_Delayed_RTV_HAS", function()
-		PAM.CheckForDelayedRTV()
+
+	-- Notify PAM that the round has ended
+	hook.Add("HASRoundEnded", "PAM_RoundEnded", function()
+		PAM.extension_handler.RunEvent("OnRoundEnded")
 	end)
 end

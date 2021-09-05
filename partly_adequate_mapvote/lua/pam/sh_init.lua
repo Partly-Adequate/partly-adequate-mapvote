@@ -23,7 +23,3 @@ PAM.winning_option_id = nil
 
 --the votes
 PAM.votes = {}
-
--- stores the players wanting to rock the vote
-PAM.rtv_voters = {}
-PAM.rtv_voter_count = 0

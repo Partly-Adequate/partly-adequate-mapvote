@@ -3,10 +3,8 @@ net.Receive("PAM_Start", function()
 
 	table.Empty(PAM.options)
 	table.Empty(PAM.votes)
-	table.Empty(PAM.rtv_voters)
 
 	PAM.winning_option_id = nil
-	PAM.rtv_voter_count = 0
 
 	-- the type of the current vote
 	PAM.vote_type = net.ReadString()
@@ -53,22 +51,6 @@ net.Receive("PAM_UnVote", function()
 	if not PAM.votes[ply:SteamID()] then return end
 
 	PAM.RemoveVoter(ply)
-end)
-
-net.Receive("PAM_VoteRTV", function(len)
-	local ply = net.ReadEntity()
-
-	if not IsValid(ply) then return end
-
-	PAM.AddRTVVoter(ply)
-end)
-
-net.Receive("PAM_UnVoteRTV", function(len)
-	local ply = net.ReadEntity()
-
-	if not IsValid(ply) then return end
-
-	PAM.RemoveRTVVoter(ply)
 end)
 
 net.Receive("PAM_Announce_Winner", function()

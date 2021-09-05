@@ -1,13 +1,15 @@
 PAM_EXTENSION.name = "terrortown_support"
 PAM_EXTENSION.enabled = true
 
+--TODO allow disabling in all supported gamemodes
 function PAM_EXTENSION:OnInitialize()
 	-- terrortown support
 	if GAMEMODE_NAME ~= "terrortown" then return end
 
-	-- The end of the round is a fitting moment for rtv to be checked
-	hook.Add("TTTEndRound", "PAM_Autostart_Delayed_RTV_TTT", function()
-		PAM.CheckForDelayedRTV()
+
+	-- Notify PAM that the round has ended
+	hook.Add("TTTEndRound", "PAM_RoundEnded", function()
+		PAM.extension_handler.RunEvent("OnRoundEnded")
 	end)
 
 	-- ttt2/ttt2

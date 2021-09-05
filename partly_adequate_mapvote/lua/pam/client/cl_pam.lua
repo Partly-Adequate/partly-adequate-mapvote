@@ -45,48 +45,6 @@ function PAM.UnVote()
 	net.SendToServer()
 end
 
--- rtv
--- check if a player has voted for rtv
-function PAM.WantsRTV(ply)
-	return PAM.rtv_voters[ply:SteamID()]
-end
-
--- adds an rtv voter to the clients information
-function PAM.AddRTVVoter(ply)
-	PAM.rtv_voters[ply:SteamID()] = true
-
-	PAM.rtv_voter_count = PAM.rtv_voter_count + 1
-
-	PAM.extension_handler.RunEvent("OnRTVVoterAdded", ply)
-end
-
--- removes an rtv voter from the clients information
-function PAM.RemoveRTVVoter(ply)
-	PAM.rtv_voters[ply:SteamID()] = false
-
-	PAM.rtv_voter_count = PAM.rtv_voter_count - 1
-
-	PAM.extension_handler.RunEvent("OnRTVVoterRemoved", ply)
-end
-
--- makes the client vote for rtv
-function PAM.VoteRTV()
-	if PAM.state ~= PAM.STATE_DISABLED then return end
-	if PAM.WantsRTV(LocalPlayer()) then return end
-
-	net.Start("PAM_VoteRTV")
-	net.SendToServer()
-end
-
--- makes the client withdraw their vote for rtv
-function PAM.UnVoteRTV()
-	if PAM.state ~= PAM.STATE_DISABLED then return end
-	if not PAM.WantsRTV(LocalPlayer()) then return end
-
-	net.Start("PAM_UnVoteRTV")
-	net.SendToServer()
-end
-
 -- option icons
 -- returns a material for the option name or nil when no material was found
 function PAM.GetIconMaterial(option_name)

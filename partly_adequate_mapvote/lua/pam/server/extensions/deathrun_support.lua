@@ -22,9 +22,12 @@ function PAM_EXTENSION:OnInitialize()
 		-- start PAM instead of MV
 		MV.BeginMapVote = PAM.Start
 
-		-- DeathrunShouldMapSwitch gets called at the start of the ROUND_OVER state. It's a fitting moment to check for delayed RTV.
-		hook.Add("DeathrunShouldMapSwitch", "PAM_Autostart_Delayed_RTV_Deathrun", function()
-			return (PAM.state == PAM.STATE_STARTED) or PAM.CheckForDelayedRTV()
+
+		-- Notify PAM that the round has ended
+		hook.Add("OnRoundSet", "PAM_RoundEnded", function(round_id)
+			if round_id == ROUND_OVER then
+				PAM.extension_handler.RunEvent("OnRoundEnded")
+			end
 		end)
 		return
 	end
@@ -37,14 +40,11 @@ function PAM_EXTENSION:OnInitialize()
 		concommand.Remove("rtv_start")
 		RTV.Start = PAM.Start
 
-		-- Check for delayed RTV when the round ends
-		hook.Add("OnRoundSet", "PAM_Autostart_Delayed_RTV_Deathrun", function(round, ...)
+
+		-- Notify PAM that the round has ended
+		hook.Add("OnRoundSet", "PAM_RoundEnded", function(round, ...)
 			if(round == ROUND_ENDING) then
-				if PAM.CheckForDelayedRTV() then
-					-- stop next round from loading
-					SetGlobalInt( "Deathrun_RoundPhase", -1 )
-					SetGlobalInt( "Deathrun_RoundTime", 0 )
-				end
+				PAM.extension_handler.RunEvent("OnRoundEnded")
 			end
 		end)
 		return

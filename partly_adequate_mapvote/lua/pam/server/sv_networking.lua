@@ -15,21 +15,3 @@ net.Receive("PAM_UnVote", function(len, ply)
 
 	PAM.RemoveVoter(ply)
 end)
-
-net.Receive("PAM_VoteRTV", function(len, ply)
-	if not PAM.settings.rtv_enabled then return end
-	if PAM.state ~= PAM.STATE_DISABLED then return end
-	if not IsValid(ply) then return end
-	if PAM.rtv_voters[ply:SteamID()] then return end
-
-	PAM.AddRTVVoter(ply)
-end)
-
-net.Receive("PAM_UnVoteRTV", function(len, ply)
-	if not PAM.settings.rtv_enabled then return end
-	if PAM.state ~= PAM.STATE_DISABLED then return end
-	if not IsValid(ply) then return end
-	if not PAM.rtv_voters[ply:SteamID()] then return end
-
-	PAM.RemoveRTVVoter(ply)
-end)

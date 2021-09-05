@@ -15,27 +15,15 @@ function PAM_EXTENSION:OnInitialize()
 	end
 
 
-	-- overriding the rtv system to use pam's instead
-	local function ToggleRTVVoter(ply)
-		if not PAM.settings.rtv_enabled then return end
-		if PAM.state ~= PAM.STATE_DISABLED then return end
-		if not IsValid(ply) then return end
-
-		if PAM.rtv_voters[ply:SteamID()] then
-			PAM.RemoveRTVVoter(ply)
-		else
-			PAM.AddRTVVoter(ply)
-		end
-	end
-
+	-- overriding the rtv system
 	RTV = RTV or {}
-	RTV.StartVote = ToggleRTVVoter
-	RTV.AddVote = ToggleRTVVoter
+	RTV.StartVote = function() return end
+	RTV.AddVote = function() return end
 
 
-	-- Check for delayed RTV when the round ends
-	hook.Add("PH_RoundEnd", "PAM_Autostart_Delayed_RTV_PH", function()
-		PAM.CheckForDelayedRTV()
+	-- Notify PAM that the round has ended
+	hook.Add("PH_RoundEnd", "PAM_RoundEnded", function()
+		PAM.extension_handler.RunEvent("OnRoundEnded")
 	end)
 
 

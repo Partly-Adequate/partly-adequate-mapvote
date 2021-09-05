@@ -8,11 +8,9 @@ function PAM.Start(vote_type, vote_length_override, winner_callback_override)
 
 	table.Empty(PAM.options)
 	table.Empty(PAM.votes)
-	table.Empty(PAM.rtv_voters)
 
 	PAM.option_count = 0
 	PAM.special_option_count = 0
-	PAM.rtv_voter_count = 0
 
 	PAM.extension_handler.RunEvent("RegisterSpecialOptions")
 	PAM.extension_handler.RunEvent("RegisterOptions")
@@ -160,51 +158,6 @@ function PAM.RemoveVoter(ply)
 	PAM.extension_handler.RunEvent("OnVoterRemoved", ply, option_id)
 end
 
-function PAM.AddRTVVoter(ply)
-	PAM.rtv_voters[ply:SteamID()] = true
-	PAM.rtv_voter_count = PAM.rtv_voter_count + 1
-
-	net.Start("PAM_VoteRTV")
-	net.WriteEntity(ply)
-	net.Broadcast()
-
-	if not PAM.settings.rtv_delayed then
-		PAM.CheckForRTV()
-	end
-
-	PAM.extension_handler.RunEvent("OnRTVVoterAdded", ply)
-end
-
-function PAM.RemoveRTVVoter(ply)
-	PAM.rtv_voters[ply:SteamID()] = false
-	PAM.rtv_voter_count = PAM.rtv_voter_count - 1
-
-	net.Start("PAM_UnVoteRTV")
-	net.WriteEntity(ply)
-	net.Broadcast()
-
-	PAM.extension_handler.RunEvent("OnRTVVoterRemoved", ply)
-end
-
-function PAM.CheckForDelayedRTV()
-	if PAM.settings.rtv_delayed then
-		return PAM.CheckForRTV()
-	end
-	return false
-end
-
-function PAM.CheckForRTV()
-	-- check if there are enough players
-	local needed_count = math.ceil(PAM.settings.rtv_percentage * player.GetCount())
-
-	if (PAM.rtv_voter_count >= needed_count) then
-		-- start pam
-		PAM.Start()
-		return true
-	end
-	return false
-end
-
 -- pick counter utility functions
 function PAM.GetPickCount(option_name)
 	local data = sql.Query("SELECT pickcount FROM pam_pickcounts WHERE id IS " .. sql.SQLStr(option_name))
@@ -220,23 +173,7 @@ function PAM.SetPickCount(option_name, pick_count)
 end
 
 hook.Add("PlayerAuthed", "PAM_UpdateNewPlayer", function(ply, steam_id, unique_id)
-	if PAM.state == PAM.STATE_DISABLED then
-		if PAM.rtv_voter_count == 0 then return end
-
-		for k, v in pairs(PAM.rtv_voters) do
-			if not v then continue end
-
-			local voter = player.GetBySteamID(k)
-
-			if not IsValid(voter) then continue end
-
-			net.Start("PAM_VoteRTV")
-			net.WriteEntity(voter)
-			net.Send(ply)
-		end
-
-		return
-	end
+	if PAM.state == PAM.STATE_DISABLED then return end
 
 	-- send start info to all clients
 	net.Start("PAM_Start")

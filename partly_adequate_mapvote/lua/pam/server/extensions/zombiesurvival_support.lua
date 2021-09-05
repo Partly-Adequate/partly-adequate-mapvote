@@ -10,7 +10,8 @@ function PAM_EXTENSION:OnInitialize()
 		return true
 	end)
 
-	hook.Add("PostEndRound", "PAM_Autostart_Delayed_RTV_ZombieSurvival", function()
-		PAM.CheckForDelayedRTV()
+
+	hook.Add("PostEndRound", "PAM_RoundEnded", function()
+		PAM.extension_handler.RunEvent("OnRoundEnded")
 	end)
 end

@@ -14,8 +14,9 @@ function PAM_EXTENSION:OnInitialize()
 		PAM.Cancel()
 	end
 
-	-- Check for delayed RTV when the round ends
-	hook.Add("GWOnRoundEnd", "PAM_Autostart_Delayed_RTV_Guesswho", function()
-		PAM.CheckForDelayedRTV()
+
+	-- Notify PAM that the round has ended
+	hook.Add("GWOnRoundEnd", "PAM_RoundEnded", function()
+		PAM.extension_handler.RunEvent("OnRoundEnded")
 	end)
 end
