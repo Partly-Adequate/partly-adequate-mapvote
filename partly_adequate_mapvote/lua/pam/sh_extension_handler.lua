@@ -93,7 +93,15 @@ function PAM.extension_handler.RunAvalanchingEvent(event_name, combine, ...)
 	return combined_result
 end
 
-hook.Add("Initialize", "PAM_Initialize_Extensions", PAM.extension_handler.RunEvent("OnInitialize"))
+hook.Add("Initialize", "PAM_Initialize_Extensions", function()
+	for i = 1, #PAM.extensions do
+		local extension = PAM.extensions[i]
+
+		if extension.OnInitialize then
+			extension:OnInitialize()
+		end
+	end
+end)
 
 if SERVER then
 	local sv_extensions, _ = file.Find("pam/server/extensions/*.lua", "LUA")
