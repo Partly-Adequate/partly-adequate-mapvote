@@ -868,11 +868,15 @@ end
 -- @param any value the value of the setting
 -- @note If a Setting with the same name/identifier already exists within this Namespace's Settings, it will be overriden.
 function Namespace:AddSetting(setting_id, type, value)
-	self:RemoveSetting(setting_id)
+	local setting = self:GetSetting(setting_id)
+	if setting then
+		ErrorNoHalt("Setting with id '" .. setting.full_id .. "' already exists. It will be overriden!\n")
+		self:RemoveSetting(setting_id)
+	end
 
 	local index = #self.settings + 1
 
-	local setting = Setting:Create(self.full_id, setting_id, type, value)
+	setting = Setting:Create(self.full_id, setting_id, type, value)
 
 	if not setting then return end
 
