@@ -42,7 +42,7 @@ end
 
 -- called when the player enables this extension via the extension manager
 function PAM_EXTENSION:OnEnable()
-	if PAM.state != PAM.STATE_DISABLED then
+	if PAM.state ~= PAM.STATE_DISABLED then
 		-- create panel
 		self:OnVoteStarted()
 		-- add all existing voters
@@ -58,7 +58,7 @@ end
 
 -- called when the player disables this extension via the extension manager
 function PAM_EXTENSION:OnDisable()
-	if PAM.state != PAM.STATE_DISABLED then
+	if PAM.state ~= PAM.STATE_DISABLED then
 		panel:Remove()
 	end
 end

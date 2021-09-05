@@ -31,7 +31,7 @@ function PAM_EXTENSION:ToggleVisibility()
 end
 
 function PAM_EXTENSION:OnEnable()
-	if PAM.state != PAM.STATE_DISABLED then
+	if PAM.state ~= PAM.STATE_DISABLED then
 		self:OnVoteStarted()
 		for steam_id, option_id in pairs(PAM.votes) do
 			self:OnVoterAdded(player.GetBySteamID(steam_id), option_id)
@@ -43,7 +43,7 @@ function PAM_EXTENSION:OnEnable()
 end
 
 function PAM_EXTENSION:OnDisable()
-	if PAM.state != PAM.STATE_DISABLED then
+	if PAM.state ~= PAM.STATE_DISABLED then
 		panel:Remove()
 	end
 end

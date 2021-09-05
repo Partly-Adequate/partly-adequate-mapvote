@@ -251,7 +251,7 @@ end
 -- @return bool true if this <code>Type</code> is comparable, false if it's not
 -- @realm shared
 function Type:IsComparable()
-	return self.compare_values != nil
+	return self.compare_values ~= nil
 end
 
 ---
@@ -723,7 +723,7 @@ function Setting:RemoveSource(source_id)
 	hook.Run("PACOMAN_SettingSourceRemoved", self, source_setting)
 
 	-- update this setting when the active source got removed
-	if source_id != self.active_source_id then return end
+	if source_id ~= self.active_source_id then return end
 
 	self:Update()
 end

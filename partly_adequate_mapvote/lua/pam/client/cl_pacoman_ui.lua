@@ -307,7 +307,7 @@ local function NamespacePanelSearch(self, search_term)
 		fits = false
 	end
 
-	if self.header:GetToggle() != fits then
+	if self.header:GetToggle() ~= fits then
 		self.header:Toggle()
 	else
 		self.children:InvalidateLayout()

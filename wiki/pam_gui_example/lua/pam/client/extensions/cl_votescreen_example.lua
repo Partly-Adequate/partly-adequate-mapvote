@@ -121,7 +121,7 @@ function PANEL:AnnounceWinner()
 	-- deletes all buttons but the winner
 	for i = 1, #self.option_buttons do
 		local option_button = self.option_buttons[i]
-		if(option_button.option_info.id != PAM.winning_option_id) then
+		if(option_button.option_info.id ~= PAM.winning_option_id) then
 			option_button:Remove()
 		end
 	end

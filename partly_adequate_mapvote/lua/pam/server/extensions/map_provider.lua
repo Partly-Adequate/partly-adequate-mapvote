@@ -48,7 +48,7 @@ function PAM_EXTENSION:RegisterOptions()
 		map = map:sub(1, -5)
 
 		-- don't add too many maps
-		if limit != 0 && limit <= PAM.option_count - starting_option_count then
+		if limit ~= 0 && limit <= PAM.option_count - starting_option_count then
 			break
 		end
 
