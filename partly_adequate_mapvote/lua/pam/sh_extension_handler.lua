@@ -35,16 +35,11 @@ local function RegisterExtension(extension)
 	extension.enabled = enabled_setting:GetActiveValue()
 
 	enabled_setting:AddCallback("extension handler", function(value)
-		extension.enabled = value
-
 		if value then
-			if not extension.OnEnable then return end
-			extension:OnEnable()
-			return
+			EnableExtension(extension)
 		end
 
-		if not extension.OnDisable then return end
-		extension:OnDisable()
+		DisableExtension(extension)
 	end)
 
 	-- add extension to table of extensions
