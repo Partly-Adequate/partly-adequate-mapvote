@@ -9,7 +9,9 @@ local col_darker = Color(200, 200, 200, 255)
 local rtv_voters = {}
 local rtv_voter_count = 0
 
-local commands_setting = PAM.setting_namespace:AddChild(name):AddSetting("commands", pacoman.TYPE_STRING, "!rtv,rtv,!rock the vote,rock the vote")
+local setting_namespace = PAM.setting_namespace:AddChild(name)
+local commands_setting = setting_namespace:AddSetting("commands", pacoman.TYPE_STRING, "!rtv,rtv,!rock the vote,rock the vote")
+local enabled_setting
 local rtv_enabled_setting
 local rtv_percentage_setting
 
@@ -74,11 +76,13 @@ function PAM_EXTENSION:OnRTVVoterRemoved(ply)
 end
 
 function PAM_EXTENSION:Initialize()
+	enabled_setting = setting_namespace:GetSetting("enabled")
+
 	hook.Add("OnPlayerChat", "PAM_RTV_Chat_Commands", function(ply, text)
-		if !self.enabled then return end
+		if not enabled_setting:GetActiveValue() then return end
 		if not rtv_enabled_setting or not rtv_enabled_setting:GetActiveValue() then return end
-		if PAM.state != PAM.STATE_DISABLED then return end
-		if ply != LocalPlayer() then return end
+		if PAM.state ~= PAM.STATE_DISABLED then return end
+		if ply ~= LocalPlayer() then return end
 
 		local commands = string.Split(commands_setting:GetActiveValue(), ",")
 
@@ -98,14 +102,14 @@ function PAM_EXTENSION:Initialize()
 
 	--toggle rtv participation
 	concommand.Add("pam_rtv", function(ply, cmd, args, arg_str)
-		if self.enabled and rtv_enabled_setting and rtv_enabled_setting:GetActiveValue() and PAM.state == PAM.STATE_DISABLED then
-			if rtv_voters[ply:SteamID()] then
-				net.Start("PAM_UnVoteRTV")
-				net.SendToServer()
-			else
-				net.Start("PAM_VoteRTV")
-				net.SendToServer()
-			end
+		if not enabled_setting:GetActiveValue() or not rtv_enabled_setting or not rtv_enabled_setting:GetActiveValue() or not PAM.state == PAM.STATE_DISABLED then return end
+
+		if rtv_voters[ply:SteamID()] then
+			net.Start("PAM_UnVoteRTV")
+			net.SendToServer()
+		else
+			net.Start("PAM_VoteRTV")
+			net.SendToServer()
 		end
 	end)
 end

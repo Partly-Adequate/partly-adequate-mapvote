@@ -15,8 +15,9 @@ util.AddNetworkString("PAM_ResetRTV")
 util.AddNetworkString("PAM_RTVStateRequest")
 
 local setting_namespace = PAM.setting_namespace:AddChild(name)
-local delayed = setting_namespace:AddSetting("delayed", pacoman.TYPE_BOOLEAN, false)
-local percentage = setting_namespace:AddSetting("percentage", pacoman.TYPE_PERCENTAGE, 0.6)
+local delayed_setting = setting_namespace:AddSetting("delayed", pacoman.TYPE_BOOLEAN, false)
+local percentage_setting = setting_namespace:AddSetting("percentage", pacoman.TYPE_PERCENTAGE, 0.6)
+local enabled_setting
 
 -- stores the players wanting to rock the vote
 local rtv_voters = {}
@@ -24,7 +25,7 @@ local rtv_voter_count = 0
 
 -- Check if there are enough people to win the vote
 local function IsEnoughVoters()
-	return rtv_voter_count >= math.ceil(percentage:GetActiveValue() * player.GetCount())
+	return rtv_voter_count >= math.ceil(percentage_setting:GetActiveValue() * player.GetCount())
 end
 
 -- checks if a player wants to rock the vote
@@ -33,8 +34,8 @@ local function WantsRTV(ply)
 end
 
 -- make a player rock the vote
-local function AddRTVVoter(self, ply)
-	if not self.enabled or PAM.state ~= PAM.STATE_DISABLED or not IsValid(ply) or WantsRTV(ply) then return end
+local function AddRTVVoter(ply)
+	if not enabled_setting:GetActiveValue() or PAM.state ~= PAM.STATE_DISABLED or not IsValid(ply) or WantsRTV(ply) then return end
 
 	rtv_voters[ply:SteamID()] = true
 	rtv_voter_count = rtv_voter_count + 1
@@ -44,7 +45,7 @@ local function AddRTVVoter(self, ply)
 	net.WriteEntity(ply)
 	net.Broadcast()
 
-	if IsEnoughVoters() and not delayed:GetActiveValue() then
+	if IsEnoughVoters() and not delayed_setting:GetActiveValue() then
 		PAM.Start()
 	end
 
@@ -52,8 +53,8 @@ local function AddRTVVoter(self, ply)
 end
 
 -- make a player not rock the vote
-local function RemoveRTVVoter(self, ply)
-	if not self.enabled or PAM.state ~= PAM.STATE_DISABLED or not IsValid(ply) or not WantsRTV(ply) then return end
+local function RemoveRTVVoter(ply)
+	if not enabled_setting:GetActiveValue() or PAM.state ~= PAM.STATE_DISABLED or not IsValid(ply) or not WantsRTV(ply) then return end
 
 	rtv_voters[ply:SteamID()] = nil
 	rtv_voter_count = rtv_voter_count - 1
@@ -67,7 +68,7 @@ end
 
 -- reset players that want to rock the vote
 local function ResetRTVVoters()
-	rtv_voters = {}
+	rtv_voters = {_setting}
 	rtv_voter_count = 0
 
 	net.Start("PAM_ResetRTV")
@@ -88,18 +89,20 @@ end
 
 -- Check for delayed rtv when a round ends
 function PAM_EXTENSION:OnRoundEnded()
-	if delayed:GetActiveValue() and IsEnoughVoters() then
+	if delayed_setting:GetActiveValue() and IsEnoughVoters() then
 		PAM.Start()
 	end
 end
 
 function PAM_EXTENSION:Initialize()
+	enabled_setting = setting_namespace:GetSetting("enabled")
+
 	net.Receive("PAM_VoteRTV", function(len, ply)
-		AddRTVVoter(self, ply)
+		AddRTVVoter(ply)
 	end)
 
 	net.Receive("PAM_UnVoteRTV", function(len, ply)
-		RemoveRTVVoter(self, ply)
+		RemoveRTVVoter(ply)
 	end)
 
 	net.Receive("PAM_RTVStateRequest", function(len, ply)
@@ -114,11 +117,11 @@ function PAM_EXTENSION:Initialize()
 	end)
 
 	hook.Add("PlayerDisconnected", "PAM_RTVPlayerDisconnected", function(ply, steam_id, unique_id)
-		if not self.enabled then return end
+		if not enabled_setting:GetActiveValue() then return end
 
-		RemoveRTVVoter(self, ply)
+		RemoveRTVVoter(ply)
 
-		if IsEnoughVoters() and not delayed:GetActiveValue() then
+		if IsEnoughVoters() and not delayed_setting:GetActiveValue() then
 			PAM.Start()
 		end
 	end)
