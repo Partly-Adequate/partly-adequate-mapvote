@@ -1,7 +1,6 @@
 PAM_EXTENSION.name = "terrortown_support"
 PAM_EXTENSION.enabled = true
 
---TODO allow disabling in all supported gamemodes
 function PAM_EXTENSION:OnInitialize()
 	-- terrortown support
 	if GAMEMODE_NAME ~= "terrortown" then return end
