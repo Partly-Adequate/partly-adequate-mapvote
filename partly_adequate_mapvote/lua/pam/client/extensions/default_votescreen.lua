@@ -49,7 +49,7 @@ function PAM_EXTENSION:OnDisable()
 end
 
 
-function PAM_EXTENSION:OnInitialize()
+function PAM_EXTENSION:Initialize()
 	local function ScaleChanged(new_scale)
 		include("pam/client/extensions/default_votescreen_panel.lua")
 		if not self.enabled then return end

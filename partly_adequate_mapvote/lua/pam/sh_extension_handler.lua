@@ -46,6 +46,10 @@ local function RegisterExtension(extension)
 	PAM.extensions[id] = extension
 	extension_indices[extension_name] = id
 
+	if extension.Initialize then
+		extension:Initialize()
+	end
+
 	print('[PAM] Registered extension "' .. extension_name .. '" ('.. (extension.enabled and "enabled" or "disabled") .. ")")
 end
 
@@ -89,13 +93,7 @@ function PAM.extension_handler.RunAvalanchingEvent(event_name, combine, ...)
 end
 
 hook.Add("Initialize", "PAM_Initialize_Extensions", function()
-	for i = 1, #PAM.extensions do
-		local extension = PAM.extensions[i]
-
-		if extension.OnInitialize then
-			extension:OnInitialize()
-		end
-	end
+	PAM.extension_handler.RunEvent("OnInitialize")
 end)
 
 if SERVER then
