@@ -3,22 +3,6 @@ PAM.extensions = {}
 local extension_indices = {}
 PAM_EXTENSION = {}
 
-local function DisableExtension(extension)
-	extension.enabled = false
-
-	if not extension.OnDisable then return end
-
-	extension:OnDisable()
-end
-
-local function EnableExtension(extension)
-	extension.enabled = true
-
-	if not extension.OnEnable then return end
-
-	extension:OnEnable()
-end
-
 local function RegisterExtension(extension)
 	local extension = PAM_EXTENSION
 
@@ -35,16 +19,26 @@ local function RegisterExtension(extension)
 	extension.enabled = enabled_setting:GetActiveValue()
 
 	enabled_setting:AddCallback("extension handler", function(value)
-		if value then
-			EnableExtension(extension)
-		end
+		extension.enabled = value
 
-		DisableExtension(extension)
+		if value then
+			if extension.OnEnable then
+				extension:OnEnable()
+			end
+			return
+		end
+		if extension.OnDisable then
+			extension:OnDisable()
+		end
 	end)
 
 	-- add extension to table of extensions
 	PAM.extensions[id] = extension
 	extension_indices[extension_name] = id
+
+	if extension.enabled and extension.OnEnable then
+		extension:OnEnable()
+	end
 
 	if extension.Initialize then
 		extension:Initialize()
