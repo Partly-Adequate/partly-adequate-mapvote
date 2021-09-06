@@ -46,9 +46,9 @@ function PANEL:Init()
 
 	-- this creates one button for each otion and adds them to self.option_buttons and the option list
 	-- option_info is a table containing the following values:
-	--   - id -> unique identifier
-	--   - name -> the option name
-	--   - pickcount -> the amount of times this option has been picked
+	--	- id -> unique identifier
+	--	- name -> the option name
+	--	- pickcount -> the amount of times this option has been picked
 	for i = 1, #PAM.options do
 		local option_info = PAM.options[i]
 		-- creates a new button inside the option list
@@ -106,7 +106,7 @@ function PANEL:UpdateVoters()
 	for steamid, option_id in pairs(PAM.votes) do
 		for i = 1, #self.option_buttons do
 			local option_button = self.option_buttons[i]
-			if(option_button.option_info.id == option_id) then
+			if option_button.option_info.id == option_id then
 				option_button.voter_count = option_button.voter_count + 1
 			end
 		end
@@ -121,7 +121,7 @@ function PANEL:AnnounceWinner()
 	-- deletes all buttons but the winner
 	for i = 1, #self.option_buttons do
 		local option_button = self.option_buttons[i]
-		if(option_button.option_info.id ~= PAM.winning_option_id) then
+		if option_button.option_info.id ~= PAM.winning_option_id then
 			option_button:Remove()
 		end
 	end

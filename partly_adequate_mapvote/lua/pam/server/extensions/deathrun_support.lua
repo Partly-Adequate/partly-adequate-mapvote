@@ -16,7 +16,7 @@ function PAM_EXTENSION:OnInitialize()
 		hook.Remove("PlayerSay", "CheckRTVChat")
 
 		cvars.AddChangeCallback("mapvote_rtv_ratio", function()
-			print('[PAM] This convar is no longer used')
+			print("[PAM] This convar is no longer used")
 		end)
 
 		-- start PAM instead of MV
@@ -32,8 +32,8 @@ function PAM_EXTENSION:OnInitialize()
 		return
 	end
 
-	--  Mr-Gash/GMod-Deathrun
-	if RTV and RTV.Start and round and ROUND_ENDING then
+	-- Mr-Gash/GMod-Deathrun
+	if RTV and RTV.Start and ROUND_ENDING then
 		-- remove original functionality by cutting off the api
 		hook.Remove("PlayerSay", "RTV Chat Commands")
 		concommand.Remove("rtv_vote")
@@ -43,7 +43,7 @@ function PAM_EXTENSION:OnInitialize()
 
 		-- Notify PAM that the round has ended
 		hook.Add("OnRoundSet", "PAM_RoundEnded", function(round, ...)
-			if(round == ROUND_ENDING) then
+			if round == ROUND_ENDING then
 				PAM.extension_handler.RunEvent("OnRoundEnded")
 			end
 		end)

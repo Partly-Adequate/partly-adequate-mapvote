@@ -11,7 +11,7 @@ function PAM_EXTENSION:RegisterSpecialOptions()
 
 	PAM.RegisterOption("change_gamemode", function()
 		PAM.Cancel()
-		PAM.Start("gamemode", vote_length, function(option)
+		PAM.Start("gamemode", vote_length_setting:GetActiveValue(), function(option)
 			PAM.ChangeGamemode(option)
 			PAM.Cancel()
 			PAM.Start()
@@ -23,8 +23,6 @@ function PAM_EXTENSION:RegisterOptions()
 	if PAM.vote_type ~= "gamemode" then return end
 
 	local all_gamemodes = engine.GetGamemodes()
-	local gamemode_amount = 0
-
 	for _, gamemode_table in ipairs(all_gamemodes) do
 		-- don't add blacklisted gamemodes
 		if string.find(blacklist_setting:GetActiveValue(), gamemode_table.name) then

@@ -4,11 +4,11 @@ PAM_EXTENSION.enabled = true
 
 local setting_namespace = PAM.setting_namespace:AddChild(name)
 
-local prefixes_setting  = setting_namespace:AddSetting("prefixes", pacoman.TYPE_STRING, "")
+local prefixes_setting = setting_namespace:AddSetting("prefixes", pacoman.TYPE_STRING, "")
 local blacklist_setting = setting_namespace:AddSetting("blacklist", pacoman.TYPE_STRING, "")
 local whitelist_setting = setting_namespace:AddSetting("whitelist", pacoman.TYPE_STRING, "")
-local limit_setting     = setting_namespace:AddSetting("limit", pacoman.TYPE_INTEGER, 20)
-local cooldown_setting  = setting_namespace:AddSetting("cooldown", pacoman.TYPE_INTEGER, 3)
+local limit_setting = setting_namespace:AddSetting("limit", pacoman.TYPE_INTEGER, 20)
+local cooldown_setting = setting_namespace:AddSetting("cooldown", pacoman.TYPE_INTEGER, 3)
 
 -- cooldown stuff
 if not sql.TableExists("pam_map_cooldowns") then
@@ -25,7 +25,7 @@ local function GetMapCooldown(mapname)
 end
 
 local function SetMapCooldown(mapname, cooldown)
-	if(cooldown <= 0) then
+	if cooldown <= 0 then
 		sql.Query("DELETE FROM pam_map_cooldowns WHERE id IS " .. sql.SQLStr(mapname))
 	else
 		sql.Query("INSERT OR REPLACE INTO pam_map_cooldowns VALUES( " .. sql.SQLStr(mapname) .. ", " .. cooldown .. ")")
@@ -42,7 +42,6 @@ function PAM_EXTENSION:RegisterOptions()
 	local blacklist = blacklist_setting:GetActiveValue()
 	local whitelist = whitelist_setting:GetActiveValue()
 	local limit = limit_setting:GetActiveValue()
-	local cooldown = cooldown_setting:GetActiveValue()
 
 	for _, map in RandomPairs(all_maps) do
 		map = map:sub(1, -5)

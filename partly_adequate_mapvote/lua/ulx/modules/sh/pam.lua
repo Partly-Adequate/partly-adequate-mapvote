@@ -1,14 +1,14 @@
 local CATEGORY_NAME = "PAM"
 
 local function StartPAM(calling_ply)
-	if(PAM.state == PAM.STATE_DISABLED) then
+	if PAM.state == PAM.STATE_DISABLED then
 		PAM.Start()
 		ulx.fancyLogAdmin(calling_ply, "#A started a mapvote!")
 	end
 end
 
 local function CancelPAM(calling_ply)
-	if(PAM.state == PAM.STATE_STARTED) then
+	if PAM.state == PAM.STATE_STARTED then
 		PAM.Cancel()
 		ulx.fancyLogAdmin(calling_ply, "#A canceled the mapvote!")
 	end

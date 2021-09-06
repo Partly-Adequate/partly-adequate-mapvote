@@ -3,7 +3,7 @@ PAM.extensions = {}
 local extension_indices = {}
 PAM_EXTENSION = {}
 
-local function RegisterExtension(extension)
+local function RegisterExtension()
 	local extension = PAM_EXTENSION
 
 	-- cache name
@@ -44,7 +44,7 @@ local function RegisterExtension(extension)
 		extension:Initialize()
 	end
 
-	print('[PAM] Registered extension "' .. extension_name .. '" ('.. (extension.enabled and "enabled" or "disabled") .. ")")
+	print("[PAM] Registered extension \"" .. extension_name .. "\" (" .. (extension.enabled and "enabled" or "disabled") .. ")")
 end
 
 function PAM.extension_handler.RunEvent(event_name, ...)

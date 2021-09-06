@@ -33,7 +33,7 @@ local function SaveSettingInDatabase(setting)
 		values = values .. ", " .. sql.SQLStr(setting.parent.full_id)
 	end
 
-	sql.Query("INSERT OR REPLACE INTO pacoman_values (" .. columns ..") VALUES(" .. values .. ")")
+	sql.Query("INSERT OR REPLACE INTO pacoman_values (" .. columns .. ") VALUES(" .. values .. ")")
 end
 
 local function LoadSettingFromDatabase(setting)
@@ -377,17 +377,17 @@ Game_Property.__index = Game_Property
 ---
 -- Creates a new Game_Property
 -- @param string id the name/identifier of this Game_Property
--- @param Type type the Type of this Game_Property's value
+-- @param Type gp_type the Type of this Game_Property's value
 -- @param any value the current value of this Game_Property
 -- @return the new Game_Property
-function Game_Property:Create(id, type, value)
-	if not type:IsValueValid(value) then return end
+function Game_Property:Create(id, gp_type, value)
+	if not gp_type:IsValueValid(value) then return end
 
 	local game_property = {}
 	setmetatable(game_property, self)
 
 	game_property.id = id
-	game_property.type = type
+	game_property.type = gp_type
 	game_property.value = value
 	game_property.callbacks = {}
 	game_property.callback_indices = {}
@@ -441,14 +441,14 @@ end
 ---
 -- Creates a new GameProperty and registers it internally.
 -- @param string id identifier/name of the Game_Property
--- @param Type type the Type of the Game_Property
+-- @param Type gp_type the Type of the Game_Property
 -- @param any value the current value of the Game_Property
 -- @note value has to be valid in regards to the specified Type
 -- @realm shared
-function RegisterGameProperty(id, type, value)
+function RegisterGameProperty(id, gp_type, value)
 	if game_property_indices[id] then return end
 
-	local game_property = Game_Property:Create(id, type, value)
+	local game_property = Game_Property:Create(id, gp_type, value)
 
 	if not game_property then return end
 
@@ -487,12 +487,12 @@ Setting.__index = Setting
 -- Creates a new Setting
 -- @param string path_id the full_id of the namespace this Setting is a part of
 -- @param string id the name/identifier of this Setting
--- @param Type type the Type of this Setting's value
+-- @param Type s_type the Type of this Setting's value
 -- @param any value the value of this Setting
 -- @return the new Setting
 -- @note if the value doesn't fit the Type it will return nil
-function Setting:Create(path_id, id, type, value)
-	if not type:IsValueValid(value) then return end
+function Setting:Create(path_id, id, s_type, value)
+	if not s_type:IsValueValid(value) then return end
 
 	local setting = {}
 	setmetatable(setting, self)
@@ -501,7 +501,7 @@ function Setting:Create(path_id, id, type, value)
 
 	setting.id = id
 	setting.full_id = full_id
-	setting.type = type
+	setting.type = s_type
 	setting.value = value
 	setting.active_value = value
 	setting.active_source_id = nil
@@ -593,9 +593,9 @@ function Setting:SetActiveValue(new_value)
 	self:CallCallbacks()
 
 	-- update the parent setting when this setting is a source and currently active
-	if not self.parent or not parent.active_source_id == self.id then return end
+	if not self.parent or self.parent.active_source_id ~= self.id then return end
 
-	parent:SetActiveValue(new_value)
+	self.parent:SetActiveValue(new_value)
 end
 
 ---
@@ -663,15 +663,15 @@ function Setting:AddSource(source_id, value)
 	if not game_property then return end
 
 	local gp_type = game_property.type
-	local type = self.type
+	local s_type = self.type
 
 	-- return when the value isn't valid or when the source_id can't be deserialised by the game properties type
-	if not type:IsValueValid(value) or not gp_type:Deserialize(source_id) then return end
+	if not s_type:IsValueValid(value) or not gp_type:Deserialize(source_id) then return end
 
 	-- add new source
 	local index = #self.sources + 1
 
-	local source_setting = Setting:Create(self.full_id, source_id, type, value)
+	local source_setting = Setting:Create(self.full_id, source_id, s_type, value)
 
 	if not source_setting then return end
 
@@ -697,7 +697,7 @@ function Setting:RemoveSource(source_id)
 	local index = self.source_indices[source_id]
 	if not index then return end
 
-	local source_setting = sources[index]
+	local source_setting = self.sources[index]
 
 	-- inform source about imminent removal
 	source_setting:Remove()
@@ -864,10 +864,10 @@ end
 ---
 -- Adds a Setting to this Namespace's Settings
 -- @param string setting_id the id of the setting to add
--- @param Type type the type of the setting
+-- @param Type s_type the type of the setting
 -- @param any value the value of the setting
 -- @note If a Setting with the same name/identifier already exists within this Namespace's Settings, it will be overriden.
-function Namespace:AddSetting(setting_id, type, value)
+function Namespace:AddSetting(setting_id, s_type, value)
 	local setting = self:GetSetting(setting_id)
 	if setting then
 		ErrorNoHalt("Setting with id '" .. setting.full_id .. "' already exists. It will be overriden!\n")
@@ -876,7 +876,7 @@ function Namespace:AddSetting(setting_id, type, value)
 
 	local index = #self.settings + 1
 
-	setting = Setting:Create(self.full_id, setting_id, type, value)
+	setting = Setting:Create(self.full_id, setting_id, s_type, value)
 
 	if not setting then return end
 
@@ -1045,13 +1045,13 @@ if SERVER then
 	-- @note the parent can also be a Setting. The Setting will be created as a source of the parent setting then
 	-- @local
 	local function SendSettingCreation(parent, setting, ply)
-		local type = setting.type
+		local s_type = setting.type
 		net.Start("PACOMAN_StateUpdate")
 		net.WriteUInt(3, 3)
 		net.WriteString(parent.full_id)
 		net.WriteString(setting.id)
-		net.WriteString(type.id)
-		net.WriteString(type:Serialize(setting.value))
+		net.WriteString(s_type.id)
+		net.WriteString(s_type:Serialize(setting.value))
 		if ply then
 			net.Send(ply)
 		else
@@ -1123,14 +1123,14 @@ if SERVER then
 	local function OnServerSettingAdded(self, setting)
 		LoadSettingFromDatabase(setting)
 
-		setting.OnValueChanged = function(self)
-			SaveSettingInDatabase(self)
-			SendSettingValueChange(self, nil)
+		setting.OnValueChanged = function(s)
+			SaveSettingInDatabase(s)
+			SendSettingValueChange(s, nil)
 		end
 
-		setting.OnDependencyChanged = function(self)
-			SaveSettingInDatabase(self)
-			SendSettingDependencyChange(self, nil)
+		setting.OnDependencyChanged = function(s)
+			SaveSettingInDatabase(s)
+			SendSettingDependencyChange(s, nil)
 		end
 
 		SaveSettingInDatabase(setting)
@@ -1153,23 +1153,23 @@ if SERVER then
 
 	-- helper functions
 	local function OnClientOverrideAdded(self, setting)
-		setting.OnValueChanged = function(self)
-			SaveSettingInDatabase(self)
-			SendSettingValueChange(self, nil)
+		setting.OnValueChanged = function(s)
+			SaveSettingInDatabase(s)
+			SendSettingValueChange(s, nil)
 		end
 
-		setting.OnDependencyChanged = function(self)
-			SaveSettingInDatabase(self)
-			SendSettingDependencyChange(self, nil)
+		setting.OnDependencyChanged = function(s)
+			SaveSettingInDatabase(s)
+			SendSettingDependencyChange(s, nil)
 		end
 
 		SaveSettingInDatabase(setting)
 		SendSettingCreation(self, setting, nil)
 	end
 
-	local function OnClientOverrideRemoved(self, setting)
+	local function OnClientOverrideRemoved(s, setting)
 		RemoveSettingFromDatabase(setting)
-		SendSettingRemoval(self, setting, nil)
+		SendSettingRemoval(s, setting, nil)
 	end
 
 	-- client_overrides namespace functionality
@@ -1275,21 +1275,21 @@ if SERVER then
 
 		for i = 1, #overrides do
 			local full_id = overrides[i].full_id
-			local type = GetType(overrides[i].type)
-			if not type then continue end
+			local s_type = GetType(overrides[i].type)
+			if not s_type then continue end
 
-			local value = type:Deserialize(overrides[i].value)
+			local value = s_type:Deserialize(overrides[i].value)
 			if value == nil then continue end
 
 			local path, id = FullIDToPath(full_id)
 
 			local namespace = client_overrides
 
-			for i = 2, #path do
-				namespace = namespace:AddChild(path[i])
+			for j = 2, #path do
+				namespace = namespace:AddChild(path[j])
 			end
 
-			namespace:AddSetting(id, type, value)
+			namespace:AddSetting(id, s_type, value)
 		end
 
 		print("[PACOMAN] Client overrides loaded.")
@@ -1304,10 +1304,10 @@ if SERVER then
 	-- @local
 	local function ReceiveOverrideAdditionRequest(len, ply)
 		local full_id = net.ReadString()
-		local type = GetType(net.ReadString())
+		local s_type = GetType(net.ReadString())
 		if not type then return end
 
-		local value = type:Deserialize(net.ReadString())
+		local value = s_type:Deserialize(net.ReadString())
 		if value == nil then return end
 
 		local path, id = FullIDToPath(full_id)
@@ -1317,7 +1317,7 @@ if SERVER then
 			namespace = namespace:AddChild(path[i])
 		end
 
-		namespace:AddSetting(id, type, value)
+		namespace:AddSetting(id, s_type, value)
 	end
 
 	---
@@ -1465,29 +1465,29 @@ else
 	end
 
 	local function OnClientSettingAdded(self, setting)
-		setting.OnValueChanged = function(self)
-			SaveSettingInDatabase(self)
+		setting.OnValueChanged = function(s)
+			SaveSettingInDatabase(s)
 		end
 
-		setting.OnDependencyChanged = function(self)
-			SaveSettingInDatabase(self)
+		setting.OnDependencyChanged = function(s)
+			SaveSettingInDatabase(s)
 		end
 
-		setting.GetActiveValue = function(self)
-			local full_id = self.full_id
+		setting.GetActiveValue = function(s)
+			local full_id = s.full_id
 			if not overrides[full_id] then
-				return self.active_value
+				return s.active_value
 			end
 
 			return all_settings[ClientSettingIDToOverrideID(full_id)]:GetActiveValue()
 		end
 
-		setting.CallCallbacks = function(self)
+		setting.CallCallbacks = function(s)
 			-- only call callbacks when this setting isn't overriden
-			local full_id = self.full_id
+			local full_id = s.full_id
 			if overrides[full_id] then return end
 
-			CallCallbacks(full_id, self.active_value)
+			CallCallbacks(full_id, s.active_value)
 		end
 	end
 
@@ -1504,9 +1504,9 @@ else
 		local setting_id = OverrideIDToClientSettingID(full_id)
 		overrides[setting_id] = true
 
-		setting.CallCallbacks = function(self)
+		setting.CallCallbacks = function(s)
 			-- call callbacks for self
-			local new_value = self.active_value
+			local new_value = s.active_value
 			CallCallbacks(full_id, new_value)
 
 			-- call callbacks from original setting
@@ -1559,13 +1559,13 @@ else
 	-- @param Setting setting the Setting to change the value of
 	-- @param any value the value to change it to (needs to fit the setting's type)
 	function RequestValueChange(setting, value)
-		local type = setting.type
-		if not type:IsValueValid(value) then return end
+		local s_type = setting.type
+		if not s_type:IsValueValid(value) then return end
 
 		net.Start("PACOMAN_ChangeRequest")
 		net.WriteUInt(2, 3)
 		net.WriteString(setting.full_id)
-		net.WriteString(type:Serialize(value))
+		net.WriteString(s_type:Serialize(value))
 		net.SendToServer()
 	end
 
@@ -1594,14 +1594,14 @@ else
 	-- @param any value the value of the source (needs to fit the setting's type)
 	-- @note the setting needs to depend on something for sources to be created.
 	function RequestSourceAddition(setting, id, value)
-		local type = setting.type
-		if not type:IsValueValid(value) then return end
+		local s_type = setting.type
+		if not s_type:IsValueValid(value) then return end
 
 		net.Start("PACOMAN_ChangeRequest")
 		net.WriteUInt(4, 3)
 		net.WriteString(setting.full_id)
 		net.WriteString(id)
-		net.WriteString(type:Serialize(value))
+		net.WriteString(s_type:Serialize(value))
 		net.SendToServer()
 	end
 
@@ -1624,15 +1624,15 @@ else
 	-- @local
 	local function ReceiveGamePropertyCreation(len)
 		local id = net.ReadString()
-		local type = GetType(net.ReadString())
+		local gp_type = GetType(net.ReadString())
 		local serialized_value = net.ReadString()
 
-		if not type then return end
+		if not gp_type then return end
 
-		local value = type:Deserialize(serialized_value)
+		local value = gp_type:Deserialize(serialized_value)
 		if value == nil then return end
 
-		RegisterGameProperty(id, type, value)
+		RegisterGameProperty(id, gp_type, value)
 	end
 
 	---
@@ -1666,15 +1666,15 @@ else
 	local function ReceiveSettingCreation(len)
 		local full_parent_id = net.ReadString()
 		local id = net.ReadString()
-		local type = GetType(net.ReadString())
-		if not type then return end
+		local s_type = GetType(net.ReadString())
+		if not s_type then return end
 
-		local value = type:Deserialize(net.ReadString())
+		local value = s_type:Deserialize(net.ReadString())
 		if value == nil then return end
 
 		local parent = all_namespaces[full_parent_id]
 		if parent then
-			parent:AddSetting(id, type, value)
+			parent:AddSetting(id, s_type, value)
 			return
 		end
 

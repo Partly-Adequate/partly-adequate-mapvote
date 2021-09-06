@@ -169,7 +169,7 @@ function PAM.GetPickCount(option_name)
 end
 
 function PAM.SetPickCount(option_name, pick_count)
-	local data = sql.Query("INSERT OR REPLACE INTO pam_pickcounts VALUES( " .. sql.SQLStr(option_name) .. ", " .. pick_count .. ")")
+	sql.Query("INSERT OR REPLACE INTO pam_pickcounts VALUES( " .. sql.SQLStr(option_name) .. ", " .. pick_count .. ")")
 end
 
 hook.Add("PlayerAuthed", "PAM_UpdateNewPlayer", function(ply, steam_id, unique_id)

@@ -283,7 +283,7 @@ local function StringFitsSearchTerm(to_test, search_term)
 end
 
 local function SettingPanelSearch(self, search_term)
-	fits = StringFitsSearchTerm(self.setting.full_id, search_term)
+	local fits = StringFitsSearchTerm(self.setting.full_id, search_term)
 
 	if self.header:GetToggle() then
 		self.header:Toggle()

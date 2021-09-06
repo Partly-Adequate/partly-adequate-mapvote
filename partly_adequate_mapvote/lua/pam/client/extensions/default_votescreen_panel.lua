@@ -318,7 +318,7 @@ end
 
 function PANEL:RemoveVoter(ply)
 	for _, voter in pairs(self.voters) do
-		if(voter.player.SteamID() == ply.SteamID()) then
+		if voter.player.SteamID() == ply.SteamID() then
 			table.RemoveByValue(self.voters, voter)
 			voter:Remove()
 			self:UpdateVoters()

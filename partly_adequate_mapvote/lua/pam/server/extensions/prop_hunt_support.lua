@@ -29,7 +29,7 @@ function PAM_EXTENSION:OnInitialize()
 
 	-- convar deprecation information
 	local function deprecation_warning()
-		print('[PAM] This convar is no longer used')
+		print("[PAM] This convar is no longer used")
 	end
 
 	cvars.AddChangeCallback("mv_maplimit", deprecation_warning)

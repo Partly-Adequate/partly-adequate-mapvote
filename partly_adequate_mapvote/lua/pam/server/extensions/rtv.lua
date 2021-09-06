@@ -74,7 +74,7 @@ local function ResetRTVVoters()
 	net.Start("PAM_ResetRTV")
 	net.Broadcast()
 
-	PAM.extension_handler.RunEvent("OnRTVVotersReset", ply)
+	PAM.extension_handler.RunEvent("OnRTVVotersReset")
 end
 
 -- reset voters when rtv is disabled

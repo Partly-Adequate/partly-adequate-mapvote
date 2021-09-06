@@ -6,7 +6,7 @@ function PAM_EXTENSION:GetIconMaterial(option)
 
 	local option_name = "img_" .. option.name
 
-    if file.Exists("materials/vgui/pam/" .. option_name .. ".vmt", "GAME") then
-        return Material("vgui/pam/" .. option_name .. ".vmt")
-    end
+	if file.Exists("materials/vgui/pam/" .. option_name .. ".vmt", "GAME") then
+		return Material("vgui/pam/" .. option_name .. ".vmt")
+	end
 end

@@ -50,7 +50,7 @@ local function ResetRTVVoters()
 	rtv_voters = {}
 	rtv_voter_count = 0
 
-	PAM.extension_handler.RunEvent("OnRTVVotersReset", ply)
+	PAM.extension_handler.RunEvent("OnRTVVotersReset")
 end
 
 net.Receive("PAM_VoteRTV", function(len)
@@ -62,7 +62,7 @@ net.Receive("PAM_UnVoteRTV", function(len)
 end)
 
 net.Receive("PAM_ResetRTV", function(len)
-	ResetRTVVoters(ply)
+	ResetRTVVoters()
 end)
 
 function PAM_EXTENSION:OnRTVVoterAdded(ply)
@@ -102,7 +102,7 @@ function PAM_EXTENSION:Initialize()
 
 	--toggle rtv participation
 	concommand.Add("pam_rtv", function(ply, cmd, args, arg_str)
-		if not enabled_setting:GetActiveValue() or not rtv_enabled_setting or not rtv_enabled_setting:GetActiveValue() or not PAM.state == PAM.STATE_DISABLED then return end
+		if not enabled_setting:GetActiveValue() or not rtv_enabled_setting or not rtv_enabled_setting:GetActiveValue() or PAM.state ~= PAM.STATE_DISABLED then return end
 
 		if rtv_voters[ply:SteamID()] then
 			net.Start("PAM_UnVoteRTV")

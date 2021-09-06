@@ -7,9 +7,9 @@ function PAM_EXTENSION:GetIconMaterial(option)
 
 	local map_name = option.name
 
-    if file.Exists("maps/thumb/" .. map_name .. ".png", "GAME") then
-        return Material("maps/thumb/" .. map_name .. ".png")
-    elseif file.Exists("maps/" .. map_name .. ".png", "GAME") then
-        return Material("maps/" .. map_name .. ".png")
-    end
+	if file.Exists("maps/thumb/" .. map_name .. ".png", "GAME") then
+		return Material("maps/thumb/" .. map_name .. ".png")
+	elseif file.Exists("maps/" .. map_name .. ".png", "GAME") then
+		return Material("maps/" .. map_name .. ".png")
+	end
 end
