@@ -6,7 +6,7 @@ local allow_specials_setting = PAM.setting_namespace:AddChild(name):AddSetting("
 
 function PAM_EXTENSION:RegisterSpecialOptions()
 	PAM.RegisterOption("random_option", function()
-		if allow_specials:GetActiveValue() then
+		if allow_specials_setting:GetActiveValue() then
 			PAM.MakeOptionWin(PAM.options[math.random(#PAM.options)])
 			return
 		end
