@@ -34,10 +34,8 @@ function TYPE_PANEL_BASE:Init()
 	self.setting_panel = nil
 end
 
-function TYPE_PANEL_BASE:SetSettingPanel(setting_panel)
-	self.setting_panel = setting_panel
-	self.type = setting_panel.setting.type
-	self:SetValue(self.setting_panel.setting.value)
+function TYPE_PANEL_BASE:SetType(pnl_type)
+	self.type = pnl_type
 end
 
 function TYPE_PANEL_BASE:SetValue()
@@ -67,10 +65,10 @@ function ANY_TYPE_PANEL:Init()
 	self.txt_setting_value:SetCursorColor(col_text)
 	self.txt_setting_value:SetPaintBackground(false)
 	self.txt_setting_value.OnGetFocus = function(s)
-		self.setting_panel:SetKeyboardInputEnabled(true)
+		pacoman_ui:SetKeyboardInputEnabled(true)
 	end
 	self.txt_setting_value.OnLoseFocus = function(s)
-		self.setting_panel:SetKeyboardInputEnabled(false)
+		pacoman_ui:SetKeyboardInputEnabled(false)
 	end
 	self.txt_setting_value.OnEnter = function(s, serialized_value)
 		self:OnValueChanged(self:GetValue())
@@ -143,10 +141,10 @@ function PERCENTAGE_TYPE_PANEL:Init()
 	self.txt_setting_value:SetTextColor(col_text)
 	self.txt_setting_value:SetCursorColor(col_text)
 	self.txt_setting_value.OnGetFocus = function(s)
-		self.setting_panel:SetKeyboardInputEnabled(true)
+		pacoman_ui:SetKeyboardInputEnabled(true)
 	end
 	self.txt_setting_value.OnLoseFocus = function(s)
-		self.setting_panel:SetKeyboardInputEnabled(false)
+		pacoman_ui:SetKeyboardInputEnabled(false)
 	end
 end
 
@@ -569,7 +567,8 @@ function DEFAULT_SETTING_SCREEN:SetSetting(setting, namespace_type)
 		self.pnl_setting_value = vgui.Create(panel_id, self)
 		self.pnl_setting_value:SetPos(self.setting_pos_x + self.setting_width * 0.25 + 4, HEADER_HEIGHT * 2)
 		self.pnl_setting_value:SetSize(self.setting_width * 0.75 - 4, HEADER_HEIGHT)
-		self.pnl_setting_value:SetSettingPanel(self)
+		self.pnl_setting_value:SetType(self.setting.type)
+		self.pnl_setting_value:SetValue(self.setting.value)
 		self.pnl_setting_value.OnValueChanged = function(s, value)
 			self:AttemptValueChange(value)
 		end
