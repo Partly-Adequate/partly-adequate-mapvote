@@ -26,7 +26,7 @@ function PAM_EXTENSION:OnInitialize()
 		-- Notify PAM that the round has ended
 		hook.Add("OnRoundSet", "PAM_RoundEnded", function(round_id)
 			if round_id == ROUND_OVER then
-				PAM.extension_handler.RunEvent("OnRoundEnded")
+				PAM.EndRound()
 			end
 		end)
 		return
@@ -44,7 +44,7 @@ function PAM_EXTENSION:OnInitialize()
 		-- Notify PAM that the round has ended
 		hook.Add("OnRoundSet", "PAM_RoundEnded", function(round, ...)
 			if round == ROUND_ENDING then
-				PAM.extension_handler.RunEvent("OnRoundEnded")
+				PAM.EndRound()
 			end
 		end)
 		return

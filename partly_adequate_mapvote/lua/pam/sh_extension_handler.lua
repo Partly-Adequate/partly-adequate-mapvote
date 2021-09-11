@@ -48,6 +48,8 @@ local function RegisterExtension()
 end
 
 function PAM.extension_handler.RunEvent(event_name, ...)
+	hook.Run("PAM_" .. event_name, ...)
+
 	for i = 1, #PAM.extensions do
 		local extension = PAM.extensions[i]
 
@@ -58,6 +60,9 @@ function PAM.extension_handler.RunEvent(event_name, ...)
 end
 
 function PAM.extension_handler.RunReturningEvent(event_name, ...)
+	local override = hook.Run("PAM_" .. event_name, ...)
+	if override then return override end
+
 	for i = 1, #PAM.extensions do
 		local extension = PAM.extensions[i]
 
@@ -72,14 +77,16 @@ function PAM.extension_handler.RunReturningEvent(event_name, ...)
 end
 
 function PAM.extension_handler.RunAvalanchingEvent(event_name, combine, ...)
-	local combined_result
+	local combined_result = hook.Run("PAM_" .. event_name, ...)
 
 	for i = 1, #PAM.extensions do
 		local extension = PAM.extensions[i]
 
 		if extension.enabled and extension[event_name] then
 			local result = extension[event_name](extension, ...)
-			combined_result = combined_result and combine(combined_result, result) or result
+			if result then
+				combined_result = combined_result and combine(combined_result, result) or result
+			end
 		end
 	end
 

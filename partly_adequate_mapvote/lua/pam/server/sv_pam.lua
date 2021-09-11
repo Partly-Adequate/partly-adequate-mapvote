@@ -115,7 +115,10 @@ function PAM.ChangeGamemode(option)
 	net.Broadcast()
 
 	PAM.extension_handler.RunEvent("OnGamemodeChanged", gamemode_name)
-	hook.Run("PAM_OnGamemodeChanged", gamemode_name)
+end
+
+function PAM.EndRound()
+	PAM.extension_handler.RunEvent("OnRoundEnded")
 end
 
 function PAM.ChangeMap(option)

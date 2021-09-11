@@ -17,6 +17,6 @@ function PAM_EXTENSION:OnInitialize()
 
 	-- Notify PAM that the round has ended
 	hook.Add("OnEndRound", "PAM_RoundEnded", function()
-		PAM.extension_handler.RunEvent("OnRoundEnded")
+		PAM.EndRound()
 	end)
 end

@@ -12,6 +12,6 @@ function PAM_EXTENSION:OnInitialize()
 
 
 	hook.Add("PostEndRound", "PAM_RoundEnded", function()
-		PAM.extension_handler.RunEvent("OnRoundEnded")
+		PAM.EndRound()
 	end)
 end
