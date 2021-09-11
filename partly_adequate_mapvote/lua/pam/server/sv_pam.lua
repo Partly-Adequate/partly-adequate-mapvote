@@ -6,8 +6,8 @@ function PAM.Start(vote_type, vote_length_override, winner_callback_override)
 
 	local vote_length = vote_length_override or PAM.vote_length:GetActiveValue()
 
-	table.Empty(PAM.options)
-	table.Empty(PAM.votes)
+	PAM.options = {}
+	PAM.votes = {}
 
 	PAM.option_count = 0
 	PAM.special_option_count = 0

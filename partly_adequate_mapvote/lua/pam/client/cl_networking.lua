@@ -1,8 +1,8 @@
 net.Receive("PAM_Start", function()
 	PAM.state = PAM.STATE_STARTED
 
-	table.Empty(PAM.options)
-	table.Empty(PAM.votes)
+	PAM.options = {}
+	PAM.votes = {}
 
 	PAM.winning_option_id = nil
 
