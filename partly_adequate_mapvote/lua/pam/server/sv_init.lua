@@ -39,14 +39,13 @@ end)
 -- the current number of players
 local ply_count = 0
 local gp_player_count = pacoman.RegisterGameProperty("player_count", pacoman.TYPE_INTEGER, ply_count)
-hook.Add("PlayerChangedTeam", "PAM_UpdatePlayerCountProperty", function(ply, old_team, new_team)
-	if old_team == TEAM_SPECTATOR or old_team == TEAM_CONNECTING then
-		ply_count = ply_count + 1
-	end
+hook.Add("PlayerConnect", "PAM_UpdatePlayerCountPropertyOnConnect", function(ply)
+	ply_count = ply_count + 1
 
-	if new_team == TEAM_SPECTATOR then
-		ply_count = ply_count - 1
-	end
+	gp_player_count:SetValue(ply_count)
+end)
+hook.Add("PlayerDisconnected", "PAM_UpdatePlayerCountPropertyOnDisconnect", function(ply)
+	ply_count = ply_count - 1
 
 	gp_player_count:SetValue(ply_count)
 end)
