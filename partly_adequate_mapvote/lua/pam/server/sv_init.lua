@@ -49,7 +49,6 @@ hook.Add("PlayerChangedTeam", "PAM_UpdatePlayerCountProperty", function(ply, old
 	end
 
 	gp_player_count:SetValue(ply_count)
-	print(ply_count)
 end)
 
 -- settings
