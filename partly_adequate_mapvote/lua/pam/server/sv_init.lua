@@ -28,12 +28,28 @@ hook.Add("PAM_OnGamemodeChanged", "PAM_UpdateGamemodeProperty", function(gamemod
 end)
 -- the current map
 pacoman.RegisterGameProperty("map", pacoman.TYPE_STRING, game.GetMap())
--- random value assignet at the start of each game
+-- random value assigned at the start of each game
 pacoman.RegisterGameProperty("game_random", pacoman.TYPE_PERCENTAGE, math.random())
 -- random value assigned at the end of each round
 local gp_round_random = pacoman.RegisterGameProperty("round_random", pacoman.TYPE_PERCENTAGE, math.random())
 hook.Add("PAM_OnRoundEnded", "PAM_UpdateRoundRandomProperty", function()
 	gp_round_random:SetValue(math.random())
+end)
+
+-- the current number of players
+local ply_count = 0
+local gp_player_count = pacoman.RegisterGameProperty("player_count", pacoman.TYPE_INTEGER, ply_count)
+hook.Add("PlayerChangedTeam", "PAM_UpdatePlayerCountProperty", function(ply, old_team, new_team)
+	if old_team == TEAM_SPECTATOR or old_team == TEAM_CONNECTING then
+		ply_count = ply_count + 1
+	end
+
+	if new_team == TEAM_SPECTATOR then
+		ply_count = ply_count - 1
+	end
+
+	gp_player_count:SetValue(ply_count)
+	print(ply_count)
 end)
 
 -- settings
