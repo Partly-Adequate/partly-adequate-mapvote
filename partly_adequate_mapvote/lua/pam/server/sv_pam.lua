@@ -174,27 +174,3 @@ end
 function PAM.SetPickCount(option_name, pick_count)
 	sql.Query("INSERT OR REPLACE INTO pam_pickcounts VALUES( " .. sql.SQLStr(option_name) .. ", " .. pick_count .. ")")
 end
-
-hook.Add("PlayerAuthed", "PAM_UpdateNewPlayer", function(ply, steam_id, unique_id)
-	if PAM.state == PAM.STATE_DISABLED then return end
-
-	-- send start info to all clients
-	net.Start("PAM_Start")
-	-- transmit amount of maps
-	net.WriteString(PAM.vote_type)
-	net.WriteUInt(timer.TimeLeft("PAM_Vote_Timer"), 32)
-	net.WriteUInt(PAM.special_option_count, 32)
-	net.WriteUInt(PAM.option_count, 32)
-	-- transmit map information
-	for i = 1, PAM.option_count do
-		net.WriteString(PAM.options[i].name)
-		net.WriteUInt(PAM.GetPickCount(PAM.options[i].name), 32)
-	end
-	net.Broadcast()
-
-	if PAM.state == PAM.STATE_FINISHED then
-		net.Start("PAM_Announce_Winner")
-		net.WriteUInt(PAM.winning_option_id, 32)
-		net.Broadcast()
-	end
-end)

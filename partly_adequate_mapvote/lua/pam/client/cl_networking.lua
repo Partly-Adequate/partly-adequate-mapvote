@@ -64,3 +64,8 @@ end)
 net.Receive("PAM_Gamemode_Changed", function()
 	hook.Run("PAM_OnGamemodeChanged", net.ReadString())
 end)
+
+hook.Add("InitPostEntity", "PAM_StateRequest", function()
+	net.Start("PAM_StateRequest")
+	net.SendToServer()
+end)

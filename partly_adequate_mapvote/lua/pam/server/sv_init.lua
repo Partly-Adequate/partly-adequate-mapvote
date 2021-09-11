@@ -14,6 +14,9 @@ util.AddNetworkString("PAM_UnVote")
 util.AddNetworkString("PAM_Announce_Winner")
 -- server->all
 util.AddNetworkString("PAM_Gamemode_Changed")
+-- client->server
+-- server->client
+util.AddNetworkString("PAM_StateRequest")
 
 -- pick counts
 if not sql.TableExists("pam_pickcounts") then

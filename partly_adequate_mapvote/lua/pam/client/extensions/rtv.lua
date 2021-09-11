@@ -113,15 +113,3 @@ function PAM_EXTENSION:Initialize()
 		end
 	end)
 end
-
-net.Receive("PAM_RTVStateRequest", function(len)
-	local count = net.ReadUInt(32)
-	for i = 1, count do
-		AddRTVVoter(net.ReadEntity())
-	end
-end)
-
-hook.Add("InitPostEntity", "PAM_RTVStateRequest", function()
-	net.Start("PAM_RTVStateRequest")
-	net.SendToServer()
-end)

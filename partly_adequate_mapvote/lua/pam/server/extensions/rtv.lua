@@ -10,9 +10,6 @@ util.AddNetworkString("PAM_VoteRTV")
 util.AddNetworkString("PAM_UnVoteRTV")
 -- server->all
 util.AddNetworkString("PAM_ResetRTV")
--- client->server
--- server->client
-util.AddNetworkString("PAM_RTVStateRequest")
 
 local setting_namespace = PAM.setting_namespace:AddChild(name)
 local delayed_setting = setting_namespace:AddSetting("delayed", pacoman.TYPE_BOOLEAN, false)
@@ -94,6 +91,16 @@ function PAM_EXTENSION:OnRoundEnded()
 	end
 end
 
+function PAM_EXTENSION:StateRequest(ply)
+	if rtv_voter_count == 0 then return end
+
+	for steam_id, _ in pairs(rtv_voters) do
+		net.Start("PAM_VoteRTV")
+		net.WriteEntity(player.GetBySteamID(steam_id))
+		net.Send(ply)
+	end
+end
+
 function PAM_EXTENSION:Initialize()
 	enabled_setting = setting_namespace:GetSetting("enabled")
 
@@ -103,17 +110,6 @@ function PAM_EXTENSION:Initialize()
 
 	net.Receive("PAM_UnVoteRTV", function(len, ply)
 		RemoveRTVVoter(ply)
-	end)
-
-	net.Receive("PAM_RTVStateRequest", function(len, ply)
-		if rtv_voter_count == 0 then return end
-
-		net.Start("PAM_RTVStateRequest")
-		net.WriteUInt(rtv_voter_count, 32)
-		for steam_id, _ in pairs(rtv_voters) do
-			net.WriteEntity(player.GetBySteamID(steam_id))
-		end
-		net.Send(ply)
 	end)
 
 	hook.Add("PlayerDisconnected", "PAM_RTVPlayerDisconnected", function(ply, steam_id, unique_id)
