@@ -290,8 +290,8 @@ local function SettingPanelSearch(self, search_term)
 	else
 		self.children:InvalidateLayout()
 	end
-	self:InvalidateLayout()
 
+	self:InvalidateLayout()
 	self:SetVisible(fits)
 
 	return fits
@@ -303,16 +303,14 @@ local function NamespacePanelSearch(self, search_term)
 		fits = child:Search(search_term) or fits
 	end
 
-	if search_term == "" then
-		fits = false
-	end
-
-	if self.header:GetToggle() ~= fits then
+	if self.header:GetToggle() ~= (fits and search_term ~= "") then
 		self.header:Toggle()
 	else
 		self.children:InvalidateLayout()
 	end
+
 	self:InvalidateLayout()
+	self:SetVisible(fits or search_term == "")
 
 	return fits
 end
