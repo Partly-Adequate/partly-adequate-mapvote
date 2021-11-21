@@ -412,12 +412,121 @@ end)
 local DEFAULT_SETTING_PANEL = {}
 
 function DEFAULT_SETTING_PANEL:Init()
-
+	self.Paint = function(s, w, h)
+		surface.SetDrawColor(col_base)
+		surface.DrawRect(0, 0, w, h)
+		surface.SetDrawColor(col_base_darker)
+		surface.DrawRect(0, 0, w, HEADER_HEIGHT * 3)
+		surface.SetDrawColor(col_base_darkest)
+		surface.DrawRect(w * 0.25, HEADER_HEIGHT, w * 0.75, HEADER_HEIGHT)
+	end
 end
 
 function DEFAULT_SETTING_PANEL:SetSetting(setting, namespace_type)
-	print(setting.full_id)
-	print(namespace_type)
+	self.setting = setting
+	self.namespace_type = namespace_type
+
+	local width, height = self:GetSize()
+	local quarter_width = width * 0.25
+	local three_quarter_width = width * 0.75
+	local type_id = setting.type.id
+	local panel_id = type_panel_ids[type_id] or "pacoman_type_any"
+	local depends_on = self.setting.depends_on
+
+	local lbl_setting_name = vgui.Create("DLabel", self)
+	lbl_setting_name:SetPos(0, 0)
+	lbl_setting_name:SetSize(quarter_width, HEADER_HEIGHT)
+	lbl_setting_name:SetText(" Name:")
+	lbl_setting_name:SetTextColor(col_text)
+	lbl_setting_name:SetPaintBackground(false)
+
+	local lbl_setting_id = vgui.Create("DLabel", self)
+	lbl_setting_id:SetPos(quarter_width, 0)
+	lbl_setting_id:SetSize(three_quarter_width, HEADER_HEIGHT)
+	lbl_setting_id:SetContentAlignment(4)
+	lbl_setting_id:SetText("  " .. setting.full_id)
+	lbl_setting_id:SetTextColor(col_text)
+
+	local lbl_setting_value = vgui.Create("DLabel", self)
+	lbl_setting_value:SetPos(0, HEADER_HEIGHT)
+	lbl_setting_value:SetSize(quarter_width, HEADER_HEIGHT)
+	lbl_setting_value:SetText(" Value: ")
+	lbl_setting_value:SetTextColor(col_text)
+
+	self.pnl_setting_value = vgui.Create(panel_id, self)
+	self.pnl_setting_value:SetPos(quarter_width + 4, HEADER_HEIGHT)
+	self.pnl_setting_value:SetSize(three_quarter_width - 4, HEADER_HEIGHT)
+	self.pnl_setting_value:SetType(self.setting.type)
+	self.pnl_setting_value:SetValue(self.setting.value)
+	self.pnl_setting_value.OnValueChanged = function(s, value)
+		self:AttemptValueChange(value)
+	end
+
+	local lbl_setting_dependency = vgui.Create("DLabel", self)
+	lbl_setting_dependency:SetPos(0, HEADER_HEIGHT * 2)
+	lbl_setting_dependency:SetSize(quarter_width, HEADER_HEIGHT)
+	lbl_setting_dependency:SetText(" Depends on: ")
+	lbl_setting_dependency:SetTextColor(col_text)
+
+	self.cb_setting_dependency = vgui.Create("DComboBox", self)
+	self.cb_setting_dependency:SetPos(quarter_width, HEADER_HEIGHT * 2)
+	self.cb_setting_dependency:SetSize(three_quarter_width, HEADER_HEIGHT)
+	self.cb_setting_dependency:SetText("Nothing")
+	self.cb_setting_dependency:SetTextColor(col_text)
+	self.cb_setting_dependency:AddChoice("Nothing", nil, true)
+	self.cb_setting_dependency.Paint = function(s, w, h)
+		surface.SetDrawColor(col_base_darker)
+		surface.DrawRect(0, 0, w, h)
+		surface.SetDrawColor(col_base_darkest)
+		surface.DrawRect(0, 0, w, h)
+	end
+
+	for i = 1, #pacoman.game_properties do
+		local game_property = pacoman.game_properties[i]
+		self.cb_setting_dependency:AddChoice(game_property.id, game_property)
+	end
+
+	self.cb_setting_dependency.OnSelect = function(s, index, gp_id, game_property)
+		self:AttemptDependencyChange(game_property)
+	end
+
+
+	if depends_on then
+		self.cb_setting_dependency:ChooseOptionID(pacoman.game_property_indices[depends_on.id] + 1)
+	else
+		self.cb_setting_dependency:ChooseOptionID(1)
+	end
+end
+
+function DEFAULT_SETTING_PANEL:AttemptDependencyChange(game_property)
+	if self.setting.depends_on == game_property then return end
+
+	-- change dependency of server sided setting
+	if self.namespace_type ~= CLIENT_SETTING then
+		pacoman.RequestDependencyChange(self.setting, game_property)
+		return
+	end
+
+	-- change dependency of client setting
+	if game_property then
+		self.setting:MakeDependent(game_property)
+	else
+		self.setting:MakeIndependent()
+	end
+end
+
+function DEFAULT_SETTING_PANEL:AttemptValueChange(value)
+	if value == nil then
+		self.pnl_setting_value:SetValue(self.setting.value)
+		return
+	end
+
+	if self.namespace_type ~= CLIENT_SETTING then
+		pacoman.RequestValueChange(self.setting, value)
+		return
+	end
+
+	self.setting:SetValue(value)
 end
 
 derma.DefineControl("pacoman_default_setting_panel", "", DEFAULT_SETTING_PANEL, "DPanel")
@@ -542,7 +651,7 @@ end
 function DEFAULT_CONFIGURATION_SCREEN:SetSetting(setting, namespace_type)
 	-- remove old panel if it exists
 	if IsValid(self.setting_panel) then
-		self.setting_panel:Remove();
+		self.setting_panel:Remove()
 	end
 
 	-- create new panel
