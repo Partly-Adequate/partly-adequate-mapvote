@@ -38,7 +38,10 @@ end
 
 local function LoadSettingFromDatabase(setting)
 	local result = sql.Query("SELECT value, depends_on FROM pacoman_values WHERE full_id = " .. sql.SQLStr(setting.full_id))
-	if not result then return end
+	if not result then
+		SaveSettingInDatabase(setting)
+		return
+	end
 
 	-- Set value
 	setting:SetValue(setting.type:Deserialize(result[1].value))
@@ -1154,7 +1157,6 @@ if SERVER then
 			SendSettingDependencyChange(s, nil)
 		end
 
-		SaveSettingInDatabase(setting)
 		SendSettingCreation(self, setting, nil)
 	end
 
@@ -1174,6 +1176,8 @@ if SERVER then
 
 	-- helper functions
 	local function OnClientOverrideAdded(self, setting)
+		LoadSettingFromDatabase(setting)
+
 		setting.OnValueChanged = function(s)
 			SaveSettingInDatabase(s)
 			SendSettingValueChange(s, nil)
@@ -1184,7 +1188,6 @@ if SERVER then
 			SendSettingDependencyChange(s, nil)
 		end
 
-		SaveSettingInDatabase(setting)
 		SendSettingCreation(self, setting, nil)
 	end
 
@@ -1465,6 +1468,7 @@ else
 	local client_settings_id = "client_settings"
 	local server_settings_id = "server_settings"
 	local client_overrides_id = "client_overrides"
+	local full_state_received = false
 
 	-- stores which client settings are currently overriden
 	local overrides = {}
@@ -1486,6 +1490,10 @@ else
 	end
 
 	local function OnClientSettingAdded(self, setting)
+		if full_state_received then
+			LoadSettingFromDatabase(setting)
+		end
+
 		setting.OnValueChanged = function(s)
 			SaveSettingInDatabase(s)
 		end
@@ -1786,6 +1794,8 @@ else
 	-- which can be used by addons that work with server settings or client_overrides
 	-- @local
 	local function FullStateReceived(len)
+		full_state_received = true
+
 		-- stack creation
 		local to_load = {client_settings}
 		local to_load_count = 1
