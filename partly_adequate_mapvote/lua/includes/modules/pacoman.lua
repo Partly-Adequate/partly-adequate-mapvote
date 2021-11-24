@@ -668,6 +668,12 @@ function Setting:AddSource(source_id, value)
 	-- return when the value isn't valid or when the source_id can't be deserialised by the game properties type
 	if not s_type:IsValueValid(value) or not gp_type:Deserialize(source_id) then return end
 
+	local setting = self:GetSource(source_id)
+	if setting then
+		ErrorNoHalt("Setting with id '" .. setting.full_id .. "' already exists. It will be overriden!\n")
+		self:RemoveSource(source_id)
+	end
+
 	-- add new source
 	local index = #self.sources + 1
 
@@ -680,6 +686,9 @@ function Setting:AddSource(source_id, value)
 	self.sources[index] = source_setting
 	self.source_indices[source_setting.id] = index
 
+	source_setting.OnSourceAdded = self.OnSourceAdded
+	source_setting.OnSourceRemoved = self.OnSourceRemoved
+
 	self:OnSourceAdded(source_setting)
 	hook.Run("PACOMAN_SettingSourceAdded", self, source_setting)
 
@@ -687,6 +696,18 @@ function Setting:AddSource(source_id, value)
 	self:Update()
 
 	return source_setting
+end
+
+---
+-- Gets a Source from this Setting's Sources
+-- @param string source_id The name/identifier of the Source Setting
+-- @return Setting the source with the correct name/identifier
+-- @note will return nil when no source Setting with that name/identifier is found
+function Setting:GetSource(source_id)
+	local index = self.source_indices[source_id]
+	if not index then return end
+
+	return self.sources[index]
 end
 
 ---
