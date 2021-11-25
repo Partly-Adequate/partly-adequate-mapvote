@@ -1734,7 +1734,7 @@ else
 		parent = all_settings[full_parent_id]
 		if not parent then return end
 
-		parent.RemoveSource(child_id)
+		parent:RemoveSource(child_id)
 	end
 
 	---
