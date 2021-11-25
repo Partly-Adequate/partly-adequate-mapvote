@@ -413,14 +413,21 @@ end)
 
 -- Setting made dependent
 hook.Add("PACOMAN_SettingMadeDependent", "PACOMAN_UI_SettingMadeDependent", function(setting)
-	if pacoman_ui and setting.full_id == pacoman_ui.setting_panel.setting.full_id then
+	if pacoman_ui and setting == pacoman_ui.setting_panel.setting then
 		pacoman_ui:RefreshSettingPanel()
 	end
 end)
 
 -- Setting made independent
 hook.Add("PACOMAN_SettingMadeIndependent", "PACOMAN_UI_SettingMadeIndependent", function(setting)
-	if pacoman_ui and setting.full_id == pacoman_ui.setting_panel.setting.full_id then
+	if pacoman_ui and setting == pacoman_ui.setting_panel.setting then
+		pacoman_ui:RefreshSettingPanel()
+	end
+end)
+
+-- Setting made independent
+hook.Add("PACOMAN_SettingValueChanged", "PACOMAN_UI_SettingValueChanged", function(setting)
+	if pacoman_ui and setting == pacoman_ui.setting_panel.setting then
 		pacoman_ui:RefreshSettingPanel()
 	end
 end)
