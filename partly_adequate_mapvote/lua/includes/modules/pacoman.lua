@@ -639,8 +639,8 @@ function Setting:MakeIndependent()
 	self:SetActiveSourceID(nil)
 
 	-- inform the sources about their imminent removal
-	for i = 1, #self.sources do
-		self.sources[i]:Remove()
+	for i = #self.sources, 1, -1 do
+		self:RemoveSource(self.sources[i].id)
 	end
 
 	-- remove game property callback
@@ -689,9 +689,11 @@ function Setting:AddSource(source_id, value)
 	self.sources[index] = source_setting
 	self.source_indices[source_setting.id] = index
 
+	-- link hooks
 	source_setting.OnSourceAdded = self.OnSourceAdded
 	source_setting.OnSourceRemoved = self.OnSourceRemoved
 
+	-- It's important for this to be called AFTER the hooks are linked since it may add sources to the source automatically.
 	self:OnSourceAdded(source_setting)
 	hook.Run("PACOMAN_SettingSourceAdded", self, source_setting)
 
@@ -736,10 +738,10 @@ function Setting:RemoveSource(source_id)
 		local last_setting = self.sources[last_index]
 
 		self.sources[index] = last_setting
-		source_indices[source_id] = nil
+		self.source_indices[source_id] = nil
 
 		self.sources[last_index] = nil
-		source_indices[last_setting.id] = index
+		self.source_indices[last_setting.id] = index
 	end
 
 	-- call OnSourceRemoved hook
@@ -907,9 +909,11 @@ function Namespace:AddSetting(setting_id, s_type, value)
 	self.settings[index] = setting
 	self.setting_indices[setting_id] = index
 
+	-- link hooks
 	setting.OnSourceAdded = self.OnSettingAdded
 	setting.OnSourceRemoved = self.OnSettingRemoved
 
+	-- It's important for this to be called AFTER the hooks are linked since it may add sources to the setting automatically.
 	self:OnSettingAdded(setting)
 	hook.Run("PACOMAN_NamespaceSettingAdded", self, setting)
 
