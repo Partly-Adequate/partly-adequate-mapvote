@@ -325,11 +325,12 @@ end
 local function AddSettingPanel(parent_panel, setting, namespace_type)
 	local setting_panel = vgui.Create("pacoman_tree_node", parent_panel)
 	setting_panel.setting = setting
+	setting_panel.namespace_type = namespace_type
 	setting_panel.header.lbl_text:SetText(setting.id)
 	setting_panel.header.img_icon:SetMaterial(ic_setting)
-	setting_panel.namespace_type = namespace_type
 	setting_panel.header.DoClick = function(self)
-		pacoman_ui:SetSetting(setting, namespace_type)
+		pacoman_ui:SetSetting(setting_panel.setting, setting_panel.namespace_type)
+		self:Toggle()
 	end
 
 	setting_panel.Search = SettingPanelSearch
@@ -345,10 +346,10 @@ end
 -- function to add a namespace panel to a panel list
 local function AddNamespacePanel(parent_panel, namespace, namespace_type)
 	local namespace_panel = vgui.Create("pacoman_tree_node", parent_panel)
-	namespace_panel.header.lbl_text:SetText(namespace.id)
-	namespace_panel.header.img_icon:SetMaterial(ic_namespace)
 	namespace_panel.namespace = namespace
 	namespace_panel.namespace_type = namespace_type
+	namespace_panel.header.lbl_text:SetText(namespace.id)
+	namespace_panel.header.img_icon:SetMaterial(ic_namespace)
 	namespace_panel.Search = NamespacePanelSearch
 	full_id_to_panel[namespace.full_id] = namespace_panel
 
@@ -400,12 +401,28 @@ end)
 
 -- Source removed from Setting
 hook.Add("PACOMAN_SettingSourceRemoved", "PACOMAN_UI_SettingSourceRemoved", function(parent, source)
+	print("Source removed")
 	local full_id = source.full_id
 	local source_panel = full_id_to_panel[full_id]
+	print(source_panel)
 	if not source_panel then return end
 
 	source_panel:Remove()
 	full_id_to_panel[full_id] = nil
+end)
+
+-- Setting made dependent
+hook.Add("PACOMAN_SettingMadeDependent", "PACOMAN_UI_SettingMadeDependent", function(setting)
+	if pacoman_ui and setting.full_id == pacoman_ui.setting_panel.setting.full_id then
+		pacoman_ui:RefreshSettingPanel()
+	end
+end)
+
+-- Setting made independent
+hook.Add("PACOMAN_SettingMadeIndependent", "PACOMAN_UI_SettingMadeIndependent", function(setting)
+	if pacoman_ui and setting.full_id == pacoman_ui.setting_panel.setting.full_id then
+		pacoman_ui:RefreshSettingPanel()
+	end
 end)
 
 -- Setting screen that allows modifying the currently selected setting
@@ -416,9 +433,9 @@ function DEFAULT_SETTING_PANEL:Init()
 		surface.SetDrawColor(col_base)
 		surface.DrawRect(0, 0, w, h)
 		surface.SetDrawColor(col_base_darker)
-		surface.DrawRect(0, 0, w, HEADER_HEIGHT * 3)
+		surface.DrawRect(0, 0, w, HEADER_HEIGHT * 4)
 		surface.SetDrawColor(col_base_darkest)
-		surface.DrawRect(w * 0.25, HEADER_HEIGHT, w * 0.75, HEADER_HEIGHT)
+		surface.DrawRect(w * 0.25, HEADER_HEIGHT, w * 0.75, HEADER_HEIGHT * 3)
 	end
 end
 
@@ -429,8 +446,7 @@ function DEFAULT_SETTING_PANEL:SetSetting(setting, namespace_type)
 	local width, height = self:GetSize()
 	local quarter_width = width * 0.25
 	local three_quarter_width = width * 0.75
-	local type_id = setting.type.id
-	local panel_id = type_panel_ids[type_id] or "pacoman_type_any"
+	local panel_id = type_panel_ids[setting.type.id] or "pacoman_type_any"
 	local depends_on = self.setting.depends_on
 
 	local lbl_setting_name = vgui.Create("DLabel", self)
@@ -493,6 +509,30 @@ function DEFAULT_SETTING_PANEL:SetSetting(setting, namespace_type)
 
 	if depends_on then
 		self.cb_setting_dependency:ChooseOptionID(pacoman.game_property_indices[depends_on.id] + 1)
+
+		local lbl_add_source = vgui.Create("DLabel", self)
+		lbl_add_source:SetPos(0, HEADER_HEIGHT * 3)
+		lbl_add_source:SetSize(quarter_width, HEADER_HEIGHT)
+		lbl_add_source:SetText(" Add Source: ")
+		lbl_add_source:SetTextColor(col_text)
+
+		local panel_id = type_panel_ids[depends_on.type.id] or "pacoman_type_any"
+		self.pnl_new_source_id = vgui.Create(panel_id, self)
+		self.pnl_new_source_id:SetPos(quarter_width + 4, HEADER_HEIGHT * 3)
+		self.pnl_new_source_id:SetSize(three_quarter_width - 4 - HEADER_HEIGHT, HEADER_HEIGHT)
+		self.pnl_new_source_id:SetType(depends_on.type)
+		self.pnl_new_source_id:SetValue(depends_on.value)
+
+		local btn_add_source = vgui.Create("DButton", self)
+		btn_add_source:SetPos(width - HEADER_HEIGHT, HEADER_HEIGHT * 3)
+		btn_add_source:SetSize(HEADER_HEIGHT, HEADER_HEIGHT)
+		btn_add_source:SetText("+")
+		btn_add_source:SetTextColor(col_text)
+		btn_add_source:SetContentAlignment(4)
+		btn_add_source:SetPaintBackground(false)
+		btn_add_source.DoClick = function(s)
+			self:AttemptSourceAddition(self.pnl_new_source_id:GetValue())
+		end
 	else
 		self.cb_setting_dependency:ChooseOptionID(1)
 	end
@@ -527,6 +567,36 @@ function DEFAULT_SETTING_PANEL:AttemptValueChange(value)
 	end
 
 	self.setting:SetValue(value)
+end
+
+function DEFAULT_SETTING_PANEL:AttemptSourceAddition(id)
+	if self.namespace_type ~= CLIENT_SETTING then
+		pacoman.RequestSourceAddition(self.setting, id, self.setting.value)
+		return
+	end
+
+	self.setting:AddSource(id, self.setting.value)
+end
+
+function DEFAULT_SETTING_PANEL:AttemptSourceRemoval(id)
+	if self.namespace_type ~= CLIENT_SETTING then
+		pacoman.RequestSourceRemoval(self.setting, id)
+		return
+	end
+
+	self.setting:RemoveSource(id)
+end
+
+function DEFAULT_SETTING_PANEL:AttemptOverrideAddition()
+	if self.namespace_type ~= CLIENT_SETTING then return end
+
+	pacoman.RequestOverrideAddition(self.setting)
+end
+
+function DEFAULT_SETTING_PANEL:AttemptOverrideRemoval()
+	if self.namespace_type ~= CLIENT_SETTING then return end
+
+	pacoman.RequestOverrideRemoval(self.setting)
 end
 
 derma.DefineControl("pacoman_default_setting_panel", "", DEFAULT_SETTING_PANEL, "DPanel")
@@ -661,6 +731,10 @@ function DEFAULT_CONFIGURATION_SCREEN:SetSetting(setting, namespace_type)
 
 	-- add setting information
 	self.setting_panel:SetSetting(setting, namespace_type)
+end
+
+function DEFAULT_CONFIGURATION_SCREEN:RefreshSettingPanel()
+	self:SetSetting(self.setting_panel.setting, self.setting_panel.namespace_type)
 end
 
 derma.DefineControl("pacoman_default_configuration_screen", "", DEFAULT_CONFIGURATION_SCREEN, "DFrame")
