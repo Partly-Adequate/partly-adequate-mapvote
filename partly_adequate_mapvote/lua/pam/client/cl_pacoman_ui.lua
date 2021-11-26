@@ -428,6 +428,10 @@ hook.Add("PACOMAN_SettingSourceAdded", "PACOMAN_UI_SettingSourceAdded", function
 	if not parent_panel then return end
 
 	AddSettingPanel(parent_panel.children, source, parent_panel.namespace_type)
+
+	if pacoman_ui.setting_panel.setting == parent then
+		pacoman_ui:RefreshSettingPanel()
+	end
 end)
 
 -- Source removed from Setting
@@ -438,6 +442,10 @@ hook.Add("PACOMAN_SettingSourceRemoved", "PACOMAN_UI_SettingSourceRemoved", func
 
 	source_panel:Remove()
 	full_id_to_panel[full_id] = nil
+
+	if pacoman_ui.setting_panel.setting == parent then
+		pacoman_ui:RefreshSettingPanel()
+	end
 end)
 
 -- Setting made dependent
@@ -483,9 +491,10 @@ function DEFAULT_SETTING_PANEL:SetSetting(setting, namespace_type)
 
 	local width, height = self:GetSize()
 	local quarter_width = width * 0.25
-	local three_quarter_width = width * 0.75
-	local panel_id = type_panel_ids[setting.type.id] or "pacoman_type_any"
+	local three_quarter_width = width - quarter_width
+	local value_panel_id = type_panel_ids[setting.type.id] or "pacoman_type_any"
 	local depends_on = self.setting.depends_on
+	local sources = self.setting.sources
 	local parent_setting = self.setting.parent
 
 	local lbl_setting_name = vgui.Create("DLabel", self)
@@ -523,70 +532,70 @@ function DEFAULT_SETTING_PANEL:SetSetting(setting, namespace_type)
 		end
 
 		self.num_rows = self.num_rows + 1
-	end
+	else
+		if self.namespace_type == CLIENT_SETTING then
+			local lbl_override = vgui.Create("DLabel", self)
+			lbl_override:SetPos(0, self.num_rows * HEADER_HEIGHT)
+			lbl_override:SetSize(quarter_width, HEADER_HEIGHT)
+			lbl_override:SetText(" Override:")
+			lbl_override:SetTextColor(col_text)
 
-	if self.namespace_type == CLIENT_SETTING then
-		local lbl_override = vgui.Create("DLabel", self)
-		lbl_override:SetPos(0, self.num_rows * HEADER_HEIGHT)
-		lbl_override:SetSize(quarter_width, HEADER_HEIGHT)
-		lbl_override:SetText(" Override:")
-		lbl_override:SetTextColor(col_text)
+			local override_panel = full_id_to_panel[ClientSettingIDToOverrideID(self.setting.full_id)]
 
-		local override_panel = full_id_to_panel[ClientSettingIDToOverrideID(self.setting.full_id)]
-
-		if override_panel ~= nil then
-			local btn_view_override = vgui.Create("DButton", self)
-			btn_view_override:SetPos(quarter_width, self.num_rows * HEADER_HEIGHT)
-			btn_view_override:SetSize(three_quarter_width - HEADER_HEIGHT, HEADER_HEIGHT)
-			btn_view_override:SetText("  Click here to view")
-			btn_view_override:SetTextColor(col_text)
-			btn_view_override:SetContentAlignment(4)
-			btn_view_override:SetPaintBackground(false)
-			btn_view_override.DoClick = function(s)
-				pacoman_ui:SetSetting(override_panel.setting, CLIENT_OVERRIDE)
+			if override_panel ~= nil then
+				local btn_view_override = vgui.Create("DButton", self)
+				btn_view_override:SetPos(quarter_width, self.num_rows * HEADER_HEIGHT)
+				btn_view_override:SetSize(three_quarter_width - HEADER_HEIGHT, HEADER_HEIGHT)
+				btn_view_override:SetText("  Click here to view")
+				btn_view_override:SetTextColor(col_text)
+				btn_view_override:SetContentAlignment(4)
+				btn_view_override:SetPaintBackground(false)
+				btn_view_override.DoClick = function(s)
+					pacoman_ui:SetSetting(override_panel.setting, CLIENT_OVERRIDE)
+				end
 			end
+
+			local btn_override = vgui.Create("DImageButton", self)
+			btn_override:SetPos(width - HEADER_HEIGHT, self.num_rows * HEADER_HEIGHT)
+			btn_override:SetSize(HEADER_HEIGHT, HEADER_HEIGHT)
+			btn_override:SetPaintBackground(false)
+			if (override_panel == nil) then
+				btn_override:SetMaterial(ic_add)
+				btn_override.DoClick = function(s)
+					pacoman.RequestOverrideAddition(self.setting)
+				end
+			else
+				btn_override:SetMaterial(ic_remove)
+				btn_override.DoClick = function(s)
+					pacoman.RequestOverrideRemoval(self.setting)
+				end
+			end
+
+			self.num_rows = self.num_rows + 1
 		end
 
-		local btn_override = vgui.Create("DImageButton", self)
-		btn_override:SetPos(width - HEADER_HEIGHT, self.num_rows * HEADER_HEIGHT)
-		btn_override:SetSize(HEADER_HEIGHT, HEADER_HEIGHT)
-		btn_override:SetPaintBackground(false)
-		if (override_panel == nil) then
-			btn_override:SetMaterial(ic_add)
-			btn_override.DoClick = function(s)
-				pacoman.RequestOverrideAddition(self.setting)
+		if self.namespace_type == CLIENT_OVERRIDE then
+			local lbl_override = vgui.Create("DLabel", self)
+			lbl_override:SetPos(0, self.num_rows * HEADER_HEIGHT)
+			lbl_override:SetSize(quarter_width, HEADER_HEIGHT)
+			lbl_override:SetText(" Original Setting:")
+			lbl_override:SetTextColor(col_text)
+
+			local original_panel = full_id_to_panel[OverrideIDToClientSettingID(self.setting.full_id)]
+
+			local btn_view_original = vgui.Create("DButton", self)
+			btn_view_original:SetPos(quarter_width, self.num_rows * HEADER_HEIGHT)
+			btn_view_original:SetSize(three_quarter_width, HEADER_HEIGHT)
+			btn_view_original:SetText("  Click here to view")
+			btn_view_original:SetTextColor(col_text)
+			btn_view_original:SetContentAlignment(4)
+			btn_view_original:SetPaintBackground(false)
+			btn_view_original.DoClick = function(s)
+				pacoman_ui:SetSetting(original_panel.setting, CLIENT_SETTING)
 			end
-		else
-			btn_override:SetMaterial(ic_remove)
-			btn_override.DoClick = function(s)
-				pacoman.RequestOverrideRemoval(self.setting)
-			end
+
+			self.num_rows = self.num_rows + 1
 		end
-
-		self.num_rows = self.num_rows + 1
-	end
-
-	if self.namespace_type == CLIENT_OVERRIDE then
-		local lbl_override = vgui.Create("DLabel", self)
-		lbl_override:SetPos(0, self.num_rows * HEADER_HEIGHT)
-		lbl_override:SetSize(quarter_width, HEADER_HEIGHT)
-		lbl_override:SetText(" Original Setting:")
-		lbl_override:SetTextColor(col_text)
-
-		local original_panel = full_id_to_panel[OverrideIDToClientSettingID(self.setting.full_id)]
-
-		local btn_view_original = vgui.Create("DButton", self)
-		btn_view_original:SetPos(quarter_width, self.num_rows * HEADER_HEIGHT)
-		btn_view_original:SetSize(three_quarter_width, HEADER_HEIGHT)
-		btn_view_original:SetText("  Click here to view")
-		btn_view_original:SetTextColor(col_text)
-		btn_view_original:SetContentAlignment(4)
-		btn_view_original:SetPaintBackground(false)
-		btn_view_original.DoClick = function(s)
-			pacoman_ui:SetSetting(original_panel.setting, CLIENT_SETTING)
-		end
-
-		self.num_rows = self.num_rows + 1
 	end
 
 	local lbl_setting_value = vgui.Create("DLabel", self)
@@ -595,7 +604,7 @@ function DEFAULT_SETTING_PANEL:SetSetting(setting, namespace_type)
 	lbl_setting_value:SetText(" Value: ")
 	lbl_setting_value:SetTextColor(col_text)
 
-	self.pnl_setting_value = vgui.Create(panel_id, self)
+	self.pnl_setting_value = vgui.Create(value_panel_id, self)
 	self.pnl_setting_value:SetPos(quarter_width + 4, self.num_rows * HEADER_HEIGHT)
 	self.pnl_setting_value:SetSize(three_quarter_width - 4, HEADER_HEIGHT)
 	self.pnl_setting_value:SetType(self.setting.type)
@@ -662,6 +671,42 @@ function DEFAULT_SETTING_PANEL:SetSetting(setting, namespace_type)
 		end
 
 		self.num_rows = self.num_rows + 1
+
+		if #sources > 0 then
+			self.num_rows = self.num_rows + 1
+		end
+
+		for i = 1, #sources do
+			local source = sources[i]
+
+			local lbl_source_id = vgui.Create("DLabel", self)
+			lbl_source_id:SetPos(0, self.num_rows * HEADER_HEIGHT)
+			lbl_source_id:SetSize(quarter_width, HEADER_HEIGHT)
+			lbl_source_id:SetText(" " .. source.id)
+			lbl_source_id:SetTextColor(col_text)
+
+			local btn_view_source = vgui.Create("DButton", self)
+			btn_view_source:SetPos(quarter_width, self.num_rows * HEADER_HEIGHT)
+			btn_view_source:SetSize(three_quarter_width - HEADER_HEIGHT, HEADER_HEIGHT)
+			btn_view_source:SetText("  Click here to view")
+			btn_view_source:SetTextColor(col_text)
+			btn_view_source:SetContentAlignment(4)
+			btn_view_source:SetPaintBackground(false)
+			btn_view_source.DoClick = function(s)
+				pacoman_ui:SetSetting(source, self.namespace_type)
+			end
+
+			local btn_remove_source = vgui.Create("DImageButton", self)
+			btn_remove_source:SetPos(width - HEADER_HEIGHT, self.num_rows * HEADER_HEIGHT)
+			btn_remove_source:SetSize(HEADER_HEIGHT, HEADER_HEIGHT)
+			btn_remove_source:SetPaintBackground(false)
+			btn_remove_source:SetMaterial(ic_remove)
+			btn_remove_source.DoClick = function(s)
+				self:AttemptSourceRemoval(source.id)
+			end
+
+			self.num_rows = self.num_rows + 1
+		end
 	else
 		self.cb_setting_dependency:ChooseOptionID(1)
 	end
