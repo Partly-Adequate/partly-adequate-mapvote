@@ -1,3 +1,5 @@
+require("pacoman")
+
 PAM = {}
 
 --the possible states
@@ -12,7 +14,12 @@ PAM.STATE_FINISHED = 2
 PAM.state = PAM.STATE_DISABLED
 
 --the voteable maps
-PAM.maps = {}
+PAM.options = {}
+PAM.option_count = 0
+PAM.special_option_count = 0
+
+-- stores the winner when there is one
+PAM.winning_option_id = nil
 
 --the votes
 PAM.votes = {}
