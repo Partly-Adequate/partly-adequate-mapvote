@@ -401,6 +401,10 @@ hook.Add("PACOMAN_NamespaceSettingRemoved", "PACOMAN_UI_NamespaceSettingRemoved"
 	setting_panel:Remove()
 	full_id_to_panel[full_id] = nil
 
+	if pacoman_ui.setting_panel.setting == setting then
+		pacoman_ui:RemoveSettingPanel()
+	end
+
 	if namespace_type == CLIENT_OVERRIDE then
 		local original_setting = pacoman.GetOriginalOf(setting)
 		if original_setting and original_setting == pacoman_ui.setting_panel.setting then
@@ -429,6 +433,10 @@ hook.Add("PACOMAN_SettingSourceRemoved", "PACOMAN_UI_SettingSourceRemoved", func
 
 	source_panel:Remove()
 	full_id_to_panel[full_id] = nil
+
+	if pacoman_ui.setting_panel.setting == setting then
+		pacoman_ui:RemoveSettingPanel()
+	end
 
 	if pacoman_ui.setting_panel.setting == parent then
 		pacoman_ui:RefreshSettingPanel()
@@ -896,6 +904,10 @@ end
 
 function DEFAULT_CONFIGURATION_SCREEN:RefreshSettingPanel()
 	self:SetSetting(self.setting_panel.setting, self.setting_panel.namespace_type)
+end
+
+function DEFAULT_CONFIGURATION_SCREEN:RemoveSettingPanel()
+	self.setting_panel:Remove()
 end
 
 derma.DefineControl("pacoman_default_configuration_screen", "", DEFAULT_CONFIGURATION_SCREEN, "DFrame")
