@@ -30,19 +30,6 @@ local pacoman_ui = nil
 -- panels for different datatypes
 local type_panel_ids = {}
 
--- helper functions
-local client_settings_id = pacoman.client_settings.id
-local client_overrides_id = pacoman.client_overrides.id
-local server_settings_id = pacoman.server_settings.id
-
-local function OverrideIDToClientSettingID(full_id)
-	return client_settings_id .. string.sub(full_id, #client_overrides_id + 1, -1)
-end
-
-local function ClientSettingIDToOverrideID(full_id)
-	return client_overrides_id .. string.sub(full_id, #client_settings_id + 1, -1)
-end
-
 local function RegisterTypePanel(id, panel_id)
 	type_panel_ids[id] = panel_id
 end
@@ -397,8 +384,8 @@ hook.Add("PACOMAN_NamespaceSettingAdded", "PACOMAN_UI_NamespaceSettingAdded", fu
 	AddSettingPanel(parent_panel.children, setting, namespace_type)
 
 	if namespace_type == CLIENT_OVERRIDE then
-		local original_panel = full_id_to_panel[OverrideIDToClientSettingID(setting.full_id)]
-		if original_panel and original_panel.setting == pacoman_ui.setting_panel.setting then
+		local original_setting = pacoman.GetOriginalOf(setting)
+		if original_setting and original_setting == pacoman_ui.setting_panel.setting then
 			pacoman_ui:RefreshSettingPanel()
 		end
 	end
@@ -415,8 +402,8 @@ hook.Add("PACOMAN_NamespaceSettingRemoved", "PACOMAN_UI_NamespaceSettingRemoved"
 	full_id_to_panel[full_id] = nil
 
 	if namespace_type == CLIENT_OVERRIDE then
-		local original_panel = full_id_to_panel[OverrideIDToClientSettingID(full_id)]
-		if original_panel and original_panel.setting == pacoman_ui.setting_panel.setting then
+		local original_setting = pacoman.GetOriginalOf(setting)
+		if original_setting and original_setting == pacoman_ui.setting_panel.setting then
 			pacoman_ui:RefreshSettingPanel()
 		end
 	end
@@ -540,9 +527,9 @@ function DEFAULT_SETTING_PANEL:SetSetting(setting, namespace_type)
 			lbl_override:SetText(" Override:")
 			lbl_override:SetTextColor(col_text)
 
-			local override_panel = full_id_to_panel[ClientSettingIDToOverrideID(self.setting.full_id)]
+			local override_setting = pacoman.GetOverrideOf(self.setting)
 
-			if override_panel ~= nil then
+			if override_setting ~= nil then
 				local btn_view_override = vgui.Create("DButton", self)
 				btn_view_override:SetPos(quarter_width, self.num_rows * HEADER_HEIGHT)
 				btn_view_override:SetSize(three_quarter_width - HEADER_HEIGHT, HEADER_HEIGHT)
@@ -551,7 +538,7 @@ function DEFAULT_SETTING_PANEL:SetSetting(setting, namespace_type)
 				btn_view_override:SetContentAlignment(4)
 				btn_view_override:SetPaintBackground(false)
 				btn_view_override.DoClick = function(s)
-					pacoman_ui:SetSetting(override_panel.setting, CLIENT_OVERRIDE)
+					pacoman_ui:SetSetting(override_setting, CLIENT_OVERRIDE)
 				end
 			end
 
@@ -559,7 +546,7 @@ function DEFAULT_SETTING_PANEL:SetSetting(setting, namespace_type)
 			btn_override:SetPos(width - HEADER_HEIGHT, self.num_rows * HEADER_HEIGHT)
 			btn_override:SetSize(HEADER_HEIGHT, HEADER_HEIGHT)
 			btn_override:SetPaintBackground(false)
-			if (override_panel == nil) then
+			if (override_setting == nil) then
 				btn_override:SetMaterial(ic_add)
 				btn_override.DoClick = function(s)
 					pacoman.RequestOverrideAddition(self.setting)
@@ -581,7 +568,7 @@ function DEFAULT_SETTING_PANEL:SetSetting(setting, namespace_type)
 			lbl_override:SetText(" Original Setting:")
 			lbl_override:SetTextColor(col_text)
 
-			local original_panel = full_id_to_panel[OverrideIDToClientSettingID(self.setting.full_id)]
+			local original_setting = pacoman.GetOriginalOf(self.setting)
 
 			local btn_view_original = vgui.Create("DButton", self)
 			btn_view_original:SetPos(quarter_width, self.num_rows * HEADER_HEIGHT)
@@ -591,7 +578,7 @@ function DEFAULT_SETTING_PANEL:SetSetting(setting, namespace_type)
 			btn_view_original:SetContentAlignment(4)
 			btn_view_original:SetPaintBackground(false)
 			btn_view_original.DoClick = function(s)
-				pacoman_ui:SetSetting(original_panel.setting, CLIENT_SETTING)
+				pacoman_ui:SetSetting(original_setting, CLIENT_SETTING)
 			end
 
 			self.num_rows = self.num_rows + 1
