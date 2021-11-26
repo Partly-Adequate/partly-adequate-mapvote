@@ -486,6 +486,7 @@ function DEFAULT_SETTING_PANEL:SetSetting(setting, namespace_type)
 	local three_quarter_width = width * 0.75
 	local panel_id = type_panel_ids[setting.type.id] or "pacoman_type_any"
 	local depends_on = self.setting.depends_on
+	local parent_setting = self.setting.parent
 
 	local lbl_setting_name = vgui.Create("DLabel", self)
 	lbl_setting_name:SetPos(0, self.num_rows * HEADER_HEIGHT)
@@ -502,6 +503,27 @@ function DEFAULT_SETTING_PANEL:SetSetting(setting, namespace_type)
 	lbl_setting_id:SetTextColor(col_text)
 
 	self.num_rows = self.num_rows + 1
+
+	if parent_setting ~= nil then
+		local lbl_parent = vgui.Create("DLabel", self)
+		lbl_parent:SetPos(0, self.num_rows * HEADER_HEIGHT)
+		lbl_parent:SetSize(quarter_width, HEADER_HEIGHT)
+		lbl_parent:SetText(" Parent Setting:")
+		lbl_parent:SetTextColor(col_text)
+
+		local btn_view_parent = vgui.Create("DButton", self)
+		btn_view_parent:SetPos(quarter_width, self.num_rows * HEADER_HEIGHT)
+		btn_view_parent:SetSize(three_quarter_width, HEADER_HEIGHT)
+		btn_view_parent:SetText("  Click here to view")
+		btn_view_parent:SetTextColor(col_text)
+		btn_view_parent:SetContentAlignment(4)
+		btn_view_parent:SetPaintBackground(false)
+		btn_view_parent.DoClick = function(s)
+			pacoman_ui:SetSetting(parent_setting, self.namespace_type)
+		end
+
+		self.num_rows = self.num_rows + 1
+	end
 
 	if self.namespace_type == CLIENT_SETTING then
 		local lbl_override = vgui.Create("DLabel", self)
