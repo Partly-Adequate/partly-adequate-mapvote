@@ -1493,6 +1493,26 @@ else
 		return client_overrides_id .. string.sub(full_id, #client_settings_id + 1, -1)
 	end
 
+	-- global helper functions
+
+	---
+	-- Gets the override of a client setting
+	-- @param Setting client_setting The setting to get the override of
+	-- @return Setting the client override of the setting
+	-- @note will return nil when no override was found
+	function GetOverrideOf(client_setting)
+		return all_settings[ClientSettingIDToOverrideID(client_setting.full_id)]
+	end
+
+	---
+	-- Gets the original setting of an override
+	-- @param Setting client_override The override to get the original setting of
+	-- @return Setting the original client setting of the override
+	-- @note will return nil when no client setting was found
+	function GetOriginalOf(client_override)
+		return all_settings[OverrideIDToClientSettingID(client_override.full_id)]
+	end
+
 	local function OnClientSettingAdded(self, setting)
 		if full_state_received then
 			LoadSettingFromDatabase(setting)
