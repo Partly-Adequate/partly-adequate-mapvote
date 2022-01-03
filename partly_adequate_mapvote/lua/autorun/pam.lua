@@ -14,13 +14,6 @@ if SERVER then
 	include("pam/sh_extension_handler.lua")
 	include("pam/server/sv_networking.lua")
 
-	-- add resources
-	resource.AddFile("materials/vgui/pam/img_missing.vmt")
-	resource.AddFile("materials/vgui/pam/ic_favorite.vmt")
-	resource.AddFile("materials/vgui/pam/ic_not_favorite.vmt")
-	resource.AddFile("materials/vgui/pam/ic_selected.vmt")
-	resource.AddFile("materials/vgui/pam/ic_not_selected.vmt")
-
 	-- add special option resources
 	local special_icons = file.Find("materials/vgui/pam/special_options/*.vmt", "GAME")
 	for i = 1, #special_icons do
