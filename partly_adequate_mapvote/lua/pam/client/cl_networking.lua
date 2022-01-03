@@ -62,7 +62,9 @@ net.Receive("PAM_Announce_Winner", function()
 end)
 
 net.Receive("PAM_Gamemode_Changed", function()
-	hook.Run("PAM_OnGamemodeChanged", net.ReadString())
+	local gamemode_name = net.ReadString()
+	hook.Run("PAM_OnGamemodeChanged", gamemode_name)
+	PAM.extension_handler.RunEvent("OnGamemodeChanged", gamemode_name)
 end)
 
 hook.Add("InitPostEntity", "PAM_StateRequest", function()
