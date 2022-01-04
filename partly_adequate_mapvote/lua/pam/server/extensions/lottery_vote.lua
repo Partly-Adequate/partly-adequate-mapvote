@@ -1,5 +1,5 @@
 PAM_EXTENSION.name = "lottery_voting"
-PAM_EXTENSION.enabled = false
+PAM_EXTENSION.enabled = true
 
 function PAM_EXTENSION:GetWinningKey(vote_results)
 	local vote_sum = 0
