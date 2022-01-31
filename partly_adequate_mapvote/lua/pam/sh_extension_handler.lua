@@ -14,7 +14,7 @@ local function RegisterExtension()
 	extension.id = id
 
 	-- Setting creation
-	local enabled_setting = PAM.setting_namespace:AddChild(extension.name):AddSetting("enabled", pacoman.TYPE_BOOLEAN, extension.enabled)
+	local enabled_setting = PAM.setting_namespace:AddChild(extension.name):AddSetting("enabled", pacoman.TYPE_BOOLEAN, extension.enabled, "enables/disables the '" .. extension_name .. "' extension")
 
 	extension.enabled = enabled_setting:GetActiveValue()
 
@@ -121,4 +121,3 @@ else
 		end
 	end
 end
-

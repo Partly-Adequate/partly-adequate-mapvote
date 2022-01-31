@@ -57,4 +57,4 @@ end)
 local setting_namespace = pacoman.server_settings:AddChild("pam")
 
 PAM.setting_namespace = setting_namespace
-PAM.vote_length = setting_namespace:AddSetting("vote_length", pacoman.TYPE_INTEGER, 30)
+PAM.vote_length = setting_namespace:AddSetting("vote_length", pacoman.TYPE_INTEGER, 30, "The length of the voting time in seconds.")
