@@ -7,8 +7,8 @@ local setting_namespace = PAM.setting_namespace:AddChild(name)
 local prefixes_setting = setting_namespace:AddSetting("prefixes", pacoman.TYPE_STRING, "", "Maps where at least one of the prefixes fits, will be available for voting.")
 local blacklist_setting = setting_namespace:AddSetting("blacklist", pacoman.TYPE_STRING, "", "Maps that are listed here, won't be available, even when a prefix fits.")
 local whitelist_setting = setting_namespace:AddSetting("whitelist", pacoman.TYPE_STRING, "", "Maps that are listed here, will be available for voting, even when no prefix fits.")
-local limit_setting = setting_namespace:AddSetting("limit", pacoman.TYPE_INTEGER, 20, "Determines how many Maps this extension will provide.")
-local cooldown_setting = setting_namespace:AddSetting("cooldown", pacoman.TYPE_INTEGER, 3, "Determines how many maps need to be played for a map to be available again after it was played.")
+local limit_setting = setting_namespace:AddSetting("limit", pacoman.TYPE_INTEGER, 20, "Determines how many maps this extension will provide.")
+local cooldown_setting = setting_namespace:AddSetting("cooldown", pacoman.TYPE_INTEGER, 3, "Determines how many maps need to be played for a map to be available again.")
 
 -- cooldown stuff
 if not sql.TableExists("pam_map_cooldowns") then
