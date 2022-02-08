@@ -4,7 +4,7 @@ net.Receive("PAM_Start", function()
 	PAM.options = {}
 	PAM.votes = {}
 
-	PAM.winning_option_id = nil
+	PAM.winning_option = nil
 
 	-- the type of the current vote
 	PAM.vote_type = net.ReadString()

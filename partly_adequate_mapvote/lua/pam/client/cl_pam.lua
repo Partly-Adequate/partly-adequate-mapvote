@@ -7,10 +7,10 @@ end
 
 -- makes the client announce a winner
 function PAM.AnnounceWinner(option_id)
-	PAM.winning_option_id = option_id
+	PAM.winning_option = PAM.options[option_id]
 	PAM.state = PAM.STATE_FINISHED
 
-	PAM.extension_handler.RunEvent("OnWinnerAnnounced")
+	PAM.extension_handler.RunEvent("OnOptionWon", option)
 end
 
 -- voting

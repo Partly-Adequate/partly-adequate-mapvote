@@ -16,7 +16,7 @@ function PAM.Start(vote_type, vote_length_override, winner_callback_override)
 	PAM.extension_handler.RunEvent("RegisterOptions")
 
 	if PAM.option_count <= PAM.special_option_count then
-		print("[PAM] Failed to start. No " .. PAM.vote_type .. "s found using current settings.")
+		ErrorNoHalt("[PAM] Failed to start. No " .. PAM.vote_type .. "s found using current settings. \n")
 		return
 	end
 
@@ -84,7 +84,7 @@ function PAM.RegisterOption(option_name, option_win_callback)
 end
 
 function PAM.MakeOptionWin(option)
-	PAM.winning_option_id = option.id
+	PAM.winning_option = option
 
 	-- notify clients
 	net.Start("PAM_Announce_Winner")

@@ -19,7 +19,7 @@ PAM.option_count = 0
 PAM.special_option_count = 0
 
 -- stores the winner when there is one
-PAM.winning_option_id = nil
+PAM.winning_option = nil
 
 --the votes
 PAM.votes = {}

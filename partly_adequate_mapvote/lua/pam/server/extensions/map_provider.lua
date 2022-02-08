@@ -52,7 +52,7 @@ function PAM_EXTENSION:RegisterOptions()
 		end
 
 		-- don't add maps which were played recently
-		if GetMapCooldown(map) > 0 then
+		if cooldown_setting:GetActiveValue() > 0 and GetMapCooldown(map) > 0 then
 			continue
 		end
 
@@ -83,8 +83,8 @@ function PAM_EXTENSION:RegisterOptions()
 	end
 end
 
-function PAM_EXTENSION:OnWinnerAnnounced(vote_type, option)
-	if vote_type ~= "map" then return end
+function PAM_EXTENSION:OnOptionWon(option)
+	if PAM.vote_type ~= "map" then return end
 	if option.is_special then return end
 
 	-- update the maps which are currently on cooldown
@@ -97,5 +97,5 @@ function PAM_EXTENSION:OnWinnerAnnounced(vote_type, option)
 	end
 
 	-- set/reset the cooldown of the winning map
-	SetMapCooldown(winning_map, cooldown_setting:GetActiveValue())
+	SetMapCooldown(option.name, cooldown_setting:GetActiveValue())
 end

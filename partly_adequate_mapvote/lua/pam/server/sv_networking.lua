@@ -40,7 +40,7 @@ net.Receive("PAM_StateRequest", function(len, ply)
 
 	if PAM.state == PAM.STATE_FINISHED then
 		net.Start("PAM_Announce_Winner")
-		net.WriteUInt(PAM.winning_option_id, 32)
+		net.WriteUInt(PAM.winning_option.id, 32)
 		net.Send(ply)
 	end
 
