@@ -4,11 +4,11 @@ PAM_EXTENSION.enabled = true
 
 local setting_namespace = PAM.setting_namespace:AddChild(name)
 
-local prefixes_setting = setting_namespace:AddSetting("prefixes", pacoman.TYPE_STRING, "", "Maps where at least one of the prefixes fits, will be available for voting.")
-local blacklist_setting = setting_namespace:AddSetting("blacklist", pacoman.TYPE_STRING, "", "Maps that are listed here, won't be available, even when a prefix fits.")
-local whitelist_setting = setting_namespace:AddSetting("whitelist", pacoman.TYPE_STRING, "", "Maps that are listed here, will be available for voting, even when no prefix fits.")
-local limit_setting = setting_namespace:AddSetting("limit", pacoman.TYPE_INTEGER, 20, "Determines how many maps this extension will provide.")
-local cooldown_setting = setting_namespace:AddSetting("cooldown", pacoman.TYPE_INTEGER, 3, "Determines how many maps need to be played for a map to be available again.")
+PAM_EXTENSION.prefixes_setting = setting_namespace:AddSetting("prefixes", pacoman.TYPE_STRING, "", "Maps where at least one of the prefixes fits, will be available for voting.")
+PAM_EXTENSION.blacklist_setting = setting_namespace:AddSetting("blacklist", pacoman.TYPE_STRING, "", "Maps that are listed here, won't be available, even when a prefix fits.")
+PAM_EXTENSION.whitelist_setting = setting_namespace:AddSetting("whitelist", pacoman.TYPE_STRING, "", "Maps that are listed here, will be available for voting, even when no prefix fits.")
+PAM_EXTENSION.limit_setting = setting_namespace:AddSetting("limit", pacoman.TYPE_INTEGER, 20, "Determines how many maps this extension will provide.")
+PAM_EXTENSION.cooldown_setting = setting_namespace:AddSetting("cooldown", pacoman.TYPE_INTEGER, 3, "Determines how many maps need to be played for a map to be available again.")
 
 -- cooldown stuff
 if not sql.TableExists("pam_map_cooldowns") then
@@ -38,10 +38,10 @@ function PAM_EXTENSION:RegisterOptions()
 	local all_maps = file.Find("maps/*.bsp", "GAME")
 	local starting_option_count = PAM.option_count
 
-	local prefixes = string.Split(prefixes_setting:GetActiveValue(), ",")
-	local blacklist = blacklist_setting:GetActiveValue()
-	local whitelist = whitelist_setting:GetActiveValue()
-	local limit = limit_setting:GetActiveValue()
+	local prefixes = string.Split(self.prefixes_setting:GetActiveValue(), ",")
+	local blacklist = self.blacklist_setting:GetActiveValue()
+	local whitelist = self.whitelist_setting:GetActiveValue()
+	local limit = self.limit_setting:GetActiveValue()
 
 	for _, map in RandomPairs(all_maps) do
 		map = map:sub(1, -5)
@@ -52,7 +52,7 @@ function PAM_EXTENSION:RegisterOptions()
 		end
 
 		-- don't add maps which were played recently
-		if cooldown_setting:GetActiveValue() > 0 and GetMapCooldown(map) > 0 then
+		if self.cooldown_setting:GetActiveValue() > 0 and GetMapCooldown(map) > 0 then
 			continue
 		end
 
@@ -97,5 +97,5 @@ function PAM_EXTENSION:OnOptionWon(option)
 	end
 
 	-- set/reset the cooldown of the winning map
-	SetMapCooldown(option.name, cooldown_setting:GetActiveValue())
+	SetMapCooldown(option.name, self.cooldown_setting:GetActiveValue())
 end
