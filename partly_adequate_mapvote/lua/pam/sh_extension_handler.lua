@@ -47,6 +47,11 @@ local function RegisterExtension()
 	print("[PAM] Registered extension \"" .. extension_name .. "\" (" .. (extension.enabled and "enabled" or "disabled") .. ")")
 end
 
+function PAM.extension_handler.GetExtension(extension_name)
+	local extension_id = extension_indices[extension_name]
+	return extension_id and PAM.extensions[extension_id]
+end
+
 function PAM.extension_handler.RunEvent(event_name, ...)
 	hook.Run("PAM_" .. event_name, ...)
 
