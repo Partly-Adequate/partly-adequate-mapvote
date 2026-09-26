@@ -23,38 +23,41 @@ if not sql.TableExists("pam_pickcounts") then
 	sql.Query("CREATE TABLE pam_pickcounts(id TEXT NOT NULL PRIMARY KEY, pickcount INTEGER NOT NULL)")
 end
 
--- game properties
--- the current gamemode
-local gp_gamemode = pacoman.RegisterGameProperty("gamemode", pacoman.TYPE_STRING, engine.ActiveGamemode())
-hook.Add("PAM_OnGamemodeChanged", "PAM_UpdateGamemodeProperty", function(gamemode_name)
-	gp_gamemode:SetValue(gamemode_name)
-end)
--- the current map
-pacoman.RegisterGameProperty("map", pacoman.TYPE_STRING, game.GetMap())
--- random value assigned at the start of each game
-pacoman.RegisterGameProperty("game_random", pacoman.TYPE_PERCENTAGE, math.random())
--- random value assigned at the end of each round
-local gp_round_random = pacoman.RegisterGameProperty("round_random", pacoman.TYPE_PERCENTAGE, math.random())
-hook.Add("PAM_OnRoundEnded", "PAM_UpdateRoundRandomProperty", function()
-	gp_round_random:SetValue(math.random())
-end)
-
--- the current number of players
 local ply_count = 0
-local gp_player_count = pacoman.RegisterGameProperty("player_count", pacoman.TYPE_INTEGER, ply_count)
+
+-- settings
+PAM.setting_namespace = pacoman.server_settings:AddChild("pam")
+
+hook.Add("PACOMAN_Initialized", "PAM_PACOMAN_Initialized",
+	function()
+		local setting_namespace = PAM.setting_namespace
+
+		PAM.vote_length = setting_namespace:AddSetting("vote_length", pacoman.TYPE_INTEGER, 30, "The length of the voting time in seconds.")
+		PAM.initial_vote_type = setting_namespace:AddSetting("initial_vote_type", PAM.vote_type_enum, "map", "The first type of vote that is held when pam starts.")
+
+		-- initial game property values
+		PAM.gp_game_random:SetValue(math.random())
+		PAM.gp_map:SetValue(game.GetMap())
+		PAM.gp_vote_type:SetValue(PAM.initial_vote_type:GetActiveValue())
+		PAM.gp_gamemode:SetValue(engine.ActiveGamemode())
+		PAM.gp_round_random:SetValue(math.random())
+		PAM.gp_player_count:SetValue(ply_count)
+	end
+)
+
+hook.Add("PAM_OnGamemodeChanged", "PAM_UpdateGamemodeProperty", function(gamemode_name)
+	PAM.gp_gamemode:SetValue(gamemode_name)
+end)
+hook.Add("PAM_OnRoundEnded", "PAM_UpdateRoundRandomProperty", function()
+	PAM.gp_round_random:SetValue(math.random())
+end)
 hook.Add("PlayerConnect", "PAM_UpdatePlayerCountPropertyOnConnect", function(ply)
 	ply_count = ply_count + 1
 
-	gp_player_count:SetValue(ply_count)
+	PAM.gp_player_count:SetValue(ply_count)
 end)
 hook.Add("PlayerDisconnected", "PAM_UpdatePlayerCountPropertyOnDisconnect", function(ply)
 	ply_count = ply_count - 1
 
-	gp_player_count:SetValue(ply_count)
+	PAM.gp_player_count:SetValue(ply_count)
 end)
-
--- settings
-local setting_namespace = pacoman.server_settings:AddChild("pam")
-
-PAM.setting_namespace = setting_namespace
-PAM.vote_length = setting_namespace:AddSetting("vote_length", pacoman.TYPE_INTEGER, 30, "The length of the voting time in seconds.")

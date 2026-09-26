@@ -1,7 +1,7 @@
 function PAM.Start(vote_type, vote_length_override, winner_callback_override)
 	if PAM.state ~= PAM.STATE_DISABLED then return end
 
-	PAM.vote_type = vote_type or "map"
+	PAM.vote_type = vote_type or PAM.initial_vote_type:GetActiveValue()
 	PAM.winner_callback = winner_callback_override or PAM.ChangeMap
 
 	local vote_length = vote_length_override or PAM.vote_length:GetActiveValue()

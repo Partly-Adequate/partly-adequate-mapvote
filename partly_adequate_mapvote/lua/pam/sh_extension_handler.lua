@@ -103,26 +103,35 @@ hook.Add("Initialize", "PAM_Initialize_Extensions", function()
 end)
 
 if SERVER then
-	local sv_extensions, _ = file.Find("pam/server/extensions/*.lua", "LUA")
 	local cl_extensions, _ = file.Find("pam/client/extensions/*.lua", "LUA")
-	for i = 1, #sv_extensions do
-		PAM_EXTENSION = {}
-		include("pam/server/extensions/" .. sv_extensions[i])
-		if PAM_EXTENSION.name then
-			RegisterExtension()
-		end
-	end
+	local sv_extensions, _ = file.Find("pam/server/extensions/*.lua", "LUA")
 
 	for i = 1, #cl_extensions do
 		AddCSLuaFile("pam/client/extensions/" .. cl_extensions[i])
 	end
-else
-	local cl_extensions, _ = file.Find("pam/client/extensions/*.lua", "LUA")
-	for i = 1, #cl_extensions do
-		PAM_EXTENSION = {}
-		include("pam/client/extensions/" .. cl_extensions[i])
-		if PAM_EXTENSION.name then
-			RegisterExtension()
+
+	hook.Add("PACOMAN_Initialized", "PAM_CreateExtensions",
+		function()
+			for i = 1, #sv_extensions do
+				PAM_EXTENSION = {}
+				include("pam/server/extensions/" .. sv_extensions[i])
+				if PAM_EXTENSION.name then
+					RegisterExtension()
+				end
+			end
 		end
-	end
+	)
+else
+	hook.Add("PACOMAN_Initialized", "PAM_CreateExtensions",
+		function()
+			local cl_extensions, _ = file.Find("pam/client/extensions/*.lua", "LUA")
+			for i = 1, #cl_extensions do
+				PAM_EXTENSION = {}
+				include("pam/client/extensions/" .. cl_extensions[i])
+				if PAM_EXTENSION.name then
+					RegisterExtension()
+				end
+			end
+		end
+	)
 end
