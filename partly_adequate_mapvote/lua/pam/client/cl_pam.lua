@@ -45,6 +45,11 @@ function PAM.UnVote()
 	net.SendToServer()
 end
 
+-- adds a value to PAM.vote_type_enum
+function PAM.RegisterVoteType(name, _)
+    PAM.vote_type_enum:AddValue(name)
+end
+
 -- option icons
 -- returns a material for the option name or nil when no material was found
 function PAM.GetIconMaterial(option_name)

@@ -2,7 +2,10 @@ function PAM.Start(vote_type, vote_length_override, winner_callback_override)
 	if PAM.state ~= PAM.STATE_DISABLED then return end
 
 	PAM.vote_type = vote_type or PAM.initial_vote_type:GetActiveValue()
-	PAM.winner_callback = winner_callback_override or PAM.ChangeMap
+	if not PAM.vote_type_enum:IsValueValid(PAM.vote_type) then return end
+
+	PAM.gp_vote_type:SetValue(vote_type)
+	PAM.winner_callback = winner_callback_override or PAM.vote_type_callbacks[PAM.vote_type]
 
 	local vote_length = vote_length_override or PAM.vote_length:GetActiveValue()
 
@@ -64,6 +67,13 @@ function PAM.Start(vote_type, vote_length_override, winner_callback_override)
 	PAM.extension_handler.RunEvent("OnVoteStarted")
 
 	return true
+end
+
+function PAM.RegisterVoteType(name, callback)
+    PAM.vote_type_enum:AddValue(name)
+	PAM.vote_type_callbacks[name] = callback
+	print("vote type registered: " .. name)
+	PrintTable(PAM.vote_type_callbacks)
 end
 
 function PAM.RegisterOption(option_name, option_win_callback)

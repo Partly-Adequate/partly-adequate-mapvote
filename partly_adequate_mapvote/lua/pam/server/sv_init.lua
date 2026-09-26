@@ -25,6 +25,8 @@ end
 
 local ply_count = 0
 
+PAM.vote_type_callbacks = {}
+
 -- settings
 PAM.setting_namespace = pacoman.server_settings:AddChild("pam")
 
