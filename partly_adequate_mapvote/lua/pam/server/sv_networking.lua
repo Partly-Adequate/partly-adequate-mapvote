@@ -21,7 +21,8 @@ net.Receive("PAM_StateRequest", function(len, ply)
 	if PAM.state ~= PAM.STATE_DISABLED then
 		net.Start("PAM_Start")
 		net.WriteString(PAM.vote_type)
-		net.WriteUInt(timer.TimeLeft("PAM_Vote_Timer"), 32)
+		local remaining_vote_time = timer.TimeLeft("PAM_Vote_Timer") or 0
+		net.WriteUInt(remaining_vote_time, 32)
 		net.WriteUInt(PAM.special_option_count, 32)
 		net.WriteUInt(PAM.option_count, 32)
 		for i = 1, PAM.option_count do
