@@ -50,6 +50,11 @@ function PAM.RegisterVoteType(name, _)
     PAM.vote_type_enum:AddValue(name)
 end
 
+-- adds a value to PAM.vote_evaluation_enum
+function PAM.RegisterVoteEvaluator(name, _)
+	PAM.vote_evaluators_enum:AddValue(name)
+end
+
 -- option icons
 -- returns a material for the option name or nil when no material was found
 function PAM.GetIconMaterial(option_name)

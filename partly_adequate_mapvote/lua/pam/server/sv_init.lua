@@ -27,6 +27,8 @@ local ply_count = 0
 
 PAM.vote_type_callbacks = {}
 
+PAM.vote_evaluators = {}
+
 -- settings
 PAM.setting_namespace = pacoman.server_settings:AddChild("pam")
 
@@ -36,6 +38,7 @@ hook.Add("PACOMAN_Initialized", "PAM_PACOMAN_Initialized",
 
 		PAM.vote_length = setting_namespace:AddSetting("vote_length", pacoman.TYPE_INTEGER, 30, "The length of the voting time in seconds.")
 		PAM.initial_vote_type = setting_namespace:AddSetting("initial_vote_type", PAM.vote_type_enum, "map", "The first type of vote that is held when pam starts.")
+		PAM.vote_evaluator = setting_namespace:AddSetting("vote_evaluator", PAM.vote_evaluators_enum, "lottery", "The voting method.")
 
 		-- initial game property values
 		PAM.gp_game_random:SetValue(math.random())

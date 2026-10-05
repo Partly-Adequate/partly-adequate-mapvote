@@ -3,11 +3,16 @@ require("pacoman")
 PAM = {}
 
 PAM.vote_type_enum = pacoman.RegisterEnumType("pam_vote_types", {})
+PAM.vote_evaluators_enum = pacoman.RegisterEnumType("pam_vote_evaluators", {})
 
 hook.Add("PACOMAN_RegisterEnumValues", "PAM_ENUM_VALUES",
     function()
         PAM.RegisterVoteType("map", PAM.ChangeMap)
         hook.Run("PAM_RegisterVoteTypes")
+
+        PAM.RegisterVoteEvaluator("plurality", PAM.PluralityEvaluation)
+        PAM.RegisterVoteEvaluator("lottery", PAM.LotteryEvaluation)
+        hook.Run("PAM_RegisterVoteEvaluationTypes")
     end
 )
 

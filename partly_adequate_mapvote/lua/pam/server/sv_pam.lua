@@ -56,12 +56,8 @@ function PAM.Start(vote_type, vote_length_override, winner_callback_override)
 			end
 		end
 
-		local winning_option
-
 		-- select winning map
-		winning_option = PAM.options[PAM.extension_handler.RunReturningEvent("GetWinningKey", vote_results)] or PAM.options[PAM.special_option_count + math.random(#PAM.options - PAM.special_option_count)]
-
-		PAM.MakeOptionWin(winning_option)
+		PAM.MakeOptionWin(PAM.options[PAM.vote_evaluators[PAM.vote_evaluator:GetActiveValue()](vote_results)])
 	end)
 
 	PAM.extension_handler.RunEvent("OnVoteStarted")
@@ -72,8 +68,11 @@ end
 function PAM.RegisterVoteType(name, callback)
     PAM.vote_type_enum:AddValue(name)
 	PAM.vote_type_callbacks[name] = callback
-	print("vote type registered: " .. name)
-	PrintTable(PAM.vote_type_callbacks)
+end
+
+function PAM.RegisterVoteEvaluator(name, callback)
+	PAM.vote_evaluators_enum:AddValue(name)
+	PAM.vote_evaluators[name] = callback
 end
 
 function PAM.RegisterOption(option_name, option_win_callback)
@@ -183,4 +182,26 @@ end
 
 function PAM.SetPickCount(option_name, pick_count)
 	sql.Query("INSERT OR REPLACE INTO pam_pickcounts VALUES( " .. sql.SQLStr(option_name) .. ", " .. pick_count .. ")")
+end
+
+-- vote evaluation methods
+function PAM.LotteryEvaluation(vote_results)
+	local vote_sum = 0
+	for _, v in pairs(vote_results) do
+		vote_sum = vote_sum + v
+	end
+
+	local selection = math.random() * vote_sum
+	vote_sum = 0
+
+	for k, v in pairs(vote_results) do
+		vote_sum = vote_sum + v
+		if vote_sum >= selection then
+			return k
+		end
+	end
+end
+
+function PAM.PluralityEvaluation(vote_results)
+	return table.GetWinningKey(vote_results)
 end
